@@ -1,0 +1,105 @@
+# This file is produced automatically by lsfconfig according to
+# installation setup. Refer to "Administering IBM Spectrum LSF"
+# before changing any parameters in this file.
+# Any changes to the path names of LSF files must be reflected
+# in this file. Make these changes with caution.
+
+# After editing this file, run "lsadmin reconfig" and
+# "badmin mbdrestart" to apply your changes.
+
+LSB_SHAREDIR=<%= node['lsf']['lsb_sharedir'] %>
+
+# Configuration directories
+LSF_CONFDIR=<%= node['lsf']['lsf_confdir'] %>
+LSB_CONFDIR=<%= node['lsf']['lsb_confdir'] %>
+
+# Daemon log messages
+LSF_LOGDIR=<%= node['lsf']['lsf_logdir'] %>
+LSF_LOG_MASK=LOG_WARNING
+
+# Batch mail message handling
+LSB_MAILTO=!U
+
+# Miscellaneous
+LSF_AUTH=eauth
+
+# General lsfinstall variables
+LSF_MANDIR=/usr/share/lsf/10.1/man
+LSF_INCLUDEDIR=/usr/share/lsf/10.1/include
+LSF_MISC=/usr/share/lsf/10.1/misc
+XLSF_APPDIR=/usr/share/lsf/10.1/misc
+LSF_ENVDIR=<%= node['lsf']['lsf_envdir'] %>
+
+# Internal variable to distinguish Default Install
+LSF_DEFAULT_INSTALL=y
+
+# Internal variable indicating operation mode
+LSB_MODE=batch
+
+# Other variables
+LSF_LIM_PORT=7869
+LSF_RES_PORT=6878
+LSB_MBD_PORT=6881
+LSB_SBD_PORT=6882
+
+# Enable mbd query child
+LSB_QUERY_PORT=6891
+LSF_DYNAMIC_HOST_WAIT_TIME=60
+
+# WARNING: Please do not delete/modify next line!!
+LSF_LINK_PATH=n
+
+# LSF_MACHDEP and LSF_INDEP are reserved to maintain
+# backward compatibility with legacy lsfsetup.
+# They are not used in the new lsfinstall.
+LSF_INDEP=/usr/share/lsf
+LSF_MACHDEP=/usr/share/lsf/10.1
+
+LSF_TOP=/usr/share/lsf
+LSF_VERSION=10.1
+LSF_ENABLE_EGO=N
+# LSF_EGO_ENVDIR=/usr/share/lsf/conf/ego/cluster1/kernel
+EGO_WORKDIR=/usr/share/lsf/work/cluster1/ego
+LSF_LIVE_CONFDIR=/usr/share/lsf/work/cluster1/live_confdir
+
+# Default tuning parameters
+
+# Enable strict resource requirement syntax to select section
+LSF_STRICT_RESREQ=Y
+# Automatically shuts down any daemons running on hosts that attempted to
+# join the cluster, but failed to communicate within the
+# LSF_DYNAMIC_HOST_WAIT_TIME period.
+EGO_ENABLE_AUTO_DAEMON_SHUTDOWN=Y
+# Enable bmod to modify resource limits and location of job output files for running jobs
+LSB_MOD_ALL_JOBS=Y
+# Reduce pim update frequency
+LSF_PIM_SLEEPTIME_UPDATE=Y
+LSF_PIM_LINUX_ENHANCE=Y
+LSF_UNIT_FOR_LIMITS=MB
+# Do not lock lim when running exclusive jobs
+LSB_DISABLE_LIMLOCK_EXCL=Y
+# Display the execution host in the output of the command bsub -K
+LSB_SUBK_SHOW_EXEC_HOST=Y
+
+# Do not allow lsrun by default to encourage use of bsub
+LSF_DISABLE_LSRUN=Y
+
+# Turn off RES syncup to reduce traffic to master
+LSF_RES_SYNCUP_INTERVAL=0
+
+# Add slots information to the bjobs output
+LSB_BJOBS_DISPLAY_ENH=Y
+LSB_QUERY_ENH=Y
+#LSF_LIC_SCHED_HOST= # License scheduler host
+DAEMON_SHUTDOWN_DELAY=180
+
+LSF_PROCESS_TRACKING=Y
+LSF_LINUX_CGROUP_ACCT=Y
+
+LSB_ENABLE_HPC_ALLOCATION=Y
+LSB_BJOBS_PENDREASON_LEVEL=1
+LSF_MASTER_LIST="<% @master_list.each do |master| %> <%= master %> <% end %>"
+LSF_EGO_DAEMON_CONTROL=N
+LSF_RSH="ssh -o 'PasswordAuthentication no' -o 'StrictHostKeyChecking no'"
+LSF_STRIP_DOMAIN=.<%= @master_domain %>
+LSF_DYNAMIC_HOST_TIMEOUT=10m

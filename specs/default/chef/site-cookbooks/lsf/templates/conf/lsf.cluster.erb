@@ -1,0 +1,72 @@
+# $Revision$Date$
+#-----------------------------------------------------------------------
+# Copyright IBM Corp. 1992, 2016. All rights reserved. 
+# 
+# After editing this file, run "lsadmin reconfig" and 
+# "badmin mbdrestart" to apply your changes.
+#
+# T H I S   I S   A    O N E   P E R   C L U S T E R    F I L E
+#
+# This is a sample cluster definition file.  There is a cluster
+# definition file for each cluster.  This file's name should be 
+# lsf.cluster.<cluster-name>.  
+# See lsf.cluster(5) and the "Administering IBM Spectrum LSF".
+#
+
+Begin   ClusterAdmins
+Administrators = lsfadmin
+End    ClusterAdmins 
+
+
+#### for MULTICLUSTER
+#Begin RemoteClusters
+#CLUSTERNAME
+#cluster2
+#End RemoteClusters
+
+#Begin RemoteClusters
+#CLUSTERNAME
+#cluster
+#End RemoteClusters
+####
+
+Begin	Host
+HOSTNAME  model    type        server  RESOURCES    #Keywords
+#apple    Sparc5S  SUNSOL       1     (sparc bsd)   #Example
+#peach    DEC3100  DigitalUNIX  1     (alpha osf1)
+#banana   HP9K778  HPPA         1     (hp68k hpux)
+#mango    HP735    HPPA         1     (hpux cs)
+#grape    SGI4D35  SGI5         1     (irix)
+#lemon    PC200    LINUX        1     (linux)
+#pear	  IBM350   IBMAIX4      1     (aix cs)
+#plum     PENT_100 NTX86        1     (nt)
+#berry    DEC3100  !            1     (ultrix fs bsd mips dec)
+#orange   !	   SUNSOL       1     (sparc bsd)   #Example
+#prune	  !	   !            1     (convex)
+<% @master_list.each do |master| %>
+<%= master %>	!	!	1	(mg)
+<% end %>
+<% if @is_slave %>
+<%= @slave_hostname %>	!	!	<%= node['lsf']['execute']['server'] %>	(mg)
+<% end %>
+End     Host
+
+Begin Parameters
+LSF_HOST_ADDR_RANGE=*.*.*.*
+# FLOAT_CLIENTS_ADDR_RANGE=*.*.*.*
+# FLOAT_CLIENTS=10
+End Parameters
+
+# Begin ResourceMap
+# RESOURCENAME  LOCATION
+# tmp2	        [default]
+# nio	        [all]
+# console	[default]
+# osname        [default]
+# osver         [default]
+# cpuarch       [default]
+# cpuspeed      [default]
+# bandwidth     [default]
+# availcpufreqs [default]
+# currcpufreqs  [default]
+# End ResourceMap

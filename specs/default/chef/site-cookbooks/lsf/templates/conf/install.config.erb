@@ -1,0 +1,33 @@
+#       # LSF_OPTION_NAME="EXAMPLE_VALUE"
+#       LSF_OPTION_NAME="ACTUAL_VALUE"
+LSF_TOP=<%= node['lsf']['lsf_top'] %>
+# The path to LSF_TOP must be shared and accessible to all hosts
+# The file system containing LSF_TOP must have enough disk space for
+LSF_ADMINS="lsfadmin"
+LSF_CLUSTER_NAME="<%= node['lsf']['clustername'] %>"
+LSF_TARDIR=<%= node['lsf']['tar_dir'] %>
+#ENABLE_EGO="Y"
+#EGO_DAEMON_CONTROL="Y"
+#          the LSF_TARDIR default value is
+# LSF_ADD_SERVERS="hostm hosta hostb hostc"
+# The hosts in LSF_MASTER_LIST are always LSF servers. You can specify
+#        LSF_ADD_SERVERS=:lsf_server_hosts
+# Default: All hosts in LSF_MASTER_LIST.
+# LSF_ADD_CLIENTS="hoste hostf"
+#        LSF_ADD_CLIENTS=:lsf_client_hosts
+# include the model and type of each client listed in LSF_ADD_CLIENTS.
+# LSF_QUIET_INST="N"
+# PATCH_BACKUP_DIR in LSF_TOP/patch.conf and move the saved backup
+# Default: LSF_TOP/patch/backup
+# The location is saved as PATCH_HISTORY_DIR in LSF_TOP/patch.conf. Do
+# Default: LSF_TOP/patch
+# LSF_SILENT_INSTALL_TARLIST=""
+# under the LSF_TARDIR dir.
+# enable security, configure LSF_HOST_ADDR_RANGE in
+# LSF_DYNAMIC_HOST_WAIT_TIME="60"
+
+ENABLE_DYNAMIC_HOSTS="Y"
+LSF_DYNAMIC_HOST_WAIT_TIME="60"
+SILENT_INSTALL="Y"
+LSF_SILENT_INSTALL_TARLIST="ALL"
+LSF_MASTER_LIST="<%= @master_list %>"
