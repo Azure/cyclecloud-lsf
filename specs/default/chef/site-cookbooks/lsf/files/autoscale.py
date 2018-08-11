@@ -40,7 +40,7 @@ class Autoscale():
             'TargetCoreCount': self.job_count
         }
         try:
-            logger.debug("autoscale request of %s cores for %s nodearray" % (self.job_count, "slave"))
+            logger.debug("autoscale request of %s cores for %s nodearray" % (self.job_count, array['Name']))
             import jetpack.autoscale
             jetpack.autoscale.update([array])
         except Exception as err:

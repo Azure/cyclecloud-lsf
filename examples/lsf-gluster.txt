@@ -30,6 +30,7 @@
         cyclecloud.selinux.policy = permissive
 
         [[[cluster-init lsf:default:$LsfProjectVersion]]]
+        [[[cluster-init glusterfs:default:$GlusterProjectVersion]]]
 
     [[node fileserver]]
         MachineType = $FSMachineType
@@ -93,7 +94,7 @@
         
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master],recipe[lsf::autoscale]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[glusterfs::client],recipe[lsf::install],recipe[lsf::master],recipe[lsf::autoscale],recipe[cganglia::client]
         cshared.server.shared_dir = /shared
         cyclecloud.discoverable = true
 
@@ -106,6 +107,10 @@
         type = nfs
         mountpoint = /shared/home
         export_path = /mnt/raid/home
+
+        [[[configuration glusterfs.mounts.example]]]
+            mount_point = /mnt/glusterfs
+            clusterUID = $GlusterCluster
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -139,7 +144,7 @@
         [[[cluster-init lsf:slave:$LsfProjectVersion]]]
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[glusterfs::client],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -150,6 +155,10 @@
         type = nfs
         mountpoint = /shared/home
         export_path = /mnt/raid/home
+
+        [[[configuration gluster.fs.mounts.example]]]
+            mount_point = /mnt/glusterfs
+            clusterUID = $GlusterCluster
 
 [parameters About]
 Order = 1
@@ -230,6 +239,16 @@ Order = 20
         Description = The credentials for the cloud provider
         ParameterType = Cloud.Credentials
 
+    [[parameters Storage Backend]]
+    Order = 10 
+
+        [[[parameter GlusterCluster]]]
+        Label = GlusterFS Cluster
+        Description = Name of desired GlusterFS Cluster
+        Config.Plugin = pico.form.QueryDropdown
+        Config.Query = '''select ClusterName as Name from Cloud.Cluster where state === "started" '''
+        DefaultValue := undefined
+
     [[parameters Software]]
     Description = "Specify the scheduling software, and base OS installed on all nodes, and optionally the cluster-init and chef versions from your Locker."
     Order = 20
@@ -254,6 +273,11 @@ Order = 20
         ParameterType = Cloud.ClusterInitSpecs
 
         [[[parameter LsfProjectVersion]]]
+        Label = Project Version
+        Description = CycleCloud LSF project version found in project.ini
+        DefaultValue = 1.0.0
+
+        [[[parameter GlusterProjectVersion]]]
         Label = Project Version
         Description = CycleCloud LSF project version found in project.ini
         DefaultValue = 1.0.0
@@ -292,7 +316,7 @@ Order = 20
         Label = Return Proxy
         DefaultValue = true
         ParameterType = Boolean
-        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)F
+        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)
 
     [[parameters Advanced Machines]]
     Description = Ancillary machine configurations
