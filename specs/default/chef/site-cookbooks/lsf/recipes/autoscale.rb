@@ -26,15 +26,28 @@ cookbook_file '/root/bin/autoscale.py' do
   group "root"
 end
 
-file "/root/bin/autoscale.sh" do
+file "/root/bin/autostart.sh" do
   content <<-EOH
 source /etc/profile.d/lsf.sh
-python /root/bin/autoscale.py debug
+python /root/bin/autoscale.py debug autostart
   EOH
   mode '500'
 end
 
-cron "autoscale" do
-    command "#{node[:cyclecloud][:bootstrap]}/cron_wrapper.sh /root/bin/autoscale.sh"
+cron "autostart" do
+    command "#{node[:cyclecloud][:bootstrap]}/cron_wrapper.sh /root/bin/autostart.sh"
     only_if { node['cyclecloud']['cluster']['autoscale']['start_enabled'] }
 end
+
+file "/root/bin/autostop.sh" do
+    content <<-EOH
+  source /etc/profile.d/lsf.sh
+  python /root/bin/autoscale.py debug autostop
+    EOH
+    mode '500'
+  end
+  
+  cron "autostop" do
+      command "#{node[:cyclecloud][:bootstrap]}/cron_wrapper.sh /root/bin/autostop.sh"
+      only_if { node['cyclecloud']['cluster']['autoscale']['stop_enabled'] }
+  end

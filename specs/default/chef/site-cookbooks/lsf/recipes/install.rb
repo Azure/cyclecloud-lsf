@@ -19,7 +19,7 @@ jetpack_download "lsf10.1_linux2.6-glibc2.3-x86_64.tar.Z" do
 end
 
 execute "untar_installers" do 
-    command "tar -xf lsf10.1_lsfinstall_linux_x86_64.tar.Z"
+    command "gunzip lsf10.1_lsfinstall_linux_x86_64.tar.Z && tar -xf lsf10.1_lsfinstall_linux_x86_64.tar"
     cwd tar_dir
     not_if { ::File.exist?("#{tar_dir}/lsf10.1_lsfinstall/lsfinstall") }
 end
