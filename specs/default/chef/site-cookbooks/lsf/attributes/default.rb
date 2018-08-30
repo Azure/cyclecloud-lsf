@@ -1,5 +1,7 @@
 
-default[:lsf][:version] = "10.1"
+default['lsf']['version'] = "10.1"
+default['lsf']['kernel'] = "linux2.6-glibc2.3"
+default['lsf']['arch'] = "x86_64"
 default['lsf']['clustername'] = "azure"
 default['lsf']['tar_dir'] = "/tmp"
 default['lsf']['lsf_top'] = "/usr/share/lsf"
