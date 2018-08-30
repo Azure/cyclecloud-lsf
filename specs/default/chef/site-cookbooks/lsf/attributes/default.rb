@@ -4,6 +4,7 @@ default['lsf']['clustername'] = "azure"
 default['lsf']['tar_dir'] = "/tmp"
 default['lsf']['lsf_top'] = "/usr/share/lsf"
 default['lsf']['local_etc'] = "/etc/lsf"
+default['lsf']['host_tokens_dir'] = "#{node['lsf']['lsf_top']}/conf/cyclecloud"
 
 default['lsf']['lsb_sharedir'] = "#{node['lsf']['lsf_top']}/work" 
 default['lsf']['lsf_confdir'] = "#{node['lsf']['lsf_top']}/conf" 
