@@ -8,9 +8,12 @@ end
 
 clustername = node['lsf']['clustername']
 lsf_top = node['lsf']['lsf_top']
+lsf_version = node['lsf']['version']
+lsf_kernel = node['lsf']['kernel']
+lsf_arch = node['lsf']['arch']
 
 execute "lsf init.d" do
-  command "cp #{lsf_top}/10.1/linux2.6-glibc2.3-x86_64/etc/lsf_daemons /etc/init.d/lsf"
+  command "cp #{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc/lsf_daemons /etc/init.d/lsf"
   creates "/etc/init.d/lsf"
 end
 

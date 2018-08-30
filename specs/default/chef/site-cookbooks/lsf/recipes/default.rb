@@ -3,7 +3,9 @@
 # Recipe:: default
 #
 # Copyright:: 2018, The Authors, All Rights Reserved.
-
+lsf_version = node['lsf']['version']
+lsf_kernel = node['lsf']['kernel']
+lsf_arch = node['lsf']['arch']
 
 group node['lsf']['admin']['username'] do
   gid '6001'.to_i
@@ -60,7 +62,7 @@ var = "lsfadmin"
 file '/etc/lsf.sudoers' do
   content "
 LSF_STARTUP_USERS=\"#{var}\"
-LSF_STARTUP_PATH=\"/usr/share/lsf/10.1/linux2.6-glibc2.3-x86_64/etc\"
+LSF_STARTUP_PATH=\"/usr/share/lsf/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc\"
 "
   mode '0600'
 end
