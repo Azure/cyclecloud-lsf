@@ -269,13 +269,6 @@ class lsf:
             return
 
         self.logger.debug("shutting down hosts: %s, %s" % (kill_candidates, kill_candidate_ids))
-        for kill_candidate in kill_candidates:
-            hostfile = os.path.join(self.tokens_dir, kill_candidate)
-            try:
-                os.remove(hostfile)
-            except:
-                logger.warn("%s already removed." % hostfile)
-
         kill_candidate_hostfiles = []
         for kill_candidate in kill_candidates:
             hostfile = os.path.join(self.tokens_dir, kill_candidate)
