@@ -12,6 +12,7 @@ from pprint import pformat, pprint
 import urllib
 import getopt
 import socket
+import shutil
 
 def lsf_cmd_call(method_name,call_keys=[],logger=None):
     method_names = ['bjobs', 'bqueues', 'bhosts']
@@ -42,9 +43,6 @@ def get_jobs_bqueues(queue_name=None,logger=None):
     for queue in queues:
         queue_name = queue['QUEUE_NAME']
         njobs = int(queue['NJOBS'])
-        if queue_name:
-            if queue_name.lower() != queue_name.lower():
-                continue
         total_jobs += njobs
     return total_jobs
 
@@ -109,7 +107,7 @@ def request_shutdown(kill_candidate_ids, kill_candidate_hostfiles, logger, reaso
 
     cluster_name = configuration['identity']['cluster_name']
     instance_id = configuration['identity']['instance_id'] 
-
+    successfully_shutdown = []
     for i, kill_candidate_id in enumerate(kill_candidate_ids):
         url = urllib.quote("/cloud/actions/autoscale/%s/stop" % cluster_name)
         params = {
@@ -124,23 +122,26 @@ def request_shutdown(kill_candidate_ids, kill_candidate_hostfiles, logger, reaso
             logger.debug("terminating = kill_candidate_id %s" % kill_candidate_id   )
             conn.request("POST", url, headers=headers)
             r = conn.getresponse()
-            time.sleep(2)
+            logger.debug("termination response = %s" % r.read())
+            time.sleep(1)
             if r.status != 200:
                 logger.error("kill_candidate_id failed in termination")
+            else:
+                successfully_shutdown.append(i)
         except Exception, e:
             logger.exception("Unable to contact CycleCloud")
         try:
             os.remove(kill_candidate_hostfiles[i])
         except:
             logger.warn("%s already removed." % kill_candidate_hostfiles[i])
+    return successfully_shutdown
 
 class lsf:
 
     def __init__(self, logger, hostfile_path):
         self.hosts_db_file = '/root/hosts.pkl'
+        self.hostsfiles_dir = '/root/cyclecloud_hostfiles'
         self.hosts = {}
-        self.kill_path = os.path.join(os.environ['LSF_ENVDIR'], "cyclecloud", "remove")
-        self.killed_path = os.path.join(os.environ['LSF_ENVDIR'], "cyclecloud", "is_removed")
         self.hostfile_path = hostfile_path
         self.logger = logger 
         self.masters = get_masters() + [socket.gethostname()]
@@ -148,22 +149,35 @@ class lsf:
         self.last_seen_max = 90
         self.tokens_dir = jcfg.get("lsf.host_tokens_dir")
 
+        if not os.path.exists(self.hostsfiles_dir):
+            os.makedirs(self.hostsfiles_dir)
 
     def load_hosts(self):
         if os.path.isfile(self.hosts_db_file):
-            with open(self.hosts_db_file, 'rb') as f:
-                self.hosts = pickle.load(f)
+            try:
+                with open(self.hosts_db_file, 'rb') as f:
+                    self.hosts = pickle.load(f)
+            except:
+                logger.warn("Hosts file %s corrupted, read from %s " % (self.hosts_db_file, self.hostsfiles_dir))
+                os.remove(self.hosts_db_file)
+                self.load_hosts_from_tokens(local=True)
         else:
-            self.hosts = {}
+            self.load_hosts_from_tokens(local=True)
     
     def save_hosts(self):
         with open(self.hosts_db_file,'wb') as f:
             pickle.dump(self.hosts, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def load_hosts_from_tokens(self):
-        hostfiles = os.listdir(self.hostfile_path)
+    def load_hosts_from_tokens(self, local=False):
+        if local:
+            tokens_dir = self.hostsfiles_dir
+        else:
+            tokens_dir = self.hostfile_path
+        self.logger.debug("loading hosts from %s" % tokens_dir)
+        hostfiles = os.listdir(tokens_dir)
+        self.logger.debug("Found tokens : %s" % hostfiles)
         for hostfile in hostfiles:
-            fpath = os.path.join(self.hostfile_path, hostfile)
+            fpath = os.path.join(tokens_dir, hostfile)
             hostname = hostfile.strip().lower()
             if os.path.isdir(fpath):
                 continue
@@ -175,9 +189,14 @@ class lsf:
                 _host = self.hosts[hostname]
                 _host['instance_id'] = instance_id
                 _host['boot_time'] = boot_time
+                _host['source_file'] = fpath
             else:
-                d = {'boot_time' : boot_time} 
+                d = {'instance_id' : instance_id, 
+                    'boot_time' : boot_time, 
+                    'source_file' : fpath} 
                 self.hosts[hostname] = d
+            if not local:
+                shutil.move(fpath,os.path.join(self.hostsfiles_dir,hostname))
 
     def init_hosts(self, all_hosts):
         ts = time.time()
@@ -242,7 +261,12 @@ class lsf:
         self.logger.debug("check hostnames in master list: %s" % self.masters)
         for hostname, host in self.hosts.iteritems():
             if host['is_idle'] and host['status'] == "ok" and (hostname not in self.masters):
-                close_candidates.append(hostname)
+                if not host.has_key('instance_id'):
+                    self.load_hosts_from_tokens(local=True)
+                if not host.has_key('instance_id'):
+                    self.logger.warn("trying to close host: %s, instance_id cannot be found. possibly not elastic." % hostname)
+                else:
+                    close_candidates.append(hostname)
         
         MAX_HCLOSE_LEN = 20
         if close_candidates.__len__() > MAX_HCLOSE_LEN:
@@ -263,6 +287,11 @@ class lsf:
         for hostname, host in self.hosts.iteritems():
             if host['is_idle'] and host['status'] == "closed_Adm" and (hostname not in self.masters):
                 kill_candidates.append(hostname)
+                if not host.has_key('instance_id'):
+                    self.load_hosts_from_tokens(local=True)
+                if not host.has_key('instance_id'):
+                    self.logger.error("instance_id for host: %s cannot be found" % hostname)
+                    continue
                 kill_candidate_ids.append(host['instance_id'])
         
         if not(kill_candidates):
@@ -271,10 +300,13 @@ class lsf:
         self.logger.debug("shutting down hosts: %s, %s" % (kill_candidates, kill_candidate_ids))
         kill_candidate_hostfiles = []
         for kill_candidate in kill_candidates:
-            hostfile = os.path.join(self.tokens_dir, kill_candidate)
+            hostfile = os.path.join(self.hostsfiles_dir, kill_candidate)
             kill_candidate_hostfiles.append(hostfile)
 
-        request_shutdown(kill_candidate_ids, kill_candidate_hostfiles, self.logger)
+        kill_indexes = request_shutdown(kill_candidate_ids, kill_candidate_hostfiles, self.logger)
+        killed_hosts = [kill_candidates[i] for i in kill_indexes]
+        for killed_host in killed_hosts:
+            self.hosts.pop(killed_host)
 
     def get_jobs(self,method):
         if method == "bjobs":
