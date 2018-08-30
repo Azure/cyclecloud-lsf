@@ -124,6 +124,7 @@ def request_shutdown(kill_candidate_ids, kill_candidate_hostfiles, logger, reaso
             logger.debug("terminating = kill_candidate_id %s" % kill_candidate_id   )
             conn.request("POST", url, headers=headers)
             r = conn.getresponse()
+            time.sleep(2)
             if r.status != 200:
                 logger.error("kill_candidate_id failed in termination")
         except Exception, e:
