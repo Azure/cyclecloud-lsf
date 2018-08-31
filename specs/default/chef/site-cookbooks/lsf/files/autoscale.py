@@ -22,16 +22,21 @@ def lsf_cmd_call(method_name,call_keys=[],logger=None):
     if method_name == "bjobs":
         cmd += ['-u', 'all']
     logger.debug("cmd = %s" % cmd)
-
+    t0 = time.time()
     try:
         stdout = subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
         logger.error(e.output)
+    delta = time.time() - t0
+    logger.debug("%s call took %0.3fs" % (method_name, delta))
+    t0 = time.time()
     try:
         _dict = json.loads(stdout)
     except:
         logger.error("invalid json from %s" % cmd)
+    delta = time.time() - t0
     if _dict.has_key('RECORDS'):
+        logger.debug("load dict took %0.3fs, found %s records." % (delta, len(_dict['RECORDS'])))
         return _dict['RECORDS']
     else:
         raise ValueError("Unable to collect RECORDS from %s" % cmd)
@@ -168,7 +173,7 @@ class lsf:
         with open(self.hosts_db_file,'wb') as f:
             pickle.dump(self.hosts, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def load_hosts_from_tokens(self, local=False):
+    def load_hosts_from_tokens(self, local=False, add_new=True):
         if local:
             tokens_dir = self.hostsfiles_dir
         else:
@@ -191,6 +196,8 @@ class lsf:
                 _host['boot_time'] = boot_time
                 _host['source_file'] = fpath
             else:
+                if add_new == False:
+                    continue
                 d = {'instance_id' : instance_id, 
                     'boot_time' : boot_time, 
                     'source_file' : fpath} 
@@ -262,7 +269,7 @@ class lsf:
         for hostname, host in self.hosts.iteritems():
             if host['is_idle'] and host['status'] == "ok" and (hostname not in self.masters):
                 if not host.has_key('instance_id'):
-                    self.load_hosts_from_tokens(local=True)
+                    self.load_hosts_from_tokens(local=True,add_new=False)
                 if not host.has_key('instance_id'):
                     self.logger.warn("trying to close host: %s, instance_id cannot be found. possibly not elastic." % hostname)
                 else:
@@ -288,7 +295,7 @@ class lsf:
             if host['is_idle'] and host['status'] == "closed_Adm" and (hostname not in self.masters):
                 kill_candidates.append(hostname)
                 if not host.has_key('instance_id'):
-                    self.load_hosts_from_tokens(local=True)
+                    self.load_hosts_from_tokens(local=True,add_new=False)
                 if not host.has_key('instance_id'):
                     self.logger.error("instance_id for host: %s cannot be found" % hostname)
                     continue
