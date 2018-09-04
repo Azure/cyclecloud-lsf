@@ -1,3 +1,577 @@
+# $Revision$Date$
+
+# After editing this file, run "badmin reconfig" to apply your changes.
+
+# queue definition profile. This file affects the scheduling behavior of the
+# LSF Batch system on jobs submitted to queues.  Each queue is defined in a
+# Queue section enclosed by Begin Queue and End Queue
+
+# Queues with higher PRIORITY (thus bigger values) are searched first
+# during scheduling. There are default values provided.
+
+# ADMINISTRATORS limits the users that can operate on jobs in this queue and 
+# on the queue itself. The user group names defined in lsb.users file and UNIX 
+# user group can be used here.
+
+# BACKFILL = Y enables backfill scheduling for the queue.
+
+# CHKPNT = chkpnt_diretory [chkpnt_period_in_minute]
+# Jobs submitted to the queue with this option will be checkpoint-ed 
+# automatically every chkpnt_period_in_minute's. The chkpnt_directory
+# should be created already. Otherwise, no chkpnt will be performed.
+# The chkpnt period is optional. If it is supplied, default value is
+# used.
+
+# CORELIMIT, CPULIMIT, DATALIMIT, FILELIMIT, MEMLIMIT, STACKLIMIT
+# are limits for various resources (see setrlimit(2)) a job in
+# this queue may use.  These are the hard limits. The limits users specify
+# when submitting jobs are soft limits. If any of these is not defined, then
+# the limit is assumed to be infinity. All except CPULIMIT are in kilobytes.
+# CPULIMIT is in minutes.  The CPULIMIT is enforced on a job level basis
+# while the other limits are enforced on a per-process basis.  When the
+# CPULIMIT is reached, SIGXCPU is sent to the job, followed by SIGINT,
+# SIGTERM, and SIGKILL in sequence.
+
+# CPU_TIME_FACTOR used only with fairshare scheduling.                   
+# In the calculation of a user's dynamic share priority, this factor determines
+# the relative importance of the cumulative CPU time used by a user's jobs. 
+# If undefined, the cluster-wide value from lsb.params is used.  
+
+# DESCRIPTION is text that will be displayed by bqueues -l.
+# This description should clearly describe the service features of 
+# this queue, to help users select the proper queue for each job.
+# 
+# The text can include any characters, including white space. The 
+# text can be extended to multiple lines by ending the preceding 
+# line with a backslash (\). The maximum length for the text is 512 
+# characters.
+
+# DISPATCH_ORDER defines an ordered cross-queue fairshare set. 
+# Indicates that jobs are dispatched according to the order of queue 
+# priorities first, then user fairshare priority.
+# 
+# If DISPATCH_ORDER=QUEUE is set in the master queue, jobs are 
+# dispatched according to queue priorities first, then user 
+# priority. Jobs from users with lower fairshare priorities who have 
+# pending jobs in higher priority queues are dispatched before jobs 
+# in lower priority queues. This avoids having users with higher 
+# fairshare priority getting jobs dispatched from low-priority queues. 
+
+# DISPATCH_WINDOW describes the time window during which jobs are dispatched.
+# Time windows can be specified as up to 3 fields -- [day:]hour[:minute].
+# Note that day=[0-6]: 0 is Sunday, 1 is Monday and 6 is Saturday.  If only 
+# one field exists, it is assumed to be hour; if two fields exist, it is 
+# assumed to be hour[:minute]. Multiple windows can be specified.  The 
+# default is any time.
+
+# ENABLE_HIST_RUN_TIME used only with fairshare scheduling. 
+# If set, enables the use of historical run time in the calculation of fairshare 
+# scheduling priority. If undefined, the cluster-wide value from lsb.params is used. 
+
+# EXCLUSIVE = Y | N | CU[ <compute unit type> ]
+#
+# EXCLUSIVE = Y specifies that jobs from this queue can run exclusively on a
+# host if the user submits a job with bsub -x.
+#
+# EXCLUSIVE = CU[ <compute unit type> ] specifies that jobs can run exclusively on the
+# entire compute units if the user submits a job with bsub -R "cu[excl].
+# Jobs in the queue with bsub -x can run exclusively on a host if -R "cu[excl]" 
+# is not specified (equivalent to EXCLUSIVE = Y in this case). 
+#
+# <compute unit type> should be one of the value of lsb.params COMPUTE_UNIT_TYPES. 
+# If <compute unit type> is not specified, the default compute unit type is assumed.
+# Both CU[] and CU are permitted.
+#
+# E.g., EXCLUSIVE = CU[enclosure]
+
+# FAIRSHARE specifies that the fairshare policy is used to schedule jobs
+# in the queue.  By default, jobs are scheduled on a FIFO basis.  The
+# keyword, USER_SHARES, is used to specify the shares for each user.
+# The value of USER_SHARES consists of one or more [username, share] pairs;
+# e.g.,	FAIRSHARE = USER_SHARES[[eng_users, 80] [ acct_usrs, 50]].
+# If USER_SHARES is not given, equi-share is used for fairshare scheduling.
+
+# FAIRSHARE_ADJUSTMENT_FACTOR used only with fairshare scheduling.                   
+# In the calculation of a user's dynamic share priority, this factor determines the 
+# relative importance of the user-defined adjustment made in the fairshare plugin 
+# (libfairshareadjust.*). A positive float number both enables the fairshare plugin 
+# and acts as a weighting factor. 
+# If undefined, the cluster-wide value from lsb.params is used.
+
+# APS_PRIORITY specifies that an absolute priority scheduling (APS) policy
+# is to be used for scheduling jobs in the queue.  The APS_PRIORITY line  
+# declares the WEIGHT, LIMIT and GRACE_PERIOD of the following factors:
+#     FS (user-based fairshare)
+#     RSRC --> subfactors: PROC, MEM, SWAP 
+#     WORK --> subfactors: JPRIORITY, QPRIORITY
+#
+# E.g., APS_PRIORITY = WEIGHT[[RSRC, 10.0] [MEM, 20.0] [PROC, 2.5] [QPRIORITY, 2.0] [FS, 50.0]] \ 
+#                      LIMIT[[RSRC, 3.5] [FS, 100.0] [QPRIORITY, 5.5]] \ 
+#                      GRACE_PERIOD[[QPRIORITY, 200s] [MEM, 10m] [PROC, 2h]]
+#
+# For each job in the queue, an APS value is calculated as the sum 
+# of its weighted factors (each of RSRC and WORK is in turn the sum of its  
+# weighted subfactors).  The APS values determine the dispatch order of    
+# the jobs, where the job with the largest APS value has highest priority.
+# LIMIT bounds the maximum absolute value of each factor or subfactor, 
+# and GRACE_PERIOD specifies the time to wait for the job before the  
+# factor is included in the APS calculation. This time may be in seconds,
+# minutes or hours (s/m/h).  From the command line, the LSF Administrator
+# can set an additional ADMIN factor for each job using:
+# bsub -aps "admin=<value>" <jobID>.  Alternatively, the LSF 
+# Administrator can set the APS value of the job directly with:
+# bsub -aps "system=<value>" <jobId>.
+
+# QUEUE_GROUP defines cross-queue fairshare and/or cross-queue
+# absolute priority scheduling.  When this parameter is defined:
+#   - The queue in which this parameter is defined becomes the 
+#     "master queue"
+#   - Queues listed by this parameter are "slave queues" and 
+#     inherit the fairshare policy and/or APS policy of the master queue. 
+#   - For fairshare queues, a user has the same priority across the master  
+#     and slave queues. If the same user submits several jobs to these queues,
+#     user priority is calculated by taking into account all the jobs 
+#     the user has submitted across the master-slave set. 
+
+# HIST_HOURS used only with fairshare scheduling, It determines a rate of decay for
+# cumulative CPU time and historical run time. To calculate dynamic user priority, 
+# LSF scales the actual CPU time using a decay factor, so that 1 hour of recently-used 
+# time is equivalent to 0.1 hours after the specified number of hours has elapsed.
+# To calculate dynamic user priority with historical run time, LSF scales the accumulated 
+# run time of finished jobs using the same decay factor, so that 1 hour of recently-used 
+# time is equivalent to 0.1 hours after the specified number of hours has elapsed.
+# When HIST_HOURS=0, CPU time accumulated by running jobs is not decayed. 
+# If undefined, the cluster-wide value from lsb.params is used.  
+
+# HJOB_LIMIT is the per-host job slot limit.
+# Maximum number of job slots that this queue can use on any host. 
+# This limit is configured per host, regardless of the number of 
+# processors it may have.
+
+# HOSTS limits the hosts on which jobs submitted to this queue may execute.
+# The default is all hosts in the LSF cluster.
+
+# INTERACTIVE = Y | y | N | n | ONLY
+# INTERACTIVE specifies whether the queue should not accept LSF Batch
+# interactive jobs (INTERACTIVE = 'n' | 'N'), or should only accept interactive jobs
+# (INTERACTIVE = ONLY).  An LSF Batch interactive job is submitted using
+# the -I options of bsub.  By default, a queue accepts both interactive and
+# non-interactive jobs.
+
+# JOB_CONTROLS = SUSPEND[signal | CHKPNT | command ] |
+#                RESUME[signal | command ] |
+#                TERMINATE[signal | CHKPNT | command ]
+# specifies the action to be taken when a job is normally suspended or
+# resumed by a user or by the system.  TERMINATE is used in conjunction
+# with the TERMINATE_WHEN parameter (see below) to specify an action
+# to terminate a job rather then stopping a job when conditions are
+# stopping the job are satisfied.
+
+# JOB_IDLE specifies a threshold for idle job exception handling. 
+# The value should be a number between 0.0 and 1.0 representing CPU 
+# time/runtime. If the job idle factor is less than the specified 
+# threshold, LSF invokes LSF_SERVERDIR/eadmin to trigger the action 
+# for a job idle exception.
+
+# JOB_OVERRUN specifies a threshold for job overrun exception 
+# handling. If a job runs longer than the specified run time, LSF 
+# invokes LSF_SERVERDIR/eadmin to trigger the action for a job 
+# overrun exception.
+
+# JOB_UNDERRUN specifies a threshold for job underrun exception 
+# handling. If a job exits before the specified number of minutes, 
+# LSF invokes LSF_SERVERDIR/eadmin to trigger the action for a job 
+# underrun exception.
+
+# JOB_STARTER specifies a job starter command for jobs in the queue.
+# When starting a job, LSF runs the JOB_STARTER command, and passes
+# the shell script containing the job's commands as the argument to
+# the JOB_STARTER.  The JOB_STARTER is expected to do some processing
+# and then run the shell script containing the job's commands.
+# The command is run under /bin/sh -c and thus can contain any valid
+# Bourne shell syntax.
+
+# MIG enables automatic job migration and specifies the migration 
+# threshold, in minutes. If a migration threshold is defined at both 
+# host and queue levels, the lower threshold is used.
+
+# NICE adjusts the UNIX scheduling priority at which jobs from the 
+# queue execute.
+
+# PJOB_LIMIT is the per-processor job slot limit for the queue.
+# Maximum number of job slots that this queue can use on any 
+# processor. This limit is configured per processor, so that 
+# multiprocessor hosts automatically run more jobs.
+
+# POST_EXEC is a command which is executed after real job dispatched from this
+# queue has finished running on the execution host. It is also run if the 
+# PRE_EXEC command exited with a 0 exit status, but the job's execution 
+# environment failed to be setup. It is executed under the job's user ID
+# with standard input, output and error redirected to /dev/null.
+
+# PRE_EXEC is a command which is executed before a job dispatched from this
+# queue is run on an execution host. It is executed under the job's user ID
+# with standard input , output and error redirected to /dev/null.
+
+# HOST_POST_EXEC command runs on all execution hosts after the job
+# dispatched from this queue finishes.
+# For detailed description, refer to LSF documentation.
+
+# HOST_PRE_EXEC command runs on all execution hosts before the job
+# dispatched from this queue starts.
+# For detailed description, refer to LSF documentation.
+
+# PREEMPTION specifies the preemption activity between jobs in this queue
+# and jobs in other queues.  This parameter supports two optional
+# keywords, PREEMPTIVE and PREEMPTABLE.
+#
+# PREEMPTIVE indicates that jobs in this queue may preempt jobs in lower
+# priority queues. PREEMPTIVE optionally accepts a list of the names
+# of those lower priority queues that jobs in this queue can preempt.
+# If no queue names are specified, the default is to preempt all jobs
+# whose queues' priorities are less than that of this queue.
+#
+# PREEMPTABLE indicates that running jobs from this queue may be preempted
+# by jobs in higher priority queues even if those higher priority queues
+# have not specified PREEMPTIVE.
+#
+# E.g., PREEMPTION = PREEMPTIVE[q1 q2 q3]
+
+# PROCESSLIMIT specifies the number of concurrent processes that can be part
+# of a job.  SIGINT, SIGTERM, and SIGKILL are sent to the job in sequence
+# when this limit is reached.
+
+# TASKLIMIT is the task limit (parallelism limit) for a parallel job
+# which can be accepted by this queue.  If a submitted job requests more
+# tasks than this limit, the job is rejected.  If this is not defined, 
+# the default value is infinity.
+
+# QJOB_LIMIT is the job slot limit for the queue. Total number of 
+# job slots that this queue can use. 
+
+# QUEUE_NAME is the name of the queue.
+# Specify any ASCII string up to 60 characters long. You can use 
+# letters, digits, underscores (_) or dashes (-). You cannot use 
+# blank spaces. You cannot specify the reserved name default.
+# You must specify this parameter to define a queue. The default 
+# queue automatically created by LSF is named default.
+
+# REQUEUE_EXIT_VALUES are exit values used by LSF to requeue the jobs 
+# dispatched from this queue.  The keyword, EXCLUDE, specifies that the
+# job will never be re-dispatched to a host that it has failed on.  E.g.,
+#
+# 	REQUEUE_EXIT_VALUES = 30 EXCLUDE(2)
+#
+# specifies that jobs that exit with the value 30 will be requeued (and
+# possibly re-dispatched to one of the failed host(s)), while jobs
+# that exit with the value 2 will be requeued but will not be re-dispatched
+# to one of the failed host(s).
+
+# SUCCESS_EXIT_VALUES = [exit_code ...]
+# Specifies exit values used by LSF to determine if job was done successfully.
+# Use spaces to separate multiple exit codes.
+#
+# Job-level successful exit values overrides configration in application
+# profile. Application-level successful exit values override configuration
+# in queue profile.
+
+# RERUNNABLE   = Y | y | N | n
+# Jobs submitted to the queue with this option will be rerunnable.
+# The default value is 'n'. 
+
+# RES_REQ is a resource requirement string specifying the condition for
+# dispatching a job to a host.  Resource reservation and locality can
+# also be specified in this string.
+
+# RESOURCE_RESERVE enables processor reservation and memory 
+# reservation for pending jobs for the queue. Specifies the number 
+# of dispatch turns (MAX_RESERVE_TIME) over which a job can reserve 
+# job slots and memory.
+
+# RESUME_COND is a resource requirement string specifying the condition for
+# resuming a suspended job.  Only the 'select' section of the string
+# is considered when resuming a stopped job.
+
+# RUN_WINDOW has the same function as DISPATCH_WINDOW.  In addition, jobs
+# will be suspended when the windows are closed.
+#
+# For each of the interested load indices, see lsf.h for definitions of
+# the available load indices. The load indices considered by LSF are:
+# r15s, r1m, r15m, ut, pg, it, ls, swp, tmp, mem, io. If any of these
+# are not specified here, then the default is to make the load index
+# have no effect on job scheduling.
+
+# RUNLIMIT is the maximum run limit and optionally the default run 
+# limit. The name of a host or host model specifies the run time 
+# normalization host to use.
+
+# RUN_TIME_DECAY used only with fairshare scheduling.                   
+# If set, enables the use of decayed run time in the calculation of fairshare 
+# scheduling priority. If undefined, the cluster-wide value from lsb.params
+# is used.   
+
+# RUN_JOB_FACTOR used only with fairshare scheduling.                   
+# In the calculation of a user's dynamic share priority, this factor
+# determines the relative importance of the number of job slots reserved
+# and in use by a user. If undefined, the cluster-wide value from
+# lsb.params is used.                            
+
+# RUN_TIME_FACTOR used only with fairshare scheduling.                   
+# In the calculation of a user's dynamic share priority, this factor
+# determines the  relative importance of the total run time of a user's
+# running jobs. If undefined, the cluster-wide value from lsb.params is used.  
+
+# SLOT_RESERVE = MAX_RESERVE_TIME[n]
+# enables processor reservation.  n is an integer specifying a multiple
+# of MBD_SLEEP_TIME.  MAX_RESERVE_TIME controls the maximum time a job slot
+# is reserved for a parallel job.
+
+# STOP_COND is a resource requirement string specifying the condition for
+# stopping a running job.  Only the 'select' section of the string
+# is considered when stopping a job.
+
+# SWAPLIMIT specifies the maximum virtual memory of all processes in a job
+# and is specified in units of kbytes.  SIGQUIT is sent to the job when
+# this limit is reached, followed by SIGINT, SIGTERM, and SIGKILL in
+# sequence.
+
+# TERMINATE_WHEN = [ WINDOW ] [ LOAD ] [ PREEMPT ]
+# Specifies that the TERMINATE action specified in the JOB_CONTROLS
+# parameter be invoked when the queue's run window closes, the load
+# exceeds thresholds, or the job is being preempted so that a higher
+# priority job will run.
+
+# THREADLIMIT specifies the number of concurrent threads that can be part
+# of a job.  SIGINT, SIGTERM, and SIGKILL are sent to the job in sequence
+# when this limit is reached.
+
+# UJOB_LIMIT is the per-user job slot limit for the queue. Maximum 
+# number of job slots that each user can use in this queue.
+   
+# USERS limits users that can submit jobs to this queue. (default is all
+# users) The user group names defined in lsb.users file can be used here.
+
+# MAX_PREEXEC_RETRY specifies the maximum number of times to attempt the 
+# preexecution command of a job.
+
+# MAX_JOB_REQUEUE specifies the maximum number of times that a job can be
+# requeued automatically.
+
+# MAX_JOB_PREEMPT specifies the maximum number of times that a job can be
+# preempted.
+
+# RESRSV_LIMIT specifies a range of allowed values for the RES_REQ.
+# Queue-level rusage values in the RES_REQ must be in the range of
+# RESRSV_LIMIT or the queue level RES_REQ will be ignored. Merged
+# rusage values from the job-level and application-level RES_REQ 
+# must be in the range of RESRSV_LIMIT or the job will be rejected.
+#
+# For example, RESRSV_LIMIT=[mem=64000] [res1=2,10]
+
+# MAX_TOTAL_TIME_PREEMPT = minutes
+# A job cannot be preempted again after this time which is wall-clock time,
+# not normalized time. Setting the parameter of the same name in 
+# lsb.applications overrides this parameter; setting this parameter overrides
+# the parameter of the same name in lsb.params. The default is unlimited.
+
+# NO_PREEMPT_INTERVAL = minutes
+# Prevents preemption of jobs for the specified number of minutes of 
+# uninterrupted run time, where minutes is wall-clock time, not normalized 
+# time. NO_PREEMPT_INTERVAL=0 allows immediate preemption of jobs as soon as 
+# they start or resume running. Setting the parameter of the same name in 
+# lsb.applications overrides this parameter; setting this parameter overrides 
+# the parameter of the same name in lsb.params. The default is 0.
+
+# HOSTLIMIT_PER_JOB = integer
+# Maximum number of hosts that a job in this queue can use. If the number of hosts
+# requested for a parallel job exceeds this limit, the parallel job will pend.
+
+# LOCAL_MAX_PREEXEC_RETRY_ACTION = SUSPEND|EXIT
+# The action taken when the job on a local or leased remote host reaches the
+# pre-execution retry limit (LOCAL_MAX_PREEXEC_RETRY).
+
+Begin Queue
+QUEUE_NAME           = admin
+DESCRIPTION          = Sysadmin jobs, not preempted
+PRIORITY             = 50
+USERS                = lsfadmins
+#PREEMPTION           = PREEMPTIVE
+EXCLUSIVE            = Y
+RERUNNABLE           = Y
+End Queue
+
+Begin Queue
+QUEUE_NAME   = normal
+PRIORITY     = 30
+INTERACTIVE  = NO
+FAIRSHARE    = USER_SHARES[[default,1]]
+#RUN_WINDOW   = 5:19:00-1:8:30 20:00-8:30
+#r1m	     = 0.7/2.0        # loadSched/loadStop
+#r15m	      = 1.0/2.5
+#pg	      = 4.0/8
+#ut           = 0.2
+#io	      = 50/240
+#CPULIMIT     = 180/hostA      # 3 hours of host hostA
+#FILELIMIT    = 20000
+#DATALIMIT    = 20000          # jobs data segment limit
+#CORELIMIT    = 20000
+#TASKLIMIT    = 5              # job task limit
+#USERS        = all            # users who can submit jobs to this queue
+#HOSTS        = all            # hosts on which jobs in this queue can run
+#PRE_EXEC     = /usr/local/lsf/misc/testq_pre >> /tmp/pre.out
+#POST_EXEC    = /usr/local/lsf/misc/testq_post |grep -v "Hey"
+#REQUEUE_EXIT_VALUES = 55 34 78
+#APS_PRIORITY = WEIGHT[[RSRC, 10.0] [MEM, 20.0] [PROC, 2.5] [QPRIORITY, 2.0]] \ 
+#    LIMIT[[RSRC, 3.5] [QPRIORITY, 5.5]] \ 
+#    GRACE_PERIOD[[QPRIORITY, 200s] [MEM, 10m] [PROC, 2h]]
+DESCRIPTION  = For normal low priority jobs, running only if hosts are \
+lightly loaded.
+End Queue
+
+Begin Queue
+QUEUE_NAME   = interactive
+PRIORITY     = 30
+INTERACTIVE  = ONLY
+NEW_JOB_SCHED_DELAY = 0
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = For interactive jobs only
+End Queue
+
+Begin Queue
+QUEUE_NAME    = owners
+PRIORITY      = 43
+#RUN_WINDOW
+r1m	      = 1.2/2.6
+#r15m	      = 1.0/2.6
+#r15s	      = 1.0/2.6
+pg	      = 4/15
+io	      = 30/200
+swp	      = 4/1
+tmp	      = 1/0
+#CPULIMIT      = 24:0/hostA	 # 24 hours of host hostA
+#FILELIMIT     = 20000
+#DATALIMIT     = 20000           # jobs data segment limit
+#CORELIMIT     = 20000
+#TASKLIMIT    = 5              # job task limit
+#USERS         = user1 user2
+#HOSTS         = hostA hostB
+#ADMINISTRATORS = user1 user2
+#PRE_EXEC     = /usr/local/lsf/misc/testq_pre >> /tmp/pre.out
+#POST_EXEC    = /usr/local/lsf/misc/testq_post |grep -v "Hey"
+#REQUEUE_EXIT_VALUES = 55 34 78
+DESCRIPTION   = For owners of some machines. Only users listed in the HOSTS\
+section can submit jobs to this queue. 
+End Queue
+
+
+Begin Queue
+QUEUE_NAME    = priority
+PRIORITY      = 43
+#PREEMPTION    = PREEMPTIVE[idle]
+FAIRSHARE     = USER_SHARES[[default,1]]
+#RUN_WINDOW
+#CPULIMIT      = 8:0/SunIPC	# 8 hours of host model SunIPC
+#FILELIMIT     = 20000
+#DATALIMIT     = 20000          # jobs data segment limit
+#CORELIMIT     = 20000
+#TASKLIMIT    = 5              # job task limit
+#USERS         = user1 user2 user3
+#HOSTS         = all
+#ADMINISTRATORS       = user1 user3
+#EXCLUSIVE     = N
+#PRE_EXEC     = /usr/local/lsf/misc/testq_pre >> /tmp/pre.out
+#POST_EXEC    = /usr/local/lsf/misc/testq_post |grep -v "Hey"
+#REQUEUE_EXIT_VALUES = 55 255 78
+DESCRIPTION   = Sample queue used to illustrate how queue-based\ 
+preemption should be configured. To enable jobs in this queue to\
+preempt jobs in the queue named idle, uncomment the above line \
+containing the assignment for PREEMPTION.
+End Queue
+
+
+Begin Queue
+QUEUE_NAME    = short
+PRIORITY      = 35
+FAIRSHARE     = USER_SHARES[[default,1]]
+#RUN_WINDOW
+#r15s	       = 0.7/2.3
+r1m	       = 0.9/
+#r15m	       = 0.4/2.0
+#pg	       = 5/12
+#io	       = 140/400
+CPULIMIT      = 15             # 15 minutes of the fastest host in the cluster
+#FILELIMIT     = 20000
+#DATALIMIT     = 20000          # jobs data segment limit
+#CORELIMIT     = 20000
+#TASKLIMIT    = 5              # job task limit
+#USERS
+#HOSTS
+#ADMINISTRATORS
+#PRE_EXEC  
+#POST_EXEC 
+#EXCLUSIVE
+DESCRIPTION   = For short jobs that would not take much CPU time. \
+Scheduled with higher priority.
+End Queue
+
+
+Begin Queue
+QUEUE_NAME   = idle
+PRIORITY     = 20
+#RUN_WINDOW
+FAIRSHARE    = USER_SHARES [ [default, 1] ] 
+r15s	     = 0.3/1.5
+r1m	     = 0.3/1.5
+pg	     = 4.0/15
+it	     = 10/1
+#CPULIMIT
+#FILELIMIT   = 20000
+#DATALIMIT    = 20000          # jobs data segment limit
+#CORELIMIT    = 20000
+#TASKLIMIT    = 5
+#USERS
+#HOSTS
+#ADMINISTRATORS
+#EXCLUSIVE
+#PRE_EXEC  
+#POST_EXEC  
+#REQUEUE_EXIT_VALUES
+#PREEMPTION   = PREEMPTABLE(priority)
+DESCRIPTION  = Running only if the machine is idle and very lightly loaded.
+End Queue
+
+Begin Queue
+QUEUE_NAME   = night
+PRIORITY     = 40
+RUN_WINDOW   = 5:19:00-1:8:30 20:00-8:30
+r1m	     = 0.8/2.5
+FAIRSHARE    = USER_SHARES [ [default, 1] ] 
+#CPULIMIT
+#FILELIMIT   = 20000
+#DATALIMIT    = 20000          # jobs data segment limit
+#CORELIMIT    = 20000
+#TASKLIMIT    = 5
+#USERS
+#HOSTS
+#ADMINISTRATORS
+#PRE_EXEC     
+#POST_EXEC   
+#REQUEUE_EXIT_VALUES
+DESCRIPTION  = For large heavy duty jobs, running during off hours and \
+weekends. Scheduled with higher priority.
+End Queue
+
+<% if @remote_queue %>
+Begin Queue
+QUEUE_NAME   = <%= @queue_name %>
+PRIORITY     = 30
+INTERACTIVE  = NO
+RCVJOBS_FROM = <%= @clustername %>
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = Send jobs to remove cluster(s)
+End Queue
+<% end %>
+
 ##cluster1 lsb.queues
 #Begin Queue
 #QUEUE_NAME   = hybrid

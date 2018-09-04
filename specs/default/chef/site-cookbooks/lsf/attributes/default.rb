@@ -18,6 +18,11 @@ default['lsf']['admin']['home'] = "#{node['lsf']['lsf_top']}/lsfadmin"
 default['lsf']['autoscale']['log'] = "/var/log/lsf-autoscale.log"
 default['lsf']['execute']['server'] = 1
 
+default['lsf']['remote_clusters']['default']['enabled'] = false
+default['lsf']['remote_clusters']['default']['clustername'] = ""
+default['lsf']['remote_clusters']['default']['servers'] = []
+default['lsf']['remote_clusters']['default']['queue']['queue_name'] = "cloudq"
+
 # for search
 default['lsf']['master']['hostnames'] = nil
 default['lsf']['master']['ip_addresses'] = nil

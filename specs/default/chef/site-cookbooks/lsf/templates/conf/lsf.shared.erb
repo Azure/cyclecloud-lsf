@@ -1,0 +1,367 @@
+# $Revision$Date$
+#
+# After editing this file, run "lsadmin reconfig" and 
+# "badmin mbdrestart" to apply your changes.
+#
+# ----------------------------------------------------------------------
+# T H I S   F I L E:  Is shared by all clusters in the LSF system.
+#
+# This file contains all definitions referenced by individual 
+# lsf.cluster.<clustername> files. The definitions in this file can be
+# a superset, i.e., not all definitions in this file need to be used in
+# other files. 
+#
+# See lsf.cluster(5) and "LSF User's and Administrator's Guide".
+# ----------------------------------------------------------------------
+
+Begin Cluster
+ClusterName			# Keyword
+#white				# Example
+<%= node['lsf']['clustername'] %>
+End Cluster
+
+<% if @remote_queue %>
+Begin Cluster
+ClusterName	    Servers
+<%= @remote_clustername %>   (<%= @remote_servers %>)
+End Cluster
+<% end %>
+
+
+Begin HostType
+TYPENAME                        # Keyword
+DEFAULT		                # used by lsfsetup
+#CRAYJ
+#CRAYC
+#CRAYT
+#CRAYSV1
+#CRAYT3E
+CRAYX1
+#CONVEX
+DigitalUNIX
+#ALPHA
+ALPHA5
+ALPHASC
+#EXEMPLAR
+#HALSOL
+#HITACHI
+HPPA
+#IBMAIX3
+#IBMAIX4
+IBMAIX64
+LINUX
+LINUX2
+LINUXAXP
+LINUX86
+LINUXPPC
+LINUX64
+DLINUX
+DLINUX64
+DLINUXAXP
+#SCYLD
+SLINUX
+SLINUX64
+#NEC
+#NECEWS
+#NECSX3
+#NECSX4
+#NECSX5
+NECSX6
+NECSX8
+
+#NOTICE: Do not comment out NTX86, NTX64 and NTIA64 for internal use
+
+NTX86
+NTX64
+NTIA64
+#NTALPHA
+#SCO
+#SGI5
+SGI6
+SUNSOL
+SOL732
+#SONY
+#SUN41
+#ULTRIX
+#WIN95
+SOL64
+SGI64
+SGI65
+SGI658
+SOLX86
+SOLX8664
+#SPP
+HPPA11
+HPUXIA64
+MACOSX
+#LNXS39032
+#LNXS390X64
+zLINUX
+LINUXPPC64
+LINUXPPC64LE
+#BPROC
+#BPROC4
+LINUX_ARM64
+LINUX_ARM
+X86_64
+SX86_64
+IA64
+DIA64
+SIA64
+HV_KVM
+HV_ESX
+IBMAIX532
+IBMAIX564
+End HostType
+
+
+#
+# The CPU factor values are derived from SPECfp95 given by hardware vendors
+# or SpecBench (unless indicated otherwise)
+# See http://www.specbench.org for more information on CPU benchmarking
+# To find out an architecture string for a new model, run 'lim -t'
+#
+Begin HostModel
+MODELNAME  CPUFACTOR   ARCHITECTURE # keyword
+# x86 (Solaris, NT, Linux): approximate values, based on SpecBench results
+# for Intel processors (Sparc/NT) and BogoMIPS results (Linux).
+#PC75             1.5   (i86pc_75  i586_75  x586_30)
+#PC90             1.7   (i86pc_90  i586_90  x586_34 x586_35 x586_36)
+#PC100            2.0   (i86pc_100 i586_100 x586_39 x586_40)
+#PC133            2.5   (i86pc_133 i586_133 x586_53 x586_54)
+#PC150            3.5   (i86pc_150 i586_150 x586_60)
+#PC166            4.0   (i86pc_166 i586_166 x586_66 x586_67)
+#LINUX133          2.5   (x586_53_Pentium75)
+#PC200            4.5   (i86pc_200 i586_200 x586_79 x586_80 x586_81)
+#PC233            6.0   (i86pc_233 i686_233)
+#PC266            7.5   (i86pc_266 i686_266)
+#PC300            8.3   (i86pc_300 i686_300)
+#PC333            9.5   (i86pc_333 i686_333)
+#PC350           11.0   (i86pc_350 i686_350)
+#PC400           13.0   (i86pc_400 i686_400)
+#PC450           13.2   (i86pc_450 i686_450)
+#PC1133                23.1    (x6_1189_PentiumIIICoppermine)
+PC6000            116.1    (x15_5980_IntelRPentiumR4CPU300GHz)
+Opteron140         40.0    (x15_3604_AMDOpterontmProcessor140)
+Opteron142         47.0    (x15_3604_AMDOpterontmProcessor142)
+Opteron144         51.0    (x15_3604_AMDOpterontmProcessor144)
+Opteron146         55.0    (x15_3604_AMDOpterontmProcessor146)
+Opteron148         60.0    (x15_3604_AMDOpterontmProcessor148)
+Opteron240	   40.0    (x15_3604_AMDOpterontmProcessor240)
+Opteron242	   47.0    (x15_3604_AMDOpterontmProcessor242)
+Opteron244         51.0    (x15_3604_AMDOpterontmProcessor244)
+Opteron246         55.0    (x15_3604_AMDOpterontmProcessor246)
+Opteron248	   60.0    (x15_3604_AMDOpterontmProcessor248)
+Opteron840         40.0    (x15_3604_AMDOpterontmProcessor840)
+Opteron842         47.0    (x15_3604_AMDOpterontmProcessor842)
+Opteron844         51.0    (x15_3604_AMDOpterontmProcessor844)
+Opteron846         55.0    (x15_3604_AMDOpterontmProcessor846)
+Opteron848         60.0    (x15_3604_AMDOpterontmProcessor848 amd64_2000)
+Opteron285E6       86.0    (x15_5199_DualCoreAMDOpterontmProcessor285E6)
+Intel_EM64T        60.0    (x15_6789_IntelRXeon i1586_2799_IntelRXeon EM64T_3000)
+Intel_IA64      12.0   (ia64 IA64)
+SN_IPF          12.0   (ALTIX3000)
+Itanium2        16.0   (Itanium2_1346_0 x32_3178_0)
+z2094_718       1.0    (z_3368_2094_718)
+#MAC OS X -- Darwin 1.3
+PowerMac         1.0   (PowerMac34_466_pcc7400 PowerMac33_498_pcc7400)
+MacPro           60.0  (MacPro11_2990_i486)
+POWER5gr	12.0	(POWER5gr)
+POWER8          250.0   (POWER8architectedaltivecsupported IBM828422A)
+POWER9          250.0   (POWER9rawaltivecsupported)
+RackMac         1.0    (RackMac11_999_ppc7450 RackMac11_2400_ppc7450)
+IntelMac      8.88     (iMac41_1830_i486 Xserve11_2660_i486)
+# HPUX (HPPA)
+#HP9K712S         2.5   (HP9000712_60)
+#HP9K712M         2.5   (HP9000712_80)
+#HP9K712F         4.0   (HP9000712_100)
+HP9K715          4.2   (HP9000715_100)
+HP9K735          4.5   (HP9000735_125)
+HP9K819          5.0   (HP9000819_100)
+HP9K778          5.5   (HP9000778)
+# Alpha (Linux): Data based on BogoMIPS values
+#Jensen           7.0   (Alpha_148 Alpha_149)
+#Cabrio2         12.0   (Alpha_272 Alpha_273 Alpha_274)
+#Cabrio3         13.0   (Alpha_298)
+#NoName          10.0   (Alpha_230 Alpha_231)
+#Alcor           15.0   (Alpha_331)
+#Durango         17.0   (Alpha_364)
+#Miata           30.0   (Alpha_591)
+# IRIX (MIPS): Data from SpecBench
+#Indy             4.5   (IP22_100_R4000)
+#Challenge       12.0   (IP22_150_R5000)
+#Origin200       22.0   (IP29_180_R10000)
+# Alpha (DG-UX): Data from SpecBench
+#DEC3000M5        3.7   (DEC3000M500_150 DEC3000M500)
+#DEC3000M7        5.8   (DEC3000M700)
+#DEC3000M9        6.3   (DEC3000M900)
+#AS800           16.0   (AlphaServer800_500)
+#AS1000A2         6.0   (AlphaServer1000A_266)
+#AS1000A3        10.0   (AlphaServer1000A_300 AlphaServer1000A_333)
+#AS1000A5        18.0   (AlphaServer1000A_500)
+#AS1200          22.0   (AlphaServer1200_533)
+#AS2000          15.0   (AlphaServer2000_375)
+#AS2100           9.6   (AlphaServer2100A_300)
+#AS2100A         15.0   (AlphaServer2100A_375)
+#AS40004         18.0   (AlphaServer4000_400 AlphaServer4000_466)
+#AS40005         25.0   (AlphaServer4000_533)
+#AS40006         30.0   (AlphaServer4000_600)
+#AS41003         12.0   (AlphaServer4100_300)
+#AS41004         17.0   (AlphaServer4100_400)
+#AS41005         22.0   (AlphaServer4100_533)
+#AS8X003         13.0   (AlphaServer8200_300 AlphaServer8400_300)
+#AS8X004         17.0   (AlphaServer8200_440 AlphaServer8400_440)
+#AS8X006         21.0   (AlphaServer8200_625 AlphaServer8400_625)
+ASDS205         27.7    (AlphaServerDS20500MHz_500)
+ASDS20E         30.2    (COMPAQAlphaServerDS20E666_667)
+ASES406         40.0    (CompaqAlphaServerES40_667)
+ASES456         60.0    (CompaqAlphaServerES45_1000 AlphaServerES45Model2_1000)
+ASES451250      75.0    (CompaqAlphaServerES45Mode_1250)
+#AW2001           2.8   (AlphaStation200_100)
+#AW2002           4.3   (AlphaStation200_233)
+#AW5002          11.0   (AlphaStation500_266)
+#AW5004          14.0   (AlphaStation500_400)
+#AW5005          20.0   (AlphaStation500_500)
+#AW600           12.0   (AlphaStation600)
+# CRAY: Benchmark information is not available.
+#CrayC90        100.0   (CRAYC90)
+#CrayJ90        125.0   (CRAYJ90 CRAYYMP_0)
+#CrayT90        150.0   (CRAYT90 CRAYTS)
+#CrayT3E        175.0   (CRAYT3E CRAYT3E_300)
+#CraySV1        100.0   (CRAYSV1)
+# Solaris (Sparc): Data from Sun Microsystems
+#Sparc5S          2.0   (SUNWSPARCstation5_85_sparc)
+#Sparc5F          3.0   (SUNWSPARCstation5_170_sparc)
+#Sparc20          4.7   (SUNWSPARCstation20_151_sparc)
+#Ultra5S         10.3   (SUNWUltra5_270_sparcv9 SUNWUltra510_270_sparcv9)
+#Ultra5F         18.6   (SUNWUltra5_333_sparcv9 SUNWUltra510_333_sparcv9)
+#Ultra30         18.0   (SUNWUltra30_300)
+#Ultra10         19.0   (SUNWUltra10_333 SUNWUltra10_360)
+#Ultra2          20.2   (SUNWUltra2_300_sparc)
+Ultra60S        23.0   (SUNWUltra60_300)
+Ultra60F        23.5   (SUNWUltra60_360)
+Ultra450        25.0   (SUNWUltra450_300)
+UltraAXi2       26.0   (SUNWUltraAXi2_548_sparcv9)
+Enterprise3000  20.0   (SUNWUltraEnterprise_167_sparc)
+Starfire        50.0   (SUNWUltraEnterprise_400)
+SunBlade2K      77.7   (SUNWUltra2_200_sparcv9)
+Sun4V           26.0   (sun4v_1649_sparcv9)
+# PowerPC (AIX): Data from SpecBench
+#Risc250          2.2   (PowerPC41 PowerPC47 PowerPC46)
+#Risc380          7.0   (PowerPC58)
+#Risc590          9.5   (PowerPC70 PowerPC71 PowerPC72)
+#RiscR24         10.0   (PowerPC81)
+PowerPC_G4      12.0   (x7400G4)
+#PowerPC_POWER4      14.0   (IBM70286E4)
+PowerPC_POWER5      14.0   (IBM9115505)
+Origin200      22.0   (IP27_180_R10000)
+ARM5l           9.0    (XScaleIOP80321rev2v5l_599)
+ARM7l         60.0    (ARMv7Processorrev0v7l_709)
+ARM8l         60.0    (AArch64Processorrev0aarch64 CaviumThunderX)
+# For compatibility with old host models
+DEFAULT           1.0          ()   # used by lsfsetup
+#HP300             1.0          ()  # Example
+#SGI4D35           2.0          () # Example
+#SGI4D340VGX       2.0          () # Example
+#DEC3100           2.0          () # Example
+#SPARCSLC          3.0          () # Example
+#SPARCIPC          3.0          () # Example
+#DEC5000           5.0          () # Example
+#EWS4800           5.0          () # Example
+#PENT_100          7.0          () # Example
+#NEWS5000          7.0          () # Example
+#INDIGOXS24        7.0          () # Example
+#SunSparc          12.0         () # Example
+#HP715             13.0         () # Example
+#HP735             14.0         () # Example
+#SGIINDIGO2        15.0         () # Example
+#CONVEX2           18.0         () # Example
+#CRAYJ90           18.0         () # Example
+#IBM350            18.0         () # Example
+#HP750             20.0         () # Example
+#DEC3000           20.0         () # Example
+End HostModel
+
+Begin Resource
+RESOURCENAME  TYPE    INTERVAL INCREASING  DESCRIPTION 	      # Keywords
+   mips       Boolean ()       ()	   (MIPS architecture)
+#  dec        Boolean ()       ()	   (DECStation system)
+   sparc      Boolean ()       ()	   (SUN SPARC)	
+#  bsd        Boolean ()       ()          (BSD unix)		
+#  sysv       Boolean ()       ()	   (System V UNIX)
+   hpux       Boolean ()       ()	   (HP-UX UNIX)	 
+   aix        Boolean ()       ()	   (AIX UNIX)		
+   irix       Boolean ()       ()          (IRIX UNIX)         
+   rms        Boolean ()       ()          (RMS)         
+   pset       Boolean ()       ()          (PSET)         
+   dist       Boolean ()       ()          (DIST)         
+   slurm      Boolean ()       ()          (SLURM)         
+   cpuset     Boolean ()       ()          (CPUSET)         
+#  ultrix     Boolean ()       ()          (Ultrix UNIX)	
+   solaris    Boolean ()       ()          (SUN SOLARIS)       
+#  sun41      Boolean ()       ()          (SunOS4.1)         
+#  convex     Boolean ()       ()          (ConvexOS)		
+#  osf1       Boolean ()       ()          (OSF/1)	 
+   fs         Boolean ()       ()          (File server)	
+   cs         Boolean ()       ()          (Compute server)	
+   frame      Boolean ()       ()          (Hosts with FrameMaker licence)
+   bigmem     Boolean ()       ()          (Hosts with very big memory)
+   diskless   Boolean ()       ()          (Diskless hosts) 	
+   alpha      Boolean ()       ()          (DEC alpha)	
+   linux      Boolean ()       ()          (LINUX UNIX) 
+   nt         Boolean ()       ()          (Windows NT) 
+   mpich_gm   Boolean ()       ()          (MPICH GM MPI)
+   lammpi     Boolean ()       ()          (LAM MPI)
+   mpichp4    Boolean ()       ()          (MPICH P4 MPI)
+   mvapich    Boolean ()       ()          (Infiniband MPI)
+   sca_mpimon Boolean ()       ()          (SCALI MPI)
+   ibmmpi     Boolean ()       ()          (IBM POE MPI)
+   hpmpi      Boolean ()       ()          (HP MPI)
+   sgimpi     Boolean ()       ()          (SGI MPI)
+   intelmpi   Boolean ()       ()          (Intel MPI)
+   crayxt3    Boolean ()       ()          (Cray XT3 MPI)
+   crayx1     Boolean ()       ()          (Cray X1 MPI)
+   mpich_mx   Boolean ()       ()          (MPICH MX MPI)
+mpichsharemem Boolean ()       ()          (MPICH Shared Memory)
+#  news       Boolean ()       ()          (Sony NewsOS)
+#  unix_sv    Boolean ()       ()          (NEC System Five UNIX OS)
+#  unicos     Boolean ()       ()          (UNICOS)	
+#  tmp2       Numeric 60       N           (Disk space in /usr/tmp in Mbytes)
+#  nio        Numeric 60       Y           (Network I/O in Kbytes/second)
+#  console    String  60       ()          (Console user name)
+#  osname     String  600      ()          (OperatingSystemName)
+#  osver      String  600      ()          (OperatingSystemVersion)
+#  cpuarch    String  600      ()          (CPUArchitectureName)
+#  cpuspeed   Numeric 60       Y           (IndividualCPUSpeed)
+#  bandwidth  Numeric 60       Y           (IndividualNetworkBandwidth)
+   mpich2     Boolean ()       ()          (MPICH2)
+   mg         Boolean ()       ()          (Management hosts)         
+#  mode       Numeric 15       Y           (Operation mode)
+#  cntrl      Numeric 15       Y           (Scavenging control)
+#  it_t       Numeric 15       Y           (Idle time threshold)
+   openmpi     Boolean ()       ()         (OPENMPI)         
+   bluegene   Boolean ()       ()          (BLUEGENE) 
+   define_ncpus_procs   Boolean () ()      (ncpus := procs)
+   define_ncpus_cores   Boolean () ()      (ncpus := cores)
+   define_ncpus_threads Boolean () ()      (ncpus := threads)
+#  ostype     String  ()       ()          (Operating System and version)
+#  limversion String  ()       ()          (Version of LIM binary)
+   vnode      Boolean ()       ()          (Simulation node used by integrations for example Cray Linux)
+   craylinux  Boolean ()       ()          (Cray Linux Environment: CRAY XT/XE login nodes and compute nodes)
+   gpu        Boolean ()       ()          (gpu availability)
+#  availcpufreqs  String 15      ()        (available CPU frequency)
+#  currcpufreqs   String 15      ()        (current CPU frequency) 
+#  ostkhost   Boolean    ()       ()       (instances from OpenStack)
+#  egohost    Boolean    ()       ()       (instances from EGO)
+#  awshost    Boolean    ()       ()       (instances from AWS)
+#  softlayerhost Boolean ()       ()       (instances from SoftLayer)
+#  azurehost  Boolean    ()       ()       (instances from Azure)
+#  googlehost Boolean    ()       ()       (instances from Google Cloud)
+   rc_account String     ()       ()       (account name for the external hosts)
+   LN         Boolean ()       ()          (CSM launch nodes)
+   CN         Boolean ()       ()          (CSM compute nodes)
+   gpus       Numeric ()       Y           (number of gpus on csm cn)
+   vg_total_size  Numeric ()       Y           (total ssd on csm cn)
+   vg_available_size        Numeric 15       N           (available ssd on csm cn)
+   ssd0_wear   Numeric 15       Y           (ssd wear on csm cn)
+End Resource

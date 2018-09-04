@@ -9,40 +9,42 @@ lsf_kernel = node['lsf']['kernel']
 lsf_arch = node['lsf']['arch']
 clustername = node['lsf']['clustername']
 
-lsf_product = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}"
-lsf_install = "lsf#{lsf_version}_lsfinstall_linux_#{lsf_arch}"
+# lsf10.1_lsfinstall
+lsfver = "lsf#{node['lsf']['version']}"
 
-jetpack_download "#{lsf_install}.tar.Z" do
+jetpack_download "#{lsfver}_lsfinstall_linux_x86_64.tar.Z" do
     project "lsf"
     dest tar_dir
-    not_if { ::File.exist?("#{tar_dir}/#{lsf_install}.tar.Z") }
+    not_if { ::File.exist?("#{tar_dir}/#{lsfver}_lsfinstall_linux_x86_64.tar.Z") }
 end
 
-jetpack_download "#{lsf_product}.tar.Z" do
+jetpack_download "#{lsfver}_linux2.6-glibc2.3-x86_64.tar.Z" do
     project "lsf"
     dest tar_dir
-    not_if { ::File.exist?("#{tar_dir}/#{lsf_product}.tar.Z") }
+    not_if { ::File.exist?("#{tar_dir}/#{lsfver}_linux2.6-glibc2.3-x86_64.tar.Z") }
 end
 
 execute "untar_installers" do 
-    command "gunzip #{lsf_install}.tar.Z && tar -xf #{lsf_install}.tar"
+    command "tar -xf #{lsfver}_lsfinstall_linux_x86_64.tar.Z"
     cwd tar_dir
-    not_if { ::File.exist?("#{tar_dir}/lsf#{lsf_version}_lsfinstall/lsfinstall") }
+    not_if { ::File.exist?("#{tar_dir}/#{lsfver}_lsfinstall/lsfinstall") }
 end
 
-template "#{tar_dir}/lsf#{lsf_version}_lsfinstall/lsf.install.config" do
+template "#{tar_dir}/#{lsfver}_lsfinstall/lsf.install.config" do
     source 'conf/install.config.erb'
-    variables lazy {{
-      :master_list => node[:lsf][:master_list].nil? ? node[:hostname] : node[:lsf][:master_list]
-    }}
+    variables(
+      :master_list => node['lsf']['master']['hostnames'].nil? ? node['hostname'] : node['lsf']['master']['hostnames'].join(" ")
+    )
 end
 
+# careful that only one of the master nodes does the lsf installation
+profile_lsf = "#{lsf_top}/conf/profile.lsf"
 execute "run_lsfinstall" do
-    command "./lsfinstall -f lsf.install.config"
-    cwd "#{tar_dir}/lsf#{lsf_version}_lsfinstall"
-    creates "#{lsf_top}/conf/profile.lsf"
-    not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
-    not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    command "[[ -f #{profile_lsf} ]] || ./lsfinstall -f lsf.install.config"
+    cwd "#{tar_dir}/#{lsfver}_lsfinstall"
+    creates profile_lsf
+    #not_if { ::File.exist?("#{lsf_top}/#{node['lsf']['version']}/linux2.6-glibc2.3-x86_64/lsf_release")}
+    #not_if { ::Dir.exist?("#{lsf_top}/#{node['lsf']['version']}")}
 end
 
 directory node['lsf']['local_etc']

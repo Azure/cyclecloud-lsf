@@ -24,11 +24,12 @@ End    ClusterAdmins
 #cluster2
 #End RemoteClusters
 
-#Begin RemoteClusters
-#CLUSTERNAME
-#cluster
-#End RemoteClusters
-####
+<% if @remote_queue %>
+Begin Cluster
+ClusterName	    Servers
+<%= @remote_clustername %> 
+End Cluster
+<% end %>
 
 Begin	Host
 HOSTNAME  model    type        server  RESOURCES    #Keywords
