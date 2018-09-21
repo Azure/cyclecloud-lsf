@@ -20,9 +20,10 @@ ruby_block 'check_valid_masterlist' do
   end
 end
 
-template "/usr/share/lsf/conf/lsf.conf" do
+template "#{lsf_top}/conf/lsf.conf" do
   source 'conf/lsf.conf.erb'
   variables(
+    :lsf_top => lsf_top,
     :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) },
     :master_domain => node['domain']
   )
@@ -48,21 +49,21 @@ template "#{node['lsf']['local_etc']}/lsb.hosts" do
 end
 
 execute 'lsadmin limstartup' do 
-  command 'source /usr/share/lsf/conf/profile.lsf && lsadmin limstartup -f'
+  command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
   not_if 'pidof lim'
   user 'lsfadmin'
   group 'lsfadmin'  
 end
 
 execute 'lsadmin resstartup' do 
-  command 'source /usr/share/lsf/conf/profile.lsf && lsadmin resstartup -f'
+  command "source #{lsf_top}/conf/profile.lsf && lsadmin resstartup -f"
   not_if 'pidof res'
   user 'lsfadmin'
   group 'lsfadmin'
 end
 
 execute 'badmin hstartup' do 
-  command 'source /usr/share/lsf/conf/profile.lsf && badmin hstartup -f'
+  command "source #{lsf_top}/conf/profile.lsf && badmin hstartup -f"
   not_if 'pidof sbatchd'
   user 'lsfadmin'
   group 'lsfadmin'
