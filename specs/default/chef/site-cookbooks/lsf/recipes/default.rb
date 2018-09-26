@@ -6,6 +6,7 @@
 lsf_version = node['lsf']['version']
 lsf_kernel = node['lsf']['kernel']
 lsf_arch = node['lsf']['arch']
+lsf_top = node['lsf']['lsf_top']
 
 group node['lsf']['admin']['username'] do
   gid '6001'.to_i
@@ -62,7 +63,7 @@ var = "lsfadmin"
 file '/etc/lsf.sudoers' do
   content "
 LSF_STARTUP_USERS=\"#{var}\"
-LSF_STARTUP_PATH=\"/usr/share/lsf/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc\"
+LSF_STARTUP_PATH=\"#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc\"
 "
   mode '0600'
 end

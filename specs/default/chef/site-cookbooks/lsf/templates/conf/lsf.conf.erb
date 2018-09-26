@@ -24,10 +24,10 @@ LSB_MAILTO=!U
 LSF_AUTH=eauth
 
 # General lsfinstall variables
-LSF_MANDIR=/usr/share/lsf/10.1/man
-LSF_INCLUDEDIR=/usr/share/lsf/10.1/include
-LSF_MISC=/usr/share/lsf/10.1/misc
-XLSF_APPDIR=/usr/share/lsf/10.1/misc
+LSF_MANDIR=<%= @lsf_top %>/10.1/man
+LSF_INCLUDEDIR=<%= @lsf_top %>/10.1/include
+LSF_MISC=<%= @lsf_top %>/10.1/misc
+XLSF_APPDIR=<%= @lsf_top %>/10.1/misc
 LSF_ENVDIR=<%= node['lsf']['lsf_envdir'] %>
 
 # Internal variable to distinguish Default Install
@@ -52,15 +52,15 @@ LSF_LINK_PATH=n
 # LSF_MACHDEP and LSF_INDEP are reserved to maintain
 # backward compatibility with legacy lsfsetup.
 # They are not used in the new lsfinstall.
-LSF_INDEP=/usr/share/lsf
-LSF_MACHDEP=/usr/share/lsf/10.1
+LSF_INDEP=<%= @lsf_top %>
+LSF_MACHDEP=<%= @lsf_top %>/10.1
 
-LSF_TOP=/usr/share/lsf
+LSF_TOP=<%= @lsf_top %>
 LSF_VERSION=10.1
 LSF_ENABLE_EGO=N
-# LSF_EGO_ENVDIR=/usr/share/lsf/conf/ego/cluster1/kernel
-EGO_WORKDIR=/usr/share/lsf/work/cluster1/ego
-LSF_LIVE_CONFDIR=/usr/share/lsf/work/cluster1/live_confdir
+# LSF_EGO_ENVDIR=<%= @lsf_top %>/conf/ego/cluster1/kernel
+EGO_WORKDIR=<%= @lsf_top %>/work/cluster1/ego
+LSF_LIVE_CONFDIR=<%= @lsf_top %>/work/cluster1/live_confdir
 
 # Default tuning parameters
 

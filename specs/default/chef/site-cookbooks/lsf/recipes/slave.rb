@@ -36,14 +36,14 @@ end
   
 
 execute 'lsadmin limstartup' do 
-  command 'source /usr/share/lsf/conf/profile.lsf && lsadmin limstartup -f'
+  command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
   not_if 'pidof lim'
   user 'lsfadmin'
   group 'lsfadmin'  
 end
 
 execute 'lsadmin resstartup' do 
-  command 'source /usr/share/lsf/conf/profile.lsf && lsadmin resstartup -f'
+  command "source #{lsf_top}/conf/profile.lsf && lsadmin resstartup -f"
   not_if 'pidof res'
   user 'lsfadmin'
   group 'lsfadmin'
@@ -51,7 +51,7 @@ end
 
 defer_block 'defer start of sbatchd to end of run' do
   execute 'badmin hstartup' do 
-    command 'source /usr/share/lsf/conf/profile.lsf && badmin hstartup -f'
+    command "source #{lsf_top}/conf/profile.lsf && badmin hstartup -f"
     not_if 'pidof sbatchd'
     user 'lsfadmin'
     group 'lsfadmin'
