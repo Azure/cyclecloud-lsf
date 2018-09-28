@@ -45,3 +45,8 @@ node['lsf']['admin']['access_arrays'].each do |nodearray|
     command "jetpack autoscale -f #{node['cyclecloud']['bootstrap']}/#{nodearray}.json"
   end
 end
+
+execute 'Set log permissions' do
+  command "chmod g+wxr #{node['cyclecloud']['home']}/logs/*.log && chown cyclecloud: #{node['cyclecloud']['home']}/logs/*.log"
+  only_if { node['os'] == 'linux' }
+end

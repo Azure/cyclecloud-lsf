@@ -9,11 +9,13 @@
 #HOSTS = none
 #End Queue
 
-#Begin Queue
-#QUEUE_NAME   = cloudq
-#PRIORITY     = 30
-#INTERACTIVE  = NO
+Begin Queue
+QUEUE_NAME   = cloud
+PRIORITY     = 30
+INTERACTIVE  = NO
 #RCVJOBS_FROM = cluster
-#FAIRSHARE    = USER_SHARES[[default,1]]
-#DESCRIPTION  = Send jobs to remove cluster(s)
-#End Queue
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = Send jobs to remove cluster(s)
+RC_HOSTS = all
+#RC_DEMAND_POLICY = 0
+End Queue

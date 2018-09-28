@@ -7,6 +7,11 @@
 # After editing this file, run "lsadmin reconfig" and
 # "badmin mbdrestart" to apply your changes.
 
+LSB_RC_EXTERNAL_HOST_FLAG="azurehost"
+LSF_LOCAL_RESOURCES="[resource azurehost]"
+LSF_MQ_BROKER_HOSTS=<%= @master_hostname %>
+MQTT_BROKER_HOST=<%= @master_hostname %>
+
 LSB_SHAREDIR=<%= node['lsf']['lsb_sharedir'] %>
 
 # Configuration directories
@@ -15,7 +20,13 @@ LSB_CONFDIR=<%= node['lsf']['lsb_confdir'] %>
 
 # Daemon log messages
 LSF_LOGDIR=<%= node['lsf']['lsf_logdir'] %>
-LSF_LOG_MASK=LOG_WARNING
+LSF_LOG_MASK=LOG_INFO
+LSB_DEBUG_MBD="LC2_RC"
+LSB_DEBUG_EBROKERD="LC2_RC"
+
+LSB_RC_QUERY_INTERVAL=<%= node['lsf']['lsb_rc_query_interval'] %>
+LSB_RC_EXTERNAL_HOST_IDLE_TIME=<%= node['lsf']['lsb_rc_external_host_idle_time'] %>
+EBROKERD_HOST_CLEAN_DELAY=<%= node['lsf']['ebrokerd_host_clean_delay'] %>
 
 # Batch mail message handling
 LSB_MAILTO=!U
@@ -34,7 +45,7 @@ LSF_ENVDIR=<%= node['lsf']['lsf_envdir'] %>
 LSF_DEFAULT_INSTALL=y
 
 # Internal variable indicating operation mode
-LSB_MODE=batch
+LSB_MODE=batch 
 
 # Other variables
 LSF_LIM_PORT=7869
@@ -57,10 +68,10 @@ LSF_MACHDEP=<%= @lsf_top %>/10.1
 
 LSF_TOP=<%= @lsf_top %>
 LSF_VERSION=10.1
-LSF_ENABLE_EGO=N
-# LSF_EGO_ENVDIR=<%= @lsf_top %>/conf/ego/cluster1/kernel
-EGO_WORKDIR=<%= @lsf_top %>/work/cluster1/ego
-LSF_LIVE_CONFDIR=<%= @lsf_top %>/work/cluster1/live_confdir
+LSF_ENABLE_EGO=Y
+LSF_EGO_ENVDIR=<%= @lsf_top %>/conf/ego/azure/kernel
+EGO_WORKDIR=<%= @lsf_top %>/work/azure/ego
+LSF_LIVE_CONFDIR=<%= @lsf_top %>/work/azure/live_confdir
 
 # Default tuning parameters
 
@@ -96,10 +107,12 @@ DAEMON_SHUTDOWN_DELAY=180
 LSF_PROCESS_TRACKING=Y
 LSF_LINUX_CGROUP_ACCT=Y
 
+LSF_ENABLE_EGO=N
 LSB_ENABLE_HPC_ALLOCATION=Y
 LSB_BJOBS_PENDREASON_LEVEL=1
 LSF_MASTER_LIST="<% @master_list.each do |master| %> <%= master %> <% end %>"
-LSF_EGO_DAEMON_CONTROL=N
+LSF_EGO_DAEMON_CONTROL=Y
 LSF_RSH="ssh -o 'PasswordAuthentication no' -o 'StrictHostKeyChecking no'"
+
 LSF_STRIP_DOMAIN=.<%= @master_domain %>
 LSF_DYNAMIC_HOST_TIMEOUT=10m

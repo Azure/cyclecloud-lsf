@@ -14,6 +14,14 @@ default['lsf']['lsb_confdir'] = "#{node['lsf']['lsf_top']}/conf/lsbatch"
 default['lsf']['lsf_logdir'] = "#{node['lsf']['lsf_top']}/log" 
 default['lsf']['lsf_envdir'] = "#{node['lsf']['lsf_top']}/conf"
 
+default['lsf']['lsb_rc_query_interval'] = 30
+default['lsf']['ebrokerd_host_clean_delay'] = 60
+# The LSF default is 60 minutes, which goes against CycleCloud's typical timeout of 5 minutes.
+default['lsf']['lsb_rc_external_host_idle_time'] = 5
+
+# assume lsf is already installed
+default['lsf']['skip_install'] = false
+
 default['lsf']['admin']['username'] = 'lsfadmin'
 default['lsf']['admin']['home'] = "#{node['lsf']['lsf_top']}/lsfadmin"
 default['lsf']['autoscale']['log'] = "/var/log/lsf-autoscale.log"

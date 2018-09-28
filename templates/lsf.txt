@@ -87,7 +87,7 @@
         samba.enabled = false
 
     [[nodearray master]]
-        MachineType = Standard_D4_v3
+        MachineType = $MasterMachineType
         InitialCount = $MasterNodeCountHA
         AdditionalClusterInitSpecs = $MasterClusterInitSpecs
         
@@ -188,6 +188,7 @@ Order = 10
         Description = The machine type for execute nodes
         ParameterType = Cloud.MachineType
         DefaultValue = Standard_H16, Standard_F16
+        Config.Multiselect = true
 
         [[[parameter Autoscale]]]
         Label = Autoscale
