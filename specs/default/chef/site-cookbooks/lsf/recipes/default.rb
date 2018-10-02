@@ -61,7 +61,7 @@ end
 
 var = "lsfadmin"
 file '/etc/lsf.sudoers' do
-  content "
+  content "  
 LSF_STARTUP_USERS=\"#{var}\"
 LSF_STARTUP_PATH=\"#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc\"
 "

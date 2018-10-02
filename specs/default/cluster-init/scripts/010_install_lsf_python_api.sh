@@ -1,5 +1,11 @@
 #!/bin/bash -e
 # if it already is installed, just exit
+
+node_template=$(jetpack config cyclecloud.node.template)
+if [ "$node_template" != "master" ]; then
+	exit 0
+fi;
+	
 if [ -e ~/.010.finished ]; then
 	exit 0;
 fi;

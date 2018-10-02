@@ -336,7 +336,8 @@ class lsf:
     def print_hosts(self):
         self.logger.debug(pformat(self.hosts))
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
+if False:
     if "debug" in [x.lower() for x in sys.argv]:
         log_level = logging.DEBUG
     else:

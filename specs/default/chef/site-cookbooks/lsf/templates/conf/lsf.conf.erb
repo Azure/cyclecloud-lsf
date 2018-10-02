@@ -7,6 +7,19 @@
 # After editing this file, run "lsadmin reconfig" and
 # "badmin mbdrestart" to apply your changes.
 
+LSB_RC_EXTERNAL_HOST_FLAG="azurehost"
+LSF_LOCAL_RESOURCES="[resource azurehost]"
+LSF_MQ_BROKER_HOSTS="<%= @master_hostname %>"
+MQTT_BROKER_HOST="<%= @master_hostname %>"
+ENABLE_DYNAMIC_HOSTS=Y
+
+# example docs say to set this, but you get an error
+# > Master candidate can not set LSF_GETCONF=LIM.
+# > initMasterList: LIM has exited due to a fatal error.
+
+# LSF_GET_CONF=lim
+LSF_LIM_PORT=7869
+
 LSB_SHAREDIR=<%= node['lsf']['lsb_sharedir'] %>
 
 # Configuration directories
@@ -15,7 +28,7 @@ LSB_CONFDIR=<%= node['lsf']['lsb_confdir'] %>
 
 # Daemon log messages
 LSF_LOGDIR=<%= node['lsf']['lsf_logdir'] %>
-LSF_LOG_MASK=LOG_WARNING
+LSF_LOG_MASK=LOG_INFO
 
 # Batch mail message handling
 LSB_MAILTO=!U
@@ -58,9 +71,9 @@ LSF_MACHDEP=<%= @lsf_top %>/10.1
 LSF_TOP=<%= @lsf_top %>
 LSF_VERSION=10.1
 LSF_ENABLE_EGO=N
-# LSF_EGO_ENVDIR=<%= @lsf_top %>/conf/ego/cluster1/kernel
-EGO_WORKDIR=<%= @lsf_top %>/work/cluster1/ego
-LSF_LIVE_CONFDIR=<%= @lsf_top %>/work/cluster1/live_confdir
+LSF_EGO_ENVDIR=<%= @lsf_top %>/conf/ego/azure/kernel
+EGO_WORKDIR=<%= @lsf_top %>/work/azure/ego
+LSF_LIVE_CONFDIR=<%= @lsf_top %>/work/azure/live_confdir
 
 # Default tuning parameters
 
@@ -69,7 +82,7 @@ LSF_STRICT_RESREQ=Y
 # Automatically shuts down any daemons running on hosts that attempted to
 # join the cluster, but failed to communicate within the
 # LSF_DYNAMIC_HOST_WAIT_TIME period.
-EGO_ENABLE_AUTO_DAEMON_SHUTDOWN=Y
+EGO_ENABLE_AUTO_DAEMON_SHUTDOWN=N
 # Enable bmod to modify resource limits and location of job output files for running jobs
 LSB_MOD_ALL_JOBS=Y
 # Reduce pim update frequency
@@ -99,7 +112,9 @@ LSF_LINUX_CGROUP_ACCT=Y
 LSB_ENABLE_HPC_ALLOCATION=Y
 LSB_BJOBS_PENDREASON_LEVEL=1
 LSF_MASTER_LIST="<% @master_list.each do |master| %> <%= master %> <% end %>"
-LSF_EGO_DAEMON_CONTROL=N
+
 LSF_RSH="ssh -o 'PasswordAuthentication no' -o 'StrictHostKeyChecking no'"
+
 LSF_STRIP_DOMAIN=.<%= @master_domain %>
 LSF_DYNAMIC_HOST_TIMEOUT=10m
+
