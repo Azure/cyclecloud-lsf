@@ -90,16 +90,6 @@
         MachineType = Standard_D4_v3
         InitialCount = $MasterNodeCountHA
         AdditionalClusterInitSpecs = $MasterClusterInitSpecs
-        ImageName := undefined
-        Azure.Publisher = OpenLogic
-        Azure.Offer = CentOS
-        Azure.Sku = 6.8
-        Azure.ImageVersion = latest
-
-        InstallJetpack = true
-        JetpackPlatform = centos-6
-        AwaitInstallation = true
-        ImageOs = linux
 
 
         [[[configuration]]]
@@ -266,7 +256,7 @@ Order = 20
         [[[parameter LsfProjectVersion]]]
         Label = Project Version
         Description = CycleCloud LSF project version found in project.ini
-        DefaultValue = 1.0.0
+        DefaultValue = 2.0.0
 
     [[parameters Master Nodes]]
     Description = "The cluster can autoscale to the workload, adding execute hosts as jobs are queued. To enable this check the box below and choose the initial and maximum core counts for the cluster"

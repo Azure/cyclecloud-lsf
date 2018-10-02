@@ -128,13 +128,13 @@ def request_shutdown(kill_candidate_ids, kill_candidate_hostfiles, logger, reaso
             conn.request("POST", url, headers=headers)
             r = conn.getresponse()
             logger.debug("termination response = %s" % r.read())
-            time.sleep(1)
             if r.status != 200:
                 logger.error("kill_candidate_id failed in termination")
             else:
                 successfully_shutdown.append(i)
         except Exception, e:
             logger.exception("Unable to contact CycleCloud")
+            continue
         try:
             os.remove(kill_candidate_hostfiles[i])
         except:
@@ -275,7 +275,7 @@ class lsf:
                 else:
                     close_candidates.append(hostname)
         
-        MAX_HCLOSE_LEN = 20
+        MAX_HCLOSE_LEN = 100
         if close_candidates.__len__() > MAX_HCLOSE_LEN:
             close_candidates = close_candidates[:MAX_HCLOSE_LEN-1]
         
