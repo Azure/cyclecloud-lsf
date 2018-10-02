@@ -4,6 +4,10 @@
 # yum install gcc
 # yum install python-devel
 
+directory node['lsf']['host_tokens_dir'] do
+  recursive true
+end
+
 file "/etc/logrotate.d/lsf.autoscale.logrotate" do
     content <<-EOH
 #{node['lsf']['autoscale']['log']} {
@@ -29,7 +33,7 @@ end
 file "/root/bin/autostart.sh" do
   content <<-EOH
 source /etc/profile.d/lsf.sh
-python /root/bin/autoscale.py debug autostart
+python /root/bin/autoscale.py -t #{node['lsf']['host_tokens_dir']} debug autostart
   EOH
   mode '500'
 end
@@ -42,7 +46,7 @@ end
 file "/root/bin/autostop.sh" do
     content <<-EOH
   source /etc/profile.d/lsf.sh
-  python /root/bin/autoscale.py debug autostop
+  python /root/bin/autoscale.py -t #{node['lsf']['host_tokens_dir']} debug autostop
     EOH
     mode '500'
   end

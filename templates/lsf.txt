@@ -90,7 +90,17 @@
         MachineType = Standard_D4_v3
         InitialCount = $MasterNodeCountHA
         AdditionalClusterInitSpecs = $MasterClusterInitSpecs
-        
+        ImageName := undefined
+        Azure.Publisher = OpenLogic
+        Azure.Offer = CentOS
+        Azure.Sku = 6.8
+        Azure.ImageVersion = latest
+
+        InstallJetpack = true
+        JetpackPlatform = centos-6
+        AwaitInstallation = true
+        ImageOs = linux
+
 
         [[[configuration]]]
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master],recipe[lsf::autoscale]
@@ -136,7 +146,7 @@
         Interruptible = $UseLowPrio
 
         MaxCoreCount = $MaxExecuteCoreCount
-        [[[cluster-init lsf:slave:$LsfProjectVersion]]]
+        [[[cluster-init lsf:notify:$LsfProjectVersion]]]
 
         [[[configuration]]]
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
