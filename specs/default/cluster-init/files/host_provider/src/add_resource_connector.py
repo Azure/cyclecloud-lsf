@@ -36,7 +36,7 @@ def add_azurecc_resources(input_lines):
     end_resource_i = len(input_lines) - list(reversed([l.strip() for l in input_lines])).index("End Resource")
     
     logger.info("Defining azurehost at line %d" % (end_resource_i + 1))
-    lines = input_lines[:end_resource_i - 1] + ["   azurehost  Boolean    ()       ()       (instances from Azure)\n"] + input_lines[end_resource_i:]
+    lines = input_lines[:end_resource_i - 1] + ["   azurehost  Boolean    ()       ()       (instances from Azure)\n"] + input_lines[end_resource_i - 1:]
     return lines
     
     

@@ -1,6 +1,9 @@
 #!/bin/bash -e
 # if it already is installed, just exit
 
+# TODO
+exit 0
+
 node_template=$(jetpack config cyclecloud.node.template)
 if [ "$node_template" != "master" ]; then
 	exit 0

@@ -52,6 +52,11 @@ template "#{node['lsf']['local_etc']}/lsb.hosts" do
   }}
 end
 
+execute 'Set log permissions' do
+  command "chmod 664 #{node['cyclecloud']['home']}/logs/*.log && chown cyclecloud: #{node['cyclecloud']['home']}/logs/*.log"
+  only_if { node['os'] == 'linux' }
+end
+
 execute 'lsadmin limstartup' do 
   command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
   not_if 'pidof lim'
