@@ -1,16 +1,16 @@
 import json
 import sys
-import traceback
 import new_api
 import uuid
+import util
 
 
-log = open('/tmp/lsfrc.log', 'a')
+logger = util.init_logging()
 
 
 def simple_json_writer(data):
     data_str = json.dumps(data)
-    print >> log, data_str
+    logger.debug(data_str)
     print data_str
     return data
 
@@ -73,9 +73,7 @@ class CycleCloudProvider:
                     }
                 })
         
-        print >> log, "templates"
         return self.json_writer({"templates": lsf_templates})
-    
     
     def request(self, input_json):
         '''
@@ -111,8 +109,7 @@ class CycleCloudProvider:
                                 "RequestId": request_id,
                                 "Configuration": {"lsf": {"user_data": json.dumps(user_data)}}
                                 })
-        return self.json_writer({"requestId": request_id})
-    
+        return self.json_writer({"requestId": request_id, "status": "running", "message": "Request instances success from Azure CycleCloud."})
     
     def status(self, input_json):
         '''
@@ -124,6 +121,8 @@ class CycleCloudProvider:
     
         output:
         {
+          "status" : "complete",
+          "message": "",
           "requests" : [ {
             "status" : "complete",
             "machines" : [ {
@@ -153,16 +152,18 @@ class CycleCloudProvider:
           } ]
         }
         '''
-        statuses = {} # needs to be a [] when we return
+        # needs to be a [] when we return
+        statuses = {}
         
         request_ids = [r["requestId"] for r in input_json["requests"]]
         
-        filter_expr = 'RequestId in {%s}' % ",".join(['"%s"' % x for x in request_ids])
-        nodes = self.cluster.nodes(filter_expr)
+        nodes = self.cluster.nodes(RequestId=request_ids)
         
         # can transition from complete -> executing or complete -> complete_with_error -> executing
         # executing is a terminal state.
-        request_status = "complete"
+        
+        total_status = "complete"
+        message = ""
         
         for node in nodes:
             request_id = node["RequestId"] 
@@ -170,38 +171,55 @@ class CycleCloudProvider:
                 statuses[request_id] = {
                     "machines": []
                 }
+                
+            if not node.get("Instance", {}).get("PrivateIp"):
+                total_status = "executing"
+                continue
+            
+            assert node["InstanceId"]
+            
             # for new nodes, completion is Ready. For 'released' nodes, as long as
             # the node has begun terminated etc, we can just say success.
             node_status = node.get("Status")
+            target_state = node.get("TargetState")
+            assert node_status
+            assert target_state
+            
+            request_status = "complete"
             if node_status == "Failed":
                 lsf_result = "fail"
-    
-                if request_status != "executing":
-                    request_status = "complete_with_error"
+                request_status = "complete_with_error"
+                if total_status != "executing":
+                    # TODO
+                    message = node["StatusMessage"]
+                    total_status = "complete_with_error"
                     
             elif node_status == "Ready" or node.get("TargetState") != "Ready":
                 lsf_result = "succeed"
             else:
                 lsf_result = "executing"
                 request_status = "executing"
-                
+                total_status = "executing"
+            
             machine = {
                 # instanceid?
                 "name": node["Name"],
+                "status": request_status,
                 "result": lsf_result,
                 "machineId": node.get("InstanceId"),
                 # maybe we can add something so we don't have to expose this
                 # node["PhaseMap"]["Cloud.AwaitBootup"]["StartTime"]
-                "launchtime": node["LaunchTime"],
-                "privateIpAddress": node["Instance"]["PrivateIp"],
+                "launchtime": node.get("LaunchTime"),
+                "privateIpAddress": node.get("Instance", {}).get("PrivateIp"),
                 "message": node.get("StatusMessage")
                 
             }
             
             statuses[request_id]["machines"].append(machine)
             
-        return self.json_writer({"requests": list(statuses.iteritems())})
-    
+        return self.json_writer({"status": total_status, 
+                                 "message": message,
+                                 "requests": list(statuses.itervalues())})
     
     def terminate(self, input_json):
         '''
@@ -222,10 +240,11 @@ class CycleCloudProvider:
         # we need a request id to return... but once this completes, 
         # a missing status for the previous nodes might be fine?
         self.cluster.terminate(instance_ids=instance_ids)
-        return self.json_writer({
-                "message" : "Delete VM success.",
-                "requestId" : request_id
-                })
+        return self.json_writer({"message": "CycleCloud is terminating the VM(s)",
+                                 "requestId": request_id,
+                                 "status": "complete"
+                                 })
+
 
 if __name__ == "__main__":
     try:
@@ -233,7 +252,7 @@ if __name__ == "__main__":
         cmd, ignore, input_json_path = sys.argv[1:]
         with open(input_json_path) as fr:
             input_json = json.load(fr)
-        print >> log, cmd, ignore, json.dumps(input_json)
+        logger.info("Arguments - %s %s %s" % (cmd, ignore, json.dumps(input_json)))
         if cmd == "templates":
             provider.templates()
         elif cmd == "request":
@@ -242,6 +261,6 @@ if __name__ == "__main__":
             provider.status(input_json)
         elif cmd == "terminate":
             provider.terminate(input_json)
-    except:
-        traceback.print_exc(file=log)
+    except Exception as e:
+        logger.exception(str(e))
         raise
