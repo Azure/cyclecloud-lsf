@@ -12,6 +12,7 @@ logger = util.init_logging()
 
 def update_hostsProviders(output_writer):
     logger.info("Update hostsProvider.json")
+    
     connector_data = {"providers": [{"name": "azurecc",
                                      "type": "azureProv",
                                      "confPath": "resource_connector/azurecc",
@@ -24,6 +25,7 @@ def update_hostsProviders(output_writer):
         
 def add_azurecc_resources(input_lines):
     logger.info("Seeing if azurehost is defined in lsf.shared")
+
     for line in input_lines:
         
         if line.strip().startswith("#"):
@@ -47,7 +49,7 @@ def backup_path(path):
 
 def main():
     lsf_shared_path = os.path.join(os.getenv('LSF_TOP', '/usr/share/lsf'), 'conf/lsf.shared')
-    host_providers_json = os.path.join(os.getenv('LSF_TOP', '/usr/share/lsf'), 'resource_connector/hostProviders.json')
+    host_providers_json = os.path.join(os.getenv('LSF_TOP', '/usr/share/lsf'), 'conf/resource_connector/hostProviders.json')
     
     backup_path(host_providers_json)
     backup_path(lsf_shared_path)

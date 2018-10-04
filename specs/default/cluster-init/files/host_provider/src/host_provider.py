@@ -22,7 +22,7 @@ class CycleCloudProvider:
         self.json_writer = json_writer
 
     def templates(self):
-        '''
+        """
         input (ignored):
         []
         
@@ -46,7 +46,7 @@ class CycleCloudProvider:
                 }
             ]
         }
-        '''
+        """
         lsf_templates = []
         
         # returns Cloud.Node records joined on MachineType - the array node only
@@ -76,7 +76,7 @@ class CycleCloudProvider:
         return self.json_writer({"templates": lsf_templates})
     
     def request(self, input_json):
-        '''
+        """
         input:
         {
         "user_data": {},
@@ -92,7 +92,7 @@ class CycleCloudProvider:
             "message": "Request VM from Azure CycleCloud successful.",
             "requestId":"req-123"
         }
-        '''
+        """
     
         # same as nodearrays - Cloud.Node joined with MachineType
         nodearray_name, machine_type = input_json["template"]["templateId"].split("@", 1)
@@ -103,16 +103,16 @@ class CycleCloudProvider:
         
         # RequestId may or may not be special. Add a subdict most likely.
         user_data = input_json.get("user_data", {})
-        self.cluster.add_node({'Name': nodearray_name,
-                                'TargetCount': machine_count,
-                                'MachineType': machine_type,
+        self.cluster.add_node({"Name": nodearray_name,
+                                "TargetCount": machine_count,
+                                "MachineType": machine_type,
                                 "RequestId": request_id,
                                 "Configuration": {"lsf": {"user_data": json.dumps(user_data)}}
                                 })
         return self.json_writer({"requestId": request_id, "status": "running", "message": "Request instances success from Azure CycleCloud."})
     
     def status(self, input_json):
-        '''
+        """
         input:
         {
             "requests": [{"requestId": "req-123"},
@@ -151,7 +151,7 @@ class CycleCloudProvider:
             "message" : ""
           } ]
         }
-        '''
+        """
         # needs to be a [] when we return
         statuses = {}
         
@@ -178,7 +178,7 @@ class CycleCloudProvider:
             
             assert node["InstanceId"]
             
-            # for new nodes, completion is Ready. For 'released' nodes, as long as
+            # for new nodes, completion is Ready. For "released" nodes, as long as
             # the node has begun terminated etc, we can just say success.
             node_status = node.get("Status")
             target_state = node.get("TargetState")
@@ -207,7 +207,7 @@ class CycleCloudProvider:
                 "status": request_status,
                 "result": lsf_result,
                 "machineId": node.get("InstanceId"),
-                # maybe we can add something so we don't have to expose this
+                # maybe we can add something so we don"t have to expose this
                 # node["PhaseMap"]["Cloud.AwaitBootup"]["StartTime"]
                 "launchtime": node.get("LaunchTime"),
                 "privateIpAddress": node.get("Instance", {}).get("PrivateIp"),
@@ -222,7 +222,7 @@ class CycleCloudProvider:
                                  "requests": list(statuses.itervalues())})
     
     def terminate(self, input_json):
-        '''
+        """
         input:
         {
             "machines":[ {"name": "host-123", "machineId": "id-123"} ]
@@ -233,7 +233,7 @@ class CycleCloudProvider:
             "message" : "Delete VM success.",
             "requestId" : "delete-123"
         }
-        '''
+        """
         instance_ids = [x.get("machineId") for x in input_json["machines"]]
         request_id = str(uuid.uuid4())
         
@@ -248,7 +248,10 @@ class CycleCloudProvider:
 
 if __name__ == "__main__":
     try:
-        provider = CycleCloudProvider(new_api.Cluster(), simple_json_writer)
+        import jetpack
+        jetpack.util.setup_logging("DEBUG")
+        cluster_name = jetpack.config.get("cyclecloud.cluster.name")
+        provider = CycleCloudProvider(new_api.Cluster(cluster_name), simple_json_writer)
         cmd, ignore, input_json_path = sys.argv[1:]
         with open(input_json_path) as fr:
             input_json = json.load(fr)
@@ -261,6 +264,9 @@ if __name__ == "__main__":
             provider.status(input_json)
         elif cmd == "terminate":
             provider.terminate(input_json)
+    except ImportError as e:
+        logger.exception(str(e))
+        raise
     except Exception as e:
         logger.exception(str(e))
         raise

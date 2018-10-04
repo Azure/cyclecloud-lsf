@@ -28,10 +28,6 @@ set -e
 chmod +x /etc/init.d/mosquitto
 /etc/init.d/mosquitto
 
-if [ ! -e /usr/share/lsf/resource_connector/ ]; then
-	mkdir /usr/share/lsf/resource_connector/
-fi
-
 export PYTHONPATH=$rc_scripts_dir/src
 python -m add_resource_connector
 
