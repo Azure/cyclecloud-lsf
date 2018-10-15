@@ -66,12 +66,15 @@ def get_jobs_bjobs(logger, queue_name=None):
         total_jobs += slots
     return total_jobs
 
-def get_masters():
+def get_masters(logger):
+    t0 = time.time()
     proc1 = subprocess.Popen(['badmin', 'showconf', 'mbd'], stdout=subprocess.PIPE)
     proc2 = subprocess.Popen(['grep', 'LSF_MASTER_LIST' ], stdin=proc1.stdout,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc1.stdout.close()
     out, err = proc2.communicate()
+    delta = time.time() - t0
+    logger.debug("badmin showconf mbd took %0.3fs." % (delta))
     raw = out.strip().split()
     key_val = 0
     for i,val in enumerate(raw):
@@ -149,7 +152,7 @@ class lsf:
         self.hosts = {}
         self.hostfile_path = hostfile_path
         self.logger = logger 
-        self.masters = get_masters() + [socket.gethostname()]
+        self.masters = get_masters(logger) + [socket.gethostname()]
         self.njobs = 0
         self.last_seen_max = 90
         self.tokens_dir = jcfg.get("lsf.host_tokens_dir")
@@ -356,6 +359,8 @@ if __name__ == "__main__":
     logger.debug("sys.argv = %s " % sys.argv)
     h_lsf = lsf(logger,hostfile_path)
 
+    t0 = time.time()
+    method = "autostop"
     if "autostop" in [x.lower() for x in sys.argv]:
         h_lsf.load_hosts()
         h_lsf.load_hosts_from_tokens()
@@ -367,8 +372,11 @@ if __name__ == "__main__":
         h_lsf.save_hosts()
 
     if "autostart" in [x.lower() for x in sys.argv]:
+        method = "autostart"
         h_lsf.get_jobs(method="bqueues")
         if "dryrun" in [x.lower() for x in sys.argv]:
             pass
         else:
             h_lsf.send_autoscale_request()
+    delta = time.time() - t0
+    logger.debug("%s call took %0.3fs" % (method, delta))

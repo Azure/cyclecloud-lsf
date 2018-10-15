@@ -32,6 +32,15 @@ end
 
 file "/root/bin/autostart.sh" do
   content <<-EOH
+scriptname=$(basename $0)
+echo $scriptname
+pidfile="/var/run/${scriptname}"
+
+exec 300>$pidfile
+flock -n 300 || exit 1
+pid=$$
+echo $pid 1>&300
+
 source /etc/profile.d/lsf.sh
 python /root/bin/autoscale.py -t #{node['lsf']['host_tokens_dir']} debug autostart
   EOH
@@ -45,8 +54,17 @@ end
 
 file "/root/bin/autostop.sh" do
     content <<-EOH
-  source /etc/profile.d/lsf.sh
-  python /root/bin/autoscale.py -t #{node['lsf']['host_tokens_dir']} debug autostop
+scriptname=$(basename $0)
+echo $scriptname
+pidfile="/var/run/${scriptname}"
+
+exec 301>$pidfile
+flock -n 301 || exit 1
+pid=$$
+echo $pid 1>&301
+
+source /etc/profile.d/lsf.sh
+python /root/bin/autoscale.py -t #{node['lsf']['host_tokens_dir']} debug autostop
     EOH
     mode '500'
   end
