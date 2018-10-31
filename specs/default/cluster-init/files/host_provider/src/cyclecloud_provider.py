@@ -18,10 +18,11 @@ logger = util.init_logging()
 
 PLACEHOLDER_TEMPLATE = {"templateId": "exceptionPlaceholder", 
                         "maxNumber": 1,
-                        "nodeArray": {
-                            "Configuration": {"run_list": ["recipe[lsf::master]"]},
-                            "MachineType": "_SingleCore_"
-                        }
+                        "attributes": {
+                            "mem": ["Numeric", 1024],
+                            "ncpus": ["Numeric", 1],
+                            "ncores": ["Numeric", 1]
+                            }
                         }
 
 

@@ -20,7 +20,20 @@ class Cluster:
         test_name = os.getenv("TEST_CASE_NAME")
         if test_name:
             return TEST_CASES[test_name]
-        return self.get("/nodearrays?cluster=%s" % self.cluster_name)
+        return self._add_missing_limits(self.get("/nodearrays?cluster=%s" % self.cluster_name))
+    
+    def _add_missing_limits(self, arrays):
+        known_machine_limits = {"Standard_B2s": 10,
+                                "Standard_B4ms": 10,
+                                "Standard_D2_v2": 100,
+                                "Standard_D3_v2": 100
+                                }
+        for a in arrays["nodeArrays"]:
+            for b in a["buckets"]:
+                max_core_count = b.get("maxCoreCount")
+                if max_core_count is None:
+                    b["maxCoreCount"] = known_machine_limits.get(b["overrides"]["MachineType"])
+        return arrays
 
     def add_nodes(self, request):
         return self.post("/nodes/create?cluster=%s" % self.cluster_name, json=request)
