@@ -29,11 +29,8 @@ mkdir -p $rc_scripts_dir
 cp $CYCLECLOUD_SPEC_PATH/files/host_provider/*.sh $rc_scripts_dir/
 chmod +x $rc_scripts_dir/*.sh
 
-mkdir -p $rc_scripts_dir/src
+mkdir -p $rc_scripts_dir/src/
 cp $CYCLECLOUD_SPEC_PATH/files/host_provider/src/*.py $rc_scripts_dir/src/
-mkdir -p $LSF_ENVDIR/resource_connector/azurecc/
-export PYTHONPATH=$rc_scripts_dir/src:$PYTHONPATH
-/opt/cycle/jetpack/system/embedded/bin/python -m add_resource_connector
 
 set +e
 # for jetpack log access
@@ -47,7 +44,7 @@ lsadmin reconfig -f
 
 sleep 10
 # usually requires 5-15 seconds after lasadmin reconfig
-for attempt in $( seq 1 6); do
+for attempt in $( seq 1 6 ); do 
 	echo attempting 'badmin mbdrestart -f' $attempt/6
 	(badmin mbdrestart -f || sleep 10) && exit 0
 done

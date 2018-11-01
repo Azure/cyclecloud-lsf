@@ -143,3 +143,36 @@ def failureresponse(response):
                 return args[0].json_writer(with_message)
         return _wrap
     return decorator
+
+
+class ProviderConfig:
+    
+    def __init__(self, config, jetpack_config=None):
+        self.config = config
+        self.logger = init_logging()
+        if jetpack_config is None:
+            try:
+                import jetpack
+                jetpack_config = jetpack.config 
+            except ImportError:
+                jetpack_config = {}
+        self.jetpack_config = jetpack_config
+        
+    def get(self, key, default_value=None):
+        keys = key.split(".")
+        top_value = self.config
+        for n in range(len(keys)):
+            if top_value is None:
+                break
+
+            value = top_value.get(keys[n])
+            
+            if n == len(keys) - 1 and value is not None:
+                return value
+            
+            top_value = value
+            
+        if top_value is None:
+            return self.jetpack_config.get(key, default_value)
+        
+        return top_value

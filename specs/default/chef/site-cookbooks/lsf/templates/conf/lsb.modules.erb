@@ -1,0 +1,27 @@
+# Define Scheduler plugins.
+#
+# SCH_PLUGIN specifies the name of a Scheduler plugin.
+# All plugins should be put under LSF_LIBDIR.
+#
+# RB_PLUGIN and SCH_DISABLE_PHASES columns are normally 
+# not used and should be set to ().
+#
+# After editing this file, run "badmin reconfig" to apply your changes.
+
+Begin PluginModule
+SCH_PLUGIN			RB_PLUGIN		     SCH_DISABLE_PHASES
+schmod_default			()				()
+schmod_fcfs                     ()                              ()
+schmod_fairshare		()				()
+schmod_limit			()				()
+schmod_parallel			()				()
+schmod_reserve			()				()
+schmod_mc                       ()                              ()
+schmod_preemption               ()                              ()
+schmod_advrsv                   ()                              ()
+schmod_ps                       ()                              ()
+schmod_affinity                 ()                              ()
+schmod_demand                  ()                              ()
+#schmod_datamgr                 ()                              ()
+End PluginModule
+

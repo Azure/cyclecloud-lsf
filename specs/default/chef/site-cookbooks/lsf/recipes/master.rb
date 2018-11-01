@@ -40,12 +40,29 @@ template "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}" do
   )
 end
 
+template "#{lsf_top}/conf/lsf.shared" do
+  source 'conf/lsf.shared.erb'
+end
+
 template "#{lsf_top}/conf/lsbatch/#{clustername}/configdir/lsb.queues" do
   source 'conf/lsb.queues.erb'
 end
 
+template "#{lsf_top}/conf/lsbatch/#{clustername}/configdir/lsb.modules" do
+  source 'conf/lsb.modules.erb'
+end
+
 template "#{lsf_top}/conf/lsbatch/#{clustername}/configdir/lsb.params" do
   source 'conf/lsb.params.erb'
+end
+
+template "#{lsf_top}/conf/resource_connector/hostProviders.json" do
+  source 'conf/hostProviders.json.erb'
+end
+
+directory "#{lsf_top}/conf/resource_connector/azurecc/"
+template "#{lsf_top}/conf/resource_connector/azurecc/provider.json" do
+  source 'conf/provider.json.erb'
 end
 
 template "#{node['lsf']['local_etc']}/lsb.hosts" do

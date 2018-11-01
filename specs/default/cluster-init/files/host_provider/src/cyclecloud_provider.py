@@ -1,5 +1,4 @@
 import calendar
-import hashlib
 import json
 import os
 import pprint
@@ -10,7 +9,6 @@ from lsf import RequestStates, MachineStates, MachineResults
 import new_api
 from util import JsonStore, failureresponse
 import util
-from ConfigParser import ConfigParser
 
 
 logger = util.init_logging()
@@ -36,16 +34,9 @@ class CycleCloudProvider:
         self.templates_json = templates
         self.exit_code = 0
         self.clock = clock
-        self.termination_timeout = float(self._config_get("DEFAULT", "termination_retirement", 7200))
-        self.node_request_timeouts = float(self._config_get("DEFAULT", "machine_request_retirement", 7200))
-        
-    def _config_get(self, rc_account, key, defaultvalue=None):
-        if rc_account not in self.config.sections():
-            rc_account = "DEFAULT"
-        if self.config.has_option(rc_account, key):
-            return self.config.get(rc_account, key)
-        return defaultvalue
-    
+        self.termination_timeout = float(self.config.get("termination_retirement", 7200))
+        self.node_request_timeouts = float(self.config.get("machine_request_retirement", 7200))
+
     def _escape_id(self, name):
         return name.lower().replace("_", "")
     
@@ -118,14 +109,17 @@ class CycleCloudProvider:
                     max_count = self._max_count(nodearray, machine_type.get("CoreCount"), bucket)
                     
                     at_least_one_available_bucket = at_least_one_available_bucket or max_count > 0
-                    
+                    memory = machine_type.get("Memory")
+                    if memory <= 1024:
+                        memory = memory * 1024
+                        
                     record = {
                         "maxNumber": max_count,
                         "templateId": template_id,
                         "priority": nodearray.get("Priority", default_priority),
                         "attributes": {
                             "zone": ["String", nodearray.get("Region")],
-                            "mem": ["Numeric", machine_type.get("Memory")],
+                            "mem": ["Numeric", memory],
                             "ncpus": ["Numeric", machine_type.get("CoreCount")],
                             "ncores": ["Numeric", machine_type.get("CoreCount")],
                             "azurehost": ["Boolean", "1"],
@@ -467,18 +461,19 @@ def true_gmt_clock():  # pragma: no cover
 
 def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
     try:
-        import jetpack
-        cluster_name = jetpack.config.get("cyclecloud.cluster.name")
+        
         json_dir = os.getenv('PRO_DATA_DIR', os.getcwd())
-        config_file = os.getenv('PRO_CONF_DIR', os.getcwd()) + os.sep + "cyclecloud_provider.ini"
-        config = ConfigParser()
+        config_file = os.getenv('PRO_CONF_DIR', os.getcwd()) + os.sep + "provider.json"
+        config = {}
         if os.path.exists(config_file):
-            if not config.read([config_file]):
-                logger.error("Invalid ini file: %s" % config_file)
-                sys.exit(1)
-            
-        provider = CycleCloudProvider(config,
-                                      new_api.Cluster(cluster_name), json_writer,
+            with open(config_file) as fr:
+                config = json.load(fr)
+                
+        provider_config = util.ProviderConfig(config)
+        
+        cluster_name = provider_config.get("cyclecloud.cluster.name")
+        provider = CycleCloudProvider(provider_config,
+                                      new_api.Cluster(cluster_name, provider_config), json_writer,
                                       JsonStore("terminate_requests.json", json_dir),
                                       JsonStore("templates.json", json_dir, formatted=True),
                                       true_gmt_clock)
