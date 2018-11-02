@@ -7,6 +7,9 @@ lsf_version = node['lsf']['version']
 lsf_kernel = node['lsf']['kernel']
 lsf_arch = node['lsf']['arch']
 clustername = node['lsf']['clustername']
+cycle_clustername = node['cyclecloud']['cluster']['name']
+username = node['cyclecloud']['config']['username']
+web_server = node['cyclecloud']['config']['web_server']
 
 execute "lsf init.d" do
   command "cp #{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc/lsf_daemons /etc/init.d/lsf"
@@ -61,8 +64,13 @@ template "#{lsf_top}/conf/resource_connector/hostProviders.json" do
 end
 
 directory "#{lsf_top}/conf/resource_connector/azurecc/"
-template "#{lsf_top}/conf/resource_connector/azurecc/provider.json" do
-  source 'conf/provider.json.erb'
+template "#{lsf_top}/conf/resource_connector/azurecc/azureccprov_config.json.example" do
+  source 'conf/azureccprov_config.json.erb'
+  variables(
+  	:cycle_clustername => cycle_clustername,
+  	:username => username,
+  	:web_server => web_server
+  )
 end
 
 template "#{node['lsf']['local_etc']}/lsb.hosts" do

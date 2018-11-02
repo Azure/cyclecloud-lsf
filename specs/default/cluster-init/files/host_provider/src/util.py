@@ -5,23 +5,34 @@ from logging.handlers import RotatingFileHandler
 import json
 import shutil
 import fcntl
-from cyclecli import UserError
+from cyclecli import UserError, ConfigError
 from copy import deepcopy
 import traceback
+import subprocess
 
 _logging_init = False
 
 
-def init_logging(logfile=None):
+def init_logging(loglevel=logging.INFO, logfile=None):
     global _logging_init
     if logfile is None:
         logfile = "cyclecloud_rc.log"
     logfile_path = os.path.join(os.getenv("PRO_LSF_LOGDIR", "/tmp"), logfile)
+    
+    try:
+        import jetpack
+        jetpack.util.setup_logging()
+        for handler in logging.getLogger().handlers:
+            handler.setLevel(logging.ERROR)
+    
+    except ImportError:
+        pass
+    
     # this is really chatty
     requests_logger = logging.getLogger("requests.packages.urllib3.connectionpool")
     requests_logger.setLevel(logging.WARN)
     
-    logger = logging.getLogger()
+    logger = logging.getLogger("cyclecloud")
     
     if _logging_init:
         return logger
@@ -30,13 +41,13 @@ def init_logging(logfile=None):
     
     tenMB = 10 * 1024 * 1024
     logfile_handler = RotatingFileHandler(logfile_path, maxBytes=tenMB, backupCount=5)
-    logfile_handler.setLevel(logging.DEBUG)
+    logfile_handler.setLevel(loglevel)
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     
     logger.addHandler(logfile_handler)
     
     stderr_handler = logging.StreamHandler(stream=sys.stderr)
-    stderr_handler.setLevel(logging.DEBUG)
+    stderr_handler.setLevel(loglevel)
     stderr_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
     
     logger.addHandler(stderr_handler)
@@ -159,6 +170,9 @@ class ProviderConfig:
         self.jetpack_config = jetpack_config
         
     def get(self, key, default_value=None):
+        if not key:
+            return self.config
+        
         keys = key.split(".")
         top_value = self.config
         for n in range(len(keys)):
@@ -173,6 +187,37 @@ class ProviderConfig:
             top_value = value
             
         if top_value is None:
-            return self.jetpack_config.get(key, default_value)
+            try:
+                return self.jetpack_config.get(key, default_value)
+            except ConfigError as e:
+                if key in str(e):
+                    return default_value
+                raise
         
         return top_value
+    
+    def set(self, key, value):
+        keys = key.split(".")
+        
+        top_value = self.config
+        for top_key in keys[:-1]: 
+            tmp_value = top_value.get(top_key, {})
+            top_value[top_key] = tmp_value
+            top_value = tmp_value
+            
+        top_value[keys[-1]] = value
+
+
+class Hostnamer:
+    
+    def __init__(self, use_fqdn=True):
+        self.use_fqdn = use_fqdn
+    
+    def hostname(self, private_ip_address):
+        toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", private_ip_address]).split()]
+        if self.use_fqdn:
+            if len(toks) >= 2:
+                return toks[1]
+            return toks[0]
+        else:
+            return toks[-1]

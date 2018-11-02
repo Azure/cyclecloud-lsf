@@ -1,18 +1,17 @@
-from __builtin__ import True
 import subprocess
 import sys
 import unittest
 
-import test_json_source_helper
-from lsf import RequestStates, MachineStates, MachineResults
 import cyclecloud_provider
+from lsf import RequestStates, MachineStates, MachineResults
+import test_json_source_helper
 from util import JsonStore
-from ConfigParser import ConfigParser
+import util
 
 
 MACHINE_TYPES = {
-    "A4": {"Name": "A4", "CoreCount": 4, "Memory": 1024, "Location": "ukwest", "Quota": 10},
-    "A8": {"Name": "A8", "CoreCount": 8, "Memory": 2048, "Location": "ukwest", "Quota": 20}
+    "A4": {"Name": "A4", "CoreCount": 4, "Memory": 1., "Location": "ukwest", "Quota": 10},
+    "A8": {"Name": "A8", "CoreCount": 8, "Memory": 2., "Location": "ukwest", "Quota": 20}
 }
 
 
@@ -23,7 +22,13 @@ class MockClock:
         
     def __call__(self):
         return self.now
-
+    
+    
+class MockHostnamer:
+    
+    def hostname(self, private_ip_address):
+        return "ip-" + private_ip_address.replace(".", "-")
+    
 
 class MockCluster:
     def __init__(self, nodearrays):
@@ -181,7 +186,8 @@ class Test(unittest.TestCase):
                 return
             
             for n, m in enumerate(machines):
-                self.assertEquals("execute-%d" % (n + 1), m["name"])
+                if m["privateIpAddress"]:
+                    self.assertEquals(MockHostnamer().hostname(m["privateIpAddress"]), m["name"])
                 self.assertEquals("execute-%d_id" % (n + 1), m["machineId"])
                 self.assertEquals(expected_machine_status, m["status"])
                 self.assertEquals(expected_machine_result, m["result"])
@@ -214,9 +220,10 @@ class Test(unittest.TestCase):
                                                "nodeArray": {"MachineType": ["a4", "a8"]},
                                                 "buckets": [a4bucket, a8bucket]}],
                                "machineTypes": MACHINE_TYPES})
-        config = ConfigParser()
+        config = util.ProviderConfig({}, {})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
-        return cyclecloud_provider.CycleCloudProvider(config, cluster, json_writer, RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
+        hostnamer = MockHostnamer()
+        return cyclecloud_provider.CycleCloudProvider(config, cluster, hostnamer, json_writer, RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
     
     def _make_request(self, template_id, machine_count, rc_account="default", user_data={}):
         return {"user_data": user_data,
@@ -233,7 +240,7 @@ class Test(unittest.TestCase):
         
         self.assertEquals(term_response["status"], "complete")
         self.assertTrue(term_response["requestId"] in term_requests.requests)
-        self.assertEquals(["id-123"], term_requests.requests[term_response["requestId"]]["machines"])
+        self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_response["requestId"]]["machines"])
         
         status_response = provider.terminate_status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertEquals(1, len(status_response["requests"]))
@@ -302,7 +309,7 @@ class Test(unittest.TestCase):
         self.assertEquals(cyclecloud_provider.PLACEHOLDER_TEMPLATE, provider.templates()["templates"][0])
         
         a8bucket["maxCoreCount"] = 24
-        self.assertEquals(3, provider.templates()["templates"][0]["maxNumber"])
+        self.assertEquals(3, provider.templates()["templates"][-1]["maxNumber"])
         a8bucket["maxCoreCount"] = 0
         
         a4bucket["maxCount"] = 100
@@ -318,7 +325,7 @@ class Test(unittest.TestCase):
         self.assertNotEquals(None, response.get("requestId"))
         
         provider.cluster.raise_during_termination = True
-        term_response = provider.terminate_machines({"machines": [{"machineId": "mach123"}]})
+        term_response = provider.terminate_machines({"machines": [{"machineId": "mach123", "name": "n-1-123"}]})
         self.assertEquals(RequestStates.running, term_response["status"])
                                                      
     def test_missing_template_in_request(self):
@@ -329,7 +336,8 @@ class Test(unittest.TestCase):
         
     def test_expired_terminations(self):
         provider = self._new_provider()
-        term_response = provider.terminate_machines({"machines": [{"machineId": "id-123"}, {"machineId": "id-124"}]})
+        term_response = provider.terminate_machines({"machines": [{"machineId": "id-123", "name": "e-1-123"},
+                                                                  {"machineId": "id-124", "name": "e-2-234"}]})
         self.assertEquals(RequestStates.complete, term_response["status"])
         stat_response = provider.terminate_status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertEquals(RequestStates.complete, stat_response["requests"][0]["status"])
@@ -340,7 +348,7 @@ class Test(unittest.TestCase):
         
         expired_request = term_response["requestId"]
         
-        term_response = provider.terminate_machines({"machines": [{"machineId": "id-234"}]})
+        term_response = provider.terminate_machines({"machines": [{"machineId": "id-234", "name": "n-1-123"}]})
         stat_response = provider.terminate_status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertEquals(RequestStates.complete, stat_response["requests"][0]["status"])
         self.assertIn(expired_request, provider.terminate_json.read())
@@ -369,13 +377,24 @@ class Test(unittest.TestCase):
         self.assertTrue(_maxNumber("executea4") > 0)
         self.assertTrue(_maxNumber("executea8") == 0)
         
-    def test_per_rc_config(self):
+    def test_override_template(self):
         provider = self._new_provider()
-        provider.config.add_section("rc1")
-        provider.config.add_section("rc2")
-        rc1response = provider.create_machines(self._make_request("executea4", 1, rc_account="rc1"))
-        rc2response = provider.create_machines(self._make_request("executea4", 1, rc_account="rc2"))
-        self.fail("TODO")
+        provider.config.set("templates.default.attributes.custom", ["String", "custom_default_value"])
+        provider.config.set("templates.executea4.attributes.custom", ["String", "custom_override_value"])
+        provider.config.set("templates.executea4.attributes.custom2", ["String", "custom_value2"])
+        provider.config.set("templates.executea8.maxNumber", 0)
+        
+        # a4 overrides the default and has custom2 defined as well
+        attributes = provider.templates()["templates"][0]["attributes"]
+        self.assertEquals(["String", "custom_override_value"], attributes["custom"])
+        self.assertEquals(["String", "custom_value2"], attributes["custom2"])
+        self.assertEquals(["Numeric", 1. * 1024], attributes["mem"])
+        
+        # a8 only has the default
+        attributes = provider.templates()["templates"][1]["attributes"]
+        self.assertEquals(["String", "custom_default_value"], attributes["custom"])
+        self.assertNotIn("custom2", attributes)
+        self.assertEquals(0, provider.templates()["templates"][1]["maxNumber"])
         
     def test_invalid_template(self):
         provider = self._new_provider()

@@ -13,8 +13,9 @@ class Cluster:
         return self._add_missing_limits(self.get("/nodearrays?cluster=%s" % self.cluster_name))
     
     def _add_missing_limits(self, arrays):
-        known_machine_limits = {"Standard_B2s": 10,
-                                "Standard_B4ms": 10,
+        known_machine_limits = {"Standard_B2s": 6,
+                                "Standard_B2ms": 10,
+                                "Standard_B4ms": 0,
                                 "Standard_D2_v2": 100,
                                 "Standard_D3_v2": 100
                                 }
