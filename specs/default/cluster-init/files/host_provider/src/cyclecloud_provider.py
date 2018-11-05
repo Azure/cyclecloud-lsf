@@ -123,7 +123,8 @@ class CycleCloudProvider:
                     machine_type = response["machineTypes"][machine_type_name]
                     
                     # LSF hates special characters
-                    template_id = "%s%s" % (nodearray_root.get("templateName"), machine_type_name)
+                    template_name = nodearray_root.get("templateName")
+                    template_id = "%s%s" % (template_name, machine_type_name)
                     template_id = self._escape_id(template_id)
                     currently_available_templates.add(template_id)
                     
@@ -150,7 +151,7 @@ class CycleCloudProvider:
                     
                     # deepcopy so we can pop attributes
                     
-                    for override_sub_key in ["default", template_id]:
+                    for override_sub_key in ["default", template_name]:
                         overrides = deepcopy(self.config.get("templates.%s" % override_sub_key, {}))
                         attribute_overrides = overrides.pop("attributes", {})
                         record.update(overrides)

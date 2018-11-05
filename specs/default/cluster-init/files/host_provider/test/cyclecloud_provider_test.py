@@ -7,6 +7,7 @@ from lsf import RequestStates, MachineStates, MachineResults
 import test_json_source_helper
 from util import JsonStore
 import util
+from copy import deepcopy
 
 
 MACHINE_TYPES = {
@@ -379,22 +380,29 @@ class Test(unittest.TestCase):
         
     def test_override_template(self):
         provider = self._new_provider()
+        other_array = deepcopy(provider.cluster._nodearrays["nodeArrays"][0])
+        other_array["templateName"] = "other"
+        provider.cluster._nodearrays["nodeArrays"].append(other_array)
+        
+        def any_template(template_name):
+            return [x for x in provider.templates()["templates"] if x["templateId"].startswith(template_name)][0]
+        
         provider.config.set("templates.default.attributes.custom", ["String", "custom_default_value"])
-        provider.config.set("templates.executea4.attributes.custom", ["String", "custom_override_value"])
-        provider.config.set("templates.executea4.attributes.custom2", ["String", "custom_value2"])
-        provider.config.set("templates.executea8.maxNumber", 0)
+        provider.config.set("templates.execute.attributes.custom", ["String", "custom_override_value"])
+        provider.config.set("templates.execute.attributes.custom2", ["String", "custom_value2"])
+        provider.config.set("templates.other.maxNumber", 0)
         
         # a4 overrides the default and has custom2 defined as well
-        attributes = provider.templates()["templates"][0]["attributes"]
+        attributes = any_template("execute")["attributes"]
         self.assertEquals(["String", "custom_override_value"], attributes["custom"])
         self.assertEquals(["String", "custom_value2"], attributes["custom2"])
         self.assertEquals(["Numeric", 1. * 1024], attributes["mem"])
         
         # a8 only has the default
-        attributes = provider.templates()["templates"][1]["attributes"]
+        attributes = any_template("other")["attributes"]
         self.assertEquals(["String", "custom_default_value"], attributes["custom"])
         self.assertNotIn("custom2", attributes)
-        self.assertEquals(0, provider.templates()["templates"][1]["maxNumber"])
+        self.assertEquals(0, any_template("other")["maxNumber"])
         
     def test_invalid_template(self):
         provider = self._new_provider()
