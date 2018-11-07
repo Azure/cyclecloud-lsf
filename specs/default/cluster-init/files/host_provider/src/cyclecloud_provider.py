@@ -1,4 +1,6 @@
 import calendar
+from collections import OrderedDict
+from copy import deepcopy
 import json
 import os
 import pprint
@@ -9,8 +11,6 @@ from lsf import RequestStates, MachineStates, MachineResults
 import new_api
 from util import JsonStore, failureresponse
 import util
-from copy import deepcopy
-from collections import OrderedDict
 
 
 logger = None

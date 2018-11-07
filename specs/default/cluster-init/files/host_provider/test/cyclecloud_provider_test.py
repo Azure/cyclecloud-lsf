@@ -1,3 +1,4 @@
+from copy import deepcopy
 import subprocess
 import sys
 import unittest
@@ -7,7 +8,6 @@ from lsf import RequestStates, MachineStates, MachineResults
 import test_json_source_helper
 from util import JsonStore
 import util
-from copy import deepcopy
 
 
 MACHINE_TYPES = {

@@ -1,14 +1,16 @@
-import logging
-import os
-import sys
-from logging.handlers import RotatingFileHandler
-import json
-import shutil
-import fcntl
-from cyclecli import UserError, ConfigError
 from copy import deepcopy
-import traceback
+import fcntl
+import json
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+import shutil
 import subprocess
+import sys
+import traceback
+
+from cyclecli import UserError, ConfigError
+
 
 _logging_init = False
 
