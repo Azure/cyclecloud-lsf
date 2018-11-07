@@ -530,15 +530,16 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         
         json_dir = os.getenv('PRO_DATA_DIR', os.getcwd())
         config_file = os.getenv('PRO_CONF_DIR', os.getcwd()) + os.sep + "azureccprov_config.json"
+        templates_file = os.getenv('PRO_CONF_DIR', os.getcwd()) + os.sep + "azurecctemplates_config.json"
+        
+        # on disk configuration
         config = {}
         if os.path.exists(config_file):
             with open(config_file) as fr:
                 config = json.load(fr)
-                
-        provider_config = util.ProviderConfig(config)
-        
+            
         import logging as logginglib
-        log_level_name = provider_config.get("log_level", "info")
+        log_level_name = config.get("log_level", "info")
         
         log_levels = {
             "debug": logginglib.DEBUG,
@@ -552,6 +553,29 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         
         global logger
         logger = util.init_logging(log_levels[log_level_name.lower()], "cyclecloud_provider.log")
+        
+        if os.path.exists(config_file):
+            logger.info("Loading provider config: %s" % config_file)
+        else:
+            logger.warn("Provider config does not exist: %s" % config_file)
+            
+        # on disk per-nodearray template override
+        customer_templates = {}
+        if os.path.exists(templates_file):
+            logger.info("Loading template overrides: %s" % templates_file)
+            with open(templates_file) as fr:
+                config = json.load(fr)
+        else:
+            logger.info("Template overrides file does not exist: %s" % config_file)
+        
+        # don't let the user define these in two places
+        if config.pop("templates", {}):
+            logger.warn("Please defined template overrides in %s, not the azureccprov_config.json" % templates_file)
+        
+        # and merge them so it is transparent to the code
+        config["templates"] = customer_templates.get("templates", {})
+        
+        provider_config = util.ProviderConfig(config)
         
         hostnamer = util.Hostnamer(provider_config.get("cyclecloud.hostnames.use_fqdn", True))
         cluster_name = provider_config.get("cyclecloud.cluster.name")
