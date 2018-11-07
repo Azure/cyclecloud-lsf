@@ -1,6 +1,7 @@
 import calendar
 from collections import OrderedDict
 from copy import deepcopy
+import difflib
 import json
 import os
 import pprint
@@ -38,6 +39,7 @@ class CycleCloudProvider:
         self.clock = clock
         self.termination_timeout = float(self.config.get("cyclecloud.termination_request_retirement", 120) * 60)
         self.node_request_timeouts = float(self.config.get("cyclecloud.machine_request_retirement", 120) * 60)
+        self.fine = False
 
     def _escape_id(self, name):
         return name.lower().replace("_", "")
@@ -95,7 +97,7 @@ class CycleCloudProvider:
         """
         
         prior_templates = self.templates_json.read()
-        hash_code_before = json.dumps(prior_templates)
+        prior_templates_str = json.dumps(prior_templates, indent=2)
         
         at_least_one_available_bucket = False
         
@@ -105,6 +107,9 @@ class CycleCloudProvider:
             response = self.cluster.nodearrays()
 
             nodearrays = response["nodeArrays"]
+            
+            if self.fine:
+                logger.debug("nodearrays response\n%s" % json.dumps(nodearrays, indent=2))
             
             currently_available_templates = set()
             
@@ -163,16 +168,22 @@ class CycleCloudProvider:
             # for templates that are no longer available, advertise them but set maxNumber = 0
             for lsf_template in templates_store.values():
                 if lsf_template["templateId"] not in currently_available_templates:
+                    logger.warn("Ignoring old template %s vs %s" % (lsf_template["templateId"], currently_available_templates))
                     lsf_template["maxNumber"] = 0
            
         new_templates = self.templates_json.read()
-        hash_code_after = json.dumps(new_templates)
-        if hash_code_after != hash_code_before:
-            logger.warn("Templates have changed - %s" % (pprint.pformat(new_templates)))
-
+        
+        new_templates_str = json.dumps(new_templates, indent=2)
         lsf_templates = list(new_templates.values())
         lsf_templates = sorted(lsf_templates, key=lambda x: -x["priority"])
         
+        if new_templates_str != prior_templates_str:
+            generator = difflib.context_diff(prior_templates_str.splitlines(), new_templates_str.splitlines())
+            difference = "\n".join([str(x) for x in generator])
+            new_template_order = ", ".join(["%s:%s" % (x.get("templateId", "?"), x.get("maxNumber", "?")) for x in lsf_templates])
+            logger.warn("Templates have changed - new template priority order: %s" % new_template_order)
+            logger.warn("Diff:\n%s" % str(difference))
+
         # Note: we aren't going to store this, so it will naturally appear as an error during allocation.
         if not at_least_one_available_bucket:
             lsf_templates.insert(0, PLACEHOLDER_TEMPLATE)
@@ -187,14 +198,16 @@ class CycleCloudProvider:
         max_count = bucket.get("maxCount")
         
         if max_count is not None:
+            logger.debug("Using maxCount %s for %s" % (max_count, bucket))
             return max(-1, max_count)
         
         max_core_count = bucket.get("maxCoreCount")
         if max_core_count is None:
-            if nodearray.get("MaxCoreCount") is None:
-                logger.error("Need to define either maxCount or maxCoreCount! %s" % pprint.pformat(nodearray))
+            if nodearray.get("maxCoreCount") is None:
+                logger.error("Need to define either maxCount or maxCoreCount! %s" % pprint.pformat(bucket))
                 return -1
-            max_core_count = nodearray.get("MaxCoreCount")
+            logger.debug("Using maxCoreCount")
+            max_core_count = nodearray.get("maxCoreCount")
         
         max_core_count = max(-1, max_core_count)
         
@@ -419,7 +432,9 @@ class CycleCloudProvider:
                     termination_request = terminate_requests.get(termination_id)
                     machines = termination_request.get("machines", {})
                     
-                    if not machines:
+                    if machines:
+                        logger.info("Terminating machines: %s" % ([hostname for hostname in machines.itervalues()]))
+                    else:
                         logger.warn("No machines found for termination request %s. Will retry." % termination_id)
                         request_status = RequestStates.running
                     
@@ -435,7 +450,7 @@ class CycleCloudProvider:
                     # set to running so lsf will keep retrying, hopefully, until someone intervenes.
                     request_status = RequestStates.running
                     request["message"] = "Unknown termination request id."
-
+               
                 request["status"] = request_status
         
         return self.json_writer(response)
@@ -528,71 +543,29 @@ def true_gmt_clock():  # pragma: no cover
 def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
     try:
         
-        json_dir = os.getenv('PRO_DATA_DIR', os.getcwd())
-        config_file = os.getenv('PRO_CONF_DIR', os.getcwd()) + os.sep + "azureccprov_config.json"
-        templates_file = os.getenv('PRO_CONF_DIR', os.getcwd()) + os.sep + "azurecctemplates_config.json"
-        
-        # on disk configuration
-        config = {}
-        if os.path.exists(config_file):
-            with open(config_file) as fr:
-                config = json.load(fr)
-            
-        import logging as logginglib
-        log_level_name = config.get("log_level", "info")
-        
-        log_levels = {
-            "debug": logginglib.DEBUG,
-            "info": logginglib.INFO,
-            "warn": logginglib.WARN,
-            "error": logginglib.ERROR
-        }
-        
-        if log_level_name.lower() not in log_levels:
-            log_level_name = "info"
-        
         global logger
-        logger = util.init_logging(log_levels[log_level_name.lower()], "cyclecloud_provider.log")
+        provider_config, logger, fine = util.provider_config_from_environment()
         
-        if os.path.exists(config_file):
-            logger.info("Loading provider config: %s" % config_file)
-        else:
-            logger.warn("Provider config does not exist: %s" % config_file)
-            
-        # on disk per-nodearray template override
-        customer_templates = {}
-        if os.path.exists(templates_file):
-            logger.info("Loading template overrides: %s" % templates_file)
-            with open(templates_file) as fr:
-                config = json.load(fr)
-        else:
-            logger.info("Template overrides file does not exist: %s" % config_file)
-        
-        # don't let the user define these in two places
-        if config.pop("templates", {}):
-            logger.warn("Please defined template overrides in %s, not the azureccprov_config.json" % templates_file)
-        
-        # and merge them so it is transparent to the code
-        config["templates"] = customer_templates.get("templates", {})
-        
-        provider_config = util.ProviderConfig(config)
-        
+        data_dir = os.getenv('PRO_DATA_DIR', os.getcwd())
         hostnamer = util.Hostnamer(provider_config.get("cyclecloud.hostnames.use_fqdn", True))
         cluster_name = provider_config.get("cyclecloud.cluster.name")
+        
         provider = CycleCloudProvider(config=provider_config,
                                       cluster=new_api.Cluster(cluster_name, provider_config),
                                       hostnamer=hostnamer,
                                       json_writer=json_writer,
-                                      terminate_requests=JsonStore("terminate_requests.json", json_dir),
-                                      templates=JsonStore("templates.json", json_dir, formatted=True),
+                                      terminate_requests=JsonStore("terminate_requests.json", data_dir),
+                                      templates=JsonStore("templates.json", data_dir, formatted=True),
                                       clock=true_gmt_clock)
-        
+        provider.fine = fine
+
+        # every command has the format cmd -f input.json        
         cmd, ignore, input_json_path = argv[1:]
+
+        input_json = util.load_json(input_json_path)
         
-        with open(input_json_path) as fr:
-            input_json = json.load(fr)
-        
-        logger.debug("Arguments - %s %s %s" % (cmd, ignore, json.dumps(input_json)))
+        if provider.fine:
+            logger.debug("Arguments - %s %s %s" % (cmd, ignore, json.dumps(input_json)))
                 
         if cmd == "templates":
             provider.templates()
@@ -609,6 +582,7 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
             
     except ImportError as e:
         logger.exception(str(e))
+
     except Exception as e:
         if logger:
             logger.exception(str(e))

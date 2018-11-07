@@ -1,6 +1,10 @@
 from copy import deepcopy
+import json
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 import cyclecloud_provider
@@ -214,17 +218,16 @@ class Test(unittest.TestCase):
         run_test(expected_machines=0, node_status="Off", node_target_state="Off",
                  expected_request_status=RequestStates.complete)
         
-    def _new_provider(self):
+    def _new_provider(self, provider_config=util.ProviderConfig({}, {})):
         a4bucket = {"maxCount": 2, "overrides": {"MachineType": "A4"}}
         a8bucket = {"maxCoreCount": 24, "overrides": {"MachineType": "A8"}}
         cluster = MockCluster({"nodeArrays": [{"templateName": "execute",
                                                "nodeArray": {"MachineType": ["a4", "a8"]},
                                                 "buckets": [a4bucket, a8bucket]}],
                                "machineTypes": MACHINE_TYPES})
-        config = util.ProviderConfig({}, {})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
-        return cyclecloud_provider.CycleCloudProvider(config, cluster, hostnamer, json_writer, RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
+        return cyclecloud_provider.CycleCloudProvider(provider_config, cluster, hostnamer, json_writer, RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
     
     def _make_request(self, template_id, machine_count, rc_account="default", user_data={}):
         return {"user_data": user_data,
@@ -409,6 +412,27 @@ class Test(unittest.TestCase):
         response = provider.create_machines(self._make_request("nonsense", 1))
         self.assertEquals(RequestStates.complete_with_error, response["status"])
         
+    def test_provider_config_from_env(self):
+        tempdir = tempfile.mkdtemp()
+        try:
+            with open(tempdir + os.sep + "azureccprov_config.json", "w") as fw:
+                json.dump({}, fw)
+                
+            with open(tempdir + os.sep + "azurecctemplates_config.json", "w") as fw:
+                json.dump({"templates": 
+                           [{"templateId": "default", "attributes": {"custom": ["String", "VALUE"]}}]}, fw)
+            
+            config, _logger, _fine = util.provider_config_from_environment(tempdir)
+            provider = self._new_provider(provider_config=config)
+            for template in provider.templates()["templates"]:
+                self.assertIn(template["templateId"], ["executea4", "executea8"])
+                assert "custom" in template["attributes"]
+                self.assertEquals(["String", "VALUE"], template["attributes"]["custom"])
+            
+        except Exception:
+            shutil.rmtree(tempdir, ignore_errors=True)
+            raise    
+
 
 if __name__ == "__main__":
     unittest.main()

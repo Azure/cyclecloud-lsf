@@ -25,8 +25,8 @@ class UtilTest(unittest.TestCase):
         self.assertEquals({"z": "123"}, pc.get("x.y")) 
         self.assertEquals({"y": {"z": "123"}}, pc.get("x"))
         self.assertEquals({"x": {"y": {"z": "123"}}, "a": "b"}, pc.get(""))
-        self.assertEquals({"x": {"y": {"z": "123"}}, "a": "b"}, pc.get(None)) 
-
+        self.assertEquals({"x": {"y": {"z": "123"}}, "a": "b"}, pc.get(None))
+        
 
 if __name__ == "__main__":
     unittest.main()

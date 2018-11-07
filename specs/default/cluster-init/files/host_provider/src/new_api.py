@@ -1,6 +1,7 @@
 import json
 
 import cyclecli
+import collections
 
 
 class Cluster:
@@ -73,5 +74,5 @@ class Cluster:
         root_url, session = self._session()
         response = session.get(root_url + url, params=params)
         if response.status_code != 200:
-            raise ValueError(response.content)
+            raise ValueError(response.content, object_pairs_hook=collections.OrderedDict)
         return json.loads(response.content)

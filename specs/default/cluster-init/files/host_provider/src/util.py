@@ -10,6 +10,7 @@ import sys
 import traceback
 
 from cyclecli import UserError, ConfigError
+import collections
 
 
 _logging_init = False
@@ -18,7 +19,7 @@ _logging_init = False
 def init_logging(loglevel=logging.INFO, logfile=None):
     global _logging_init
     if logfile is None:
-        logfile = "cyclecloud_rc.log"
+        logfile = "azurecc_prov.log"
     logfile_path = os.path.join(os.getenv("PRO_LSF_LOGDIR", "/tmp"), logfile)
     
     try:
@@ -49,7 +50,7 @@ def init_logging(loglevel=logging.INFO, logfile=None):
     logger.addHandler(logfile_handler)
     
     stderr_handler = logging.StreamHandler(stream=sys.stderr)
-    stderr_handler.setLevel(loglevel)
+    stderr_handler.setLevel(logging.DEBUG)
     stderr_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
     
     logger.addHandler(stderr_handler)
@@ -98,8 +99,7 @@ class JsonStore:
         
         if os.path.exists(self.path):
             try:
-                with open(self.path) as fr:
-                    self.data = json.load(fr)
+                self.data = load_json(self.path)
             except Exception:
                 self.logger.exception("Could not reload %s - hosts may need to be manually removed from the system's hosts.json file." % self.path)
                 self.data = {}
@@ -119,7 +119,7 @@ class JsonStore:
     def __exit__(self, *args):
         with open(self.path + ".tmp", "w") as fw:
             indent = 2 if self.formatted else None
-            json.dump(self.data, fw, indent=indent)
+            json.dump(self.data, fw, indent=indent, sort_keys=True)
         shutil.move(self.path + ".tmp", self.path)
         self._unlock()
         
@@ -180,7 +180,11 @@ class ProviderConfig:
         for n in range(len(keys)):
             if top_value is None:
                 break
-
+            
+            if not hasattr(top_value, "keys"):
+                self.logger.warn("Invalid format, as a child key was specified for %s when its type is %s ", key, type(top_value))
+                return {}
+                
             value = top_value.get(keys[n])
             
             if n == len(keys) - 1 and value is not None:
@@ -210,6 +214,84 @@ class ProviderConfig:
         top_value[keys[-1]] = value
 
 
+def provider_config_from_environment(pro_conf_dir=os.getenv('PRO_CONF_DIR', os.getcwd())):
+    config_file = os.path.join(pro_conf_dir, "azureccprov_config.json")
+    templates_file = os.path.join(pro_conf_dir, "azureccprov_templates.json")
+    
+    delayed_log_statements = []
+    
+    # on disk configuration
+    config = {}
+    if os.path.exists(config_file):
+        delayed_log_statements.append((logging.DEBUG, "Loading provider config: %s" % config_file))
+        config = load_json(config_file)
+    else:
+        delayed_log_statements.append((logging.WARN, "Provider config does not exist, creating an empty one: %s" % config_file))
+        with open(config_file, "w") as fw:
+            json.dump({}, fw)
+        
+    import logging as logginglib
+    log_level_name = config.get("log_level", "info")
+    
+    log_levels = {
+        "debug": logginglib.DEBUG,
+        "info": logginglib.INFO,
+        "warn": logginglib.WARN,
+        "error": logginglib.ERROR
+    }
+    
+    fine = False
+    if log_level_name.lower() == "fine":
+        fine = True
+        log_level_name = "debug"
+    
+    if log_level_name.lower() not in log_levels:
+        delayed_log_statements.append(((logging.WARN, "Unknown logging level: %s" % log_level_name.lower())))
+        log_level_name = "info"
+    
+    logger = init_logging(log_levels[log_level_name.lower()])
+    
+    for level, message in delayed_log_statements:
+        logger.log(level, message)
+    
+    # on disk per-nodearray template override
+    customer_templates = {}
+    if os.path.exists(templates_file):
+        logger.debug("Loading template overrides: %s" % templates_file)
+        customer_templates = load_json(templates_file)
+    else:
+        logger.info("Template overrides file does not exist, trying to create an empty one: %s" % templates_file)
+        try:
+            with open(templates_file, "w") as fw:
+                json.dump({}, fw)
+        except IOError:
+            pass
+    
+    # don't let the user define these in two places
+    if config.pop("templates", {}):
+        logger.warn("Please define template overrides in %s, not the azureccprov_config.json" % templates_file)
+    
+    # and merge them so it is transparent to the code
+    flattened_templates = {}
+    for template in customer_templates.get("templates", []):
+        
+        if "templateId" not in template:
+            logger.warn("Skipping template because templateId is not defined: %s", template)
+            continue
+        
+        nodearray = template.pop("templateId")  # definitely don't want to rename them as machineId
+        
+        if nodearray in flattened_templates:
+            logger.warn("Ignoring redefinition of templateId %s", nodearray)
+            continue
+        
+        flattened_templates[nodearray] = template
+        
+    config["templates"] = flattened_templates
+    
+    return ProviderConfig(config), logger, fine
+
+
 class Hostnamer:
     
     def __init__(self, use_fqdn=True):
@@ -223,3 +305,8 @@ class Hostnamer:
             return toks[0]
         else:
             return toks[-1]
+        
+        
+def load_json(path):
+    with open(path) as fr:
+        return json.load(fr, object_pairs_hook=collections.OrderedDict)
