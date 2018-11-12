@@ -22,10 +22,10 @@ class Cluster:
                                 "Standard_D3_v2": 100
                                 }
         for a in arrays["nodeArrays"]:
+            a["maxCoreCount"] = 100
             for b in a["buckets"]:
-                max_core_count = b.get("maxCoreCount")
-                if max_core_count is None:
-                    b["maxCoreCount"] = known_machine_limits.get(b["overrides"]["MachineType"])
+                b["maxCount"] = None
+                b["maxCoreCount"] = known_machine_limits.get(b["overrides"]["MachineType"], 100)
         return arrays
 
     def add_nodes(self, request):
