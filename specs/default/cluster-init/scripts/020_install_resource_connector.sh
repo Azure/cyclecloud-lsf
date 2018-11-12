@@ -37,12 +37,24 @@ set +e
 usermod -a -G cyclecloud lsfadmin
 set -e
 
+echo lsadmin limstartup
 lsadmin limstartup
+sleep 5
+
+echo lsadmin resstartup
 lsadmin resstartup
+sleep 5
+echo badmin hstartup
 badmin hstartup
-lsadmin reconfig -f
 
 sleep 10
+
+# usually requires 5-15 seconds after the above restarts
+for attempt in $( seq 1 6 ); do 
+	echo attempting 'lsadmin reconfig -f -f' $attempt/6
+	(lsadmin reconfig -f || sleep 10)
+done
+
 # usually requires 5-15 seconds after lasadmin reconfig
 for attempt in $( seq 1 6 ); do 
 	echo attempting 'badmin mbdrestart -f' $attempt/6
