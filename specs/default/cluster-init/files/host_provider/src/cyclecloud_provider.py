@@ -72,7 +72,7 @@ class CycleCloudProvider:
         []
         
         output:
-        {'templates': [{'attributes': {'azurehost': ['Boolean', '1'],
+        {'templates': [{'attributes': {'azurecchost': ['Boolean', '1'],
                                'mem': ['Numeric', '2048'],
                                'ncores': ['Numeric', '4'],
                                'ncpus': ['Numeric', '4'],
@@ -83,7 +83,7 @@ class CycleCloudProvider:
                 'pgrpName': None,
                 'priority': 0,
                 'templateId': 'execute0'},
-               {'attributes': {'azurehost': ['Boolean', '1'],
+               {'attributes': {'azurecchost': ['Boolean', '1'],
                                'mem': ['Numeric', '4096'],
                                'ncores': ['Numeric', '8'],
                                'ncpus': ['Numeric', '8'],
@@ -147,7 +147,7 @@ class CycleCloudProvider:
                             "mem": ["Numeric", memory],
                             "ncpus": ["Numeric", machine_type.get("CoreCount")],
                             "ncores": ["Numeric", machine_type.get("CoreCount")],
-                            "azurehost": ["Boolean", "1"],
+                            "azurecchost": ["Boolean", "1"],
                             "type": ["String", "X86_64"],
                             "machinetype": ["String", machine_type_name],
                             "nodearray": ["String", nodearray_root.get("templateName")]
