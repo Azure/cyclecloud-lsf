@@ -226,10 +226,13 @@ def provider_config_from_environment(pro_conf_dir=os.getenv('PRO_CONF_DIR', os.g
         delayed_log_statements.append((logging.DEBUG, "Loading provider config: %s" % config_file))
         config = load_json(config_file)
     else:
-        delayed_log_statements.append((logging.WARN, "Provider config does not exist, creating an empty one: %s" % config_file))
-        with open(config_file, "w") as fw:
-            json.dump({}, fw)
-        
+        try:
+            with open(config_file, "w") as fw:
+                json.dump({}, fw)
+            delayed_log_statements.append((logging.WARN, "Provider config does not exist, creating an empty one: %s" % config_file))
+        except IOError:
+            delayed_log_statements.append((logging.DEBUG, "Provider config does not exist and can't write a default one: %s" % config_file))
+            
     import logging as logginglib
     log_level_name = config.get("log_level", "info")
     
@@ -260,12 +263,12 @@ def provider_config_from_environment(pro_conf_dir=os.getenv('PRO_CONF_DIR', os.g
         logger.debug("Loading template overrides: %s" % templates_file)
         customer_templates = load_json(templates_file)
     else:
-        logger.info("Template overrides file does not exist, trying to create an empty one: %s" % templates_file)
         try:
             with open(templates_file, "w") as fw:
                 json.dump({}, fw)
+            logger.info("Template overrides file does not exist, wrote an empty one: %s" % templates_file)
         except IOError:
-            pass
+            logger.debug("Template overrides file does not exist and can't write a default one: %s" % templates_file)
     
     # don't let the user define these in two places
     if config.pop("templates", {}):

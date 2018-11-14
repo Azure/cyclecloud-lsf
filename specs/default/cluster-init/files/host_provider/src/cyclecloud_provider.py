@@ -177,7 +177,7 @@ class CycleCloudProvider:
         lsf_templates = list(new_templates.values())
         lsf_templates = sorted(lsf_templates, key=lambda x: -x["priority"])
         
-        if new_templates_str != prior_templates_str:
+        if new_templates_str != prior_templates_str and len(prior_templates) > 0:
             generator = difflib.context_diff(prior_templates_str.splitlines(), new_templates_str.splitlines())
             difference = "\n".join([str(x) for x in generator])
             new_template_order = ", ".join(["%s:%s" % (x.get("templateId", "?"), x.get("maxNumber", "?")) for x in lsf_templates])
