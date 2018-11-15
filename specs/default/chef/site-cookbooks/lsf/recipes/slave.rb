@@ -17,7 +17,24 @@ execute "lsf init.d" do
   creates "/etc/init.d/lsf"
 end
 
+ruby_block 'check_valid_masterlist' do
+  block do
+    hostname_match = node['lsf']['master']['reverse_hostnames'] == node['lsf']['master']['hostnames']
+    raise "Hostname mismatch in master list. #{node[:lsf][:master][:hostnames]} == #{node[:lsf][:master][:reverse_hostnames]}" if not(hostname_match)
+  end
+end
+
 directory node['lsf']['local_etc']
+
+template "#{node['lsf']['local_etc']}/lsf.conf" do
+  source 'conf/lsf.conf.erb'
+  variables(
+    :lsf_top => lsf_top,
+    :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) },
+    :master_domain => node['domain'],
+    :master_hostname => node['lsf']['master']['hostnames'][0]
+  )
+end
 
 template "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}" do
   source 'conf/lsf.cluster.erb'
@@ -35,21 +52,21 @@ template "#{node['lsf']['local_etc']}/lsb.hosts" do
 end
   
 
-execute 'lsadmin limstartup' do 
-  command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
-  not_if 'pidof lim'
-  user 'lsfadmin'
-  group 'lsfadmin'  
-end
+defer_block "Defer starting lsf until end of the converge" do
+  execute 'lsadmin limstartup' do 
+    command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
+    not_if 'pidof lim'
+    user 'lsfadmin'
+    group 'lsfadmin'  
+  end
 
-execute 'lsadmin resstartup' do 
-  command "source #{lsf_top}/conf/profile.lsf && lsadmin resstartup -f"
-  not_if 'pidof res'
-  user 'lsfadmin'
-  group 'lsfadmin'
-end
+  execute 'lsadmin resstartup' do 
+    command "source #{lsf_top}/conf/profile.lsf && lsadmin resstartup -f"
+    not_if 'pidof res'
+    user 'lsfadmin'
+    group 'lsfadmin'
+  end
 
-defer_block 'defer start of sbatchd to end of run' do
   execute 'badmin hstartup' do 
     command "source #{lsf_top}/conf/profile.lsf && badmin hstartup -f"
     not_if 'pidof sbatchd'

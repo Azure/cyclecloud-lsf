@@ -29,6 +29,8 @@
 
         cyclecloud.selinux.policy = permissive
 
+        
+
         [[[cluster-init lsf:default:$LsfProjectVersion]]]
 
     [[node fileserver]]
@@ -137,9 +139,12 @@
 
         MaxCoreCount = $MaxExecuteCoreCount
         [[[cluster-init lsf:slave:$LsfProjectVersion]]]
+        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
         [[[configuration]]]
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
+        cyclecloud.maintenance_converge.enabled = false
+
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -150,6 +155,32 @@
         type = nfs
         mountpoint = /shared/home
         export_path = /mnt/raid/home
+
+    [[nodearray test]]
+
+        Azure.MaxScalesetSize = $MaxScalesetSize
+        MachineType = $ExecuteMachineType
+        AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
+        Interruptible = $UseLowPrio
+
+        MaxCoreCount = $MaxExecuteCoreCount
+        [[[cluster-init lsf:slave:$LsfProjectVersion]]]
+        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+
+        [[[configuration]]]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
+        cyclecloud.maintenance_converge.enabled = false
+
+        [[[configuration cyclecloud.mounts.sched-exp]]]
+        type = nfs
+        mountpoint = /usr/share/lsf
+        export_path = /mnt/raid/lsf
+
+        [[[configuration cyclecloud.mounts.home]]]
+        type = nfs
+        mountpoint = /shared/home
+        export_path = /mnt/raid/home
+
 
 [parameters About]
 Order = 1

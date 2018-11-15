@@ -47,6 +47,10 @@ end
 
 directory node['lsf']['local_etc']
 
+link "#{lsf_top}/conf/lsf.conf" do
+  to "#{node['lsf']['local_etc']}/lsf.conf"
+end
+
 link "#{lsf_top}/conf/lsf.cluster.#{clustername}" do
   to "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}"
 end
