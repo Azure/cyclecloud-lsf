@@ -162,13 +162,19 @@ class CycleCloudProvider:
                         record.update(overrides)
                         record["attributes"].update(attribute_overrides)
                     
+                    attributes = self.generate_userdata(record)
+                    
+                    record["userData"] = {"lsf": {"attributes": attributes,
+                                                  "attribute_names": " ".join(attributes.iterkeys())}}
+                    
                     templates_store[template_id] = record
                     default_priority = default_priority - 10
             
             # for templates that are no longer available, advertise them but set maxNumber = 0
             for lsf_template in templates_store.values():
                 if lsf_template["templateId"] not in currently_available_templates:
-                    logger.warn("Ignoring old template %s vs %s" % (lsf_template["templateId"], currently_available_templates))
+                    if self.fine:
+                        logger.debug("Ignoring old template %s vs %s" % (lsf_template["templateId"], currently_available_templates))
                     lsf_template["maxNumber"] = 0
            
         new_templates = self.templates_json.read()
@@ -189,6 +195,37 @@ class CycleCloudProvider:
             lsf_templates.insert(0, PLACEHOLDER_TEMPLATE)
         
         return self.json_writer({"templates": lsf_templates}, debug_output=False)
+    
+    def generate_userdata(self, template):
+        if template.get("userData"):
+            return self._parse_userData(template)
+        
+        ret = {}
+        
+        for key, value_array in template.get("attributes", {}).iteritems():
+            if len(value_array) != 2:
+                logger.error("Invalid attribute %s %s", key, value_array)
+                continue
+            if value_array[0].lower() == "boolean":
+                if value_array[1]:
+                    ret[key] = "true"
+            else:
+                ret[key] = value_array[1]
+            
+        return ret
+        
+    def _parse_userData(self, template):
+        key_values = template.get("userData").split(":")
+        
+        ret = {}
+        
+        for kv in key_values:
+            try:
+                key, value = kv.split("=", 1)
+                ret[key] = value
+            except ValueError:
+                logger.error("Invalid userData entry! '%s'", kv)
+        return ret
     
     def _max_count(self, nodearray, machine_cores, bucket):
         if machine_cores < 0:
@@ -247,8 +284,10 @@ class CycleCloudProvider:
             # RequestId may or may not be special. Add a subdict most likely.
             self.cluster.add_nodes({'sets': [{'count': machine_count,
                                                'overrides': {'MachineType': _get("machinetype"),
-                                                             'RequestId': request_id},
-                                              'template': _get("nodearray")}]})
+                                                             'RequestId': request_id,
+                                                             'Configuration': template.get("userData")},
+                                              'template': _get("nodearray")
+                                              }]})
             
             logger.info("Requested %s instances of machine type %s in nodearray %s." % (machine_count, _get("machinetype"), _get("nodearray")))
             
