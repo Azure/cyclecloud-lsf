@@ -1,11 +1,4 @@
 #!/bin/bash
-set -e
-
-node_template=$(jetpack config cyclecloud.node.template)
-if [ "$node_template" != "master" ]; then
-	exit 0
-fi;
-
 set +e
 $(jetpack config lsf.skip_install | grep -i true) > /dev/null
 if [ $? == 0 ]; then

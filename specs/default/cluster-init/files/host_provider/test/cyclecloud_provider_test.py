@@ -418,7 +418,7 @@ class Test(unittest.TestCase):
             with open(tempdir + os.sep + "azureccprov_config.json", "w") as fw:
                 json.dump({}, fw)
                 
-            with open(tempdir + os.sep + "azurecctemplates_config.json", "w") as fw:
+            with open(tempdir + os.sep + "azureccprov_templates.json", "w") as fw:
                 json.dump({"templates": 
                            [{"templateId": "default", "attributes": {"custom": ["String", "VALUE"]}}]}, fw)
             

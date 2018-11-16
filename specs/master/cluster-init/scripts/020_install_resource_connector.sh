@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e
 
-node_template=$(jetpack config cyclecloud.node.template)
-if [ "$node_template" != "master" ]; then
-	exit 0
-fi;
-
 lsf_top=$(jetpack config lsf.lsf_top)
 set +e
 source $lsf_top/conf/profile.lsf
@@ -26,11 +21,11 @@ rc_scripts_dir=$LSF_SERVERDIR/../../resource_connector/azurecc/scripts
 rm -rf $rc_scripts_dir
 mkdir -p $rc_scripts_dir
 
-cp $CYCLECLOUD_SPEC_PATH/files/host_provider/*.sh $rc_scripts_dir/
+cp $CYCLECLOUD_SPEC_PATH/../default/files/host_provider/*.sh $rc_scripts_dir/
 chmod +x $rc_scripts_dir/*.sh
 
 mkdir -p $rc_scripts_dir/src/
-cp $CYCLECLOUD_SPEC_PATH/files/host_provider/src/*.py $rc_scripts_dir/src/
+cp $CYCLECLOUD_SPEC_PATH/../default/files/host_provider/src/*.py $rc_scripts_dir/src/
 
 set +e
 # for jetpack log access

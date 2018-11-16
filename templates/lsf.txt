@@ -109,6 +109,8 @@
         mountpoint = /shared/home
         export_path = /mnt/raid/home
 
+        [[[cluster-init lsf:master:$LsfProjectVersion]]]
+
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
         MachineType = $ProxyMachineType
@@ -156,6 +158,8 @@
         mountpoint = /shared/home
         export_path = /mnt/raid/home
 
+        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+
     [[nodearray test]]
 
         Azure.MaxScalesetSize = $MaxScalesetSize
@@ -180,6 +184,8 @@
         type = nfs
         mountpoint = /shared/home
         export_path = /mnt/raid/home
+
+        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
 
 [parameters About]
