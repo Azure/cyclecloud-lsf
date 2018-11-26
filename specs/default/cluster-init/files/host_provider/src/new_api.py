@@ -2,6 +2,8 @@ import json
 
 import cyclecli
 import collections
+import itertools
+import sys
 
 
 class Cluster:
@@ -43,9 +45,10 @@ class Cluster:
         return self.get("/node/searchtmp", Filter=filter_expr)
     
     def terminate(self, node_ids):
+        # kludge: work around
         fexpr = 'NodeId in {%s}' % ",".join(['"%s"' % x for x in node_ids])
         try:
-            return self.post("/cloud/actions/terminate_node/%s?filter=%s" % (self.cluster_name, fexpr))
+            self.post("/cloud/actions/terminate_node/%s" % self.cluster_name, json={"filter": fexpr})
         except Exception as e:
             if "No nodes were found matching your query" in unicode(e):
                 return
