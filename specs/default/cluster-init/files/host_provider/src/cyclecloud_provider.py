@@ -164,8 +164,15 @@ class CycleCloudProvider:
                     
                     attributes = self.generate_userdata(record)
                     
-                    record["userData"] = {"lsf": {"attributes": attributes,
-                                                  "attribute_names": " ".join(attributes.iterkeys())}}
+                    custom_env = self._parse_UserData(record.pop("UserData", "") or "")
+                    record["UserData"] = {"lsf": {}}
+                    
+                    if custom_env:
+                        record["UserData"]["lsf"] = {"custom_env": custom_env,
+                                                     "custom_env_names": " ".join(sorted(custom_env.iterkeys()))}
+                    
+                    record["UserData"]["lsf"]["attributes"] = attributes
+                    record["UserData"]["lsf"]["attribute_names"] = " ".join(sorted(attributes.iterkeys()))
                     
                     templates_store[template_id] = record
                     default_priority = default_priority - 10
@@ -197,9 +204,6 @@ class CycleCloudProvider:
         return self.json_writer({"templates": lsf_templates}, debug_output=False)
     
     def generate_userdata(self, template):
-        if template.get("userData"):
-            return self._parse_userData(template)
-        
         ret = {}
         
         for key, value_array in template.get("attributes", {}).iteritems():
@@ -214,8 +218,11 @@ class CycleCloudProvider:
             
         return ret
         
-    def _parse_userData(self, template):
-        key_values = template.get("userData").split(":")
+    def _parse_UserData(self, user_data):
+        if not user_data.strip():
+            return {}
+        
+        key_values = user_data.split(";")
         
         ret = {}
         
@@ -224,7 +231,7 @@ class CycleCloudProvider:
                 key, value = kv.split("=", 1)
                 ret[key] = value
             except ValueError:
-                logger.error("Invalid userData entry! '%s'", kv)
+                logger.error("Invalid UserData entry! '%s'", kv)
         return ret
     
     def _max_count(self, nodearray, machine_cores, bucket):
@@ -285,7 +292,7 @@ class CycleCloudProvider:
             self.cluster.add_nodes({'sets': [{'count': machine_count,
                                                'overrides': {'MachineType': _get("machinetype"),
                                                              'RequestId': request_id,
-                                                             'Configuration': template.get("userData")},
+                                                             'Configuration': template.get("UserData")},
                                               'template': _get("nodearray")
                                               }]})
             

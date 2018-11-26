@@ -218,12 +218,13 @@ class Test(unittest.TestCase):
         run_test(expected_machines=0, node_status="Off", node_target_state="Off",
                  expected_request_status=RequestStates.complete)
         
-    def _new_provider(self, provider_config=util.ProviderConfig({}, {})):
+    def _new_provider(self, provider_config=util.ProviderConfig({}, {}), UserData=""):
         a4bucket = {"maxCount": 2, "overrides": {"MachineType": "A4"}}
         a8bucket = {"maxCoreCount": 24, "overrides": {"MachineType": "A8"}}
         cluster = MockCluster({"nodeArrays": [{"templateName": "execute",
+                                               "UserData": UserData,
                                                "nodeArray": {"MachineType": ["a4", "a8"]},
-                                                "buckets": [a4bucket, a8bucket]}],
+                                               "buckets": [a4bucket, a8bucket]}],
                                "machineTypes": MACHINE_TYPES})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
@@ -431,7 +432,40 @@ class Test(unittest.TestCase):
             
         except Exception:
             shutil.rmtree(tempdir, ignore_errors=True)
-            raise    
+            raise
+        
+    def test_custom_env(self):
+        config = util.ProviderConfig({}, {})
+        provider = self._new_provider(config)
+        
+        config.set("templates.default.UserData", "abc=123;def=1==1")
+        self.assertEquals({"abc": "123", "def": "1==1"}, provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env"])
+        self.assertEquals("abc def", provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env_names"])
+        
+        config.set("templates.default.UserData", "abc=123;def=1==1;")
+        self.assertEquals({"abc": "123", "def": "1==1"}, provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env"])
+        self.assertEquals("abc def", provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env_names"])
+        
+        config.set("templates.default.UserData", "abc=123;def=1==1;bad_form")
+        
+        self.assertEquals({"abc": "123", "def": "1==1"}, provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env"])
+        self.assertEquals("abc def", provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env_names"])
+        
+        config.set("templates.default.UserData", "abc=123;def=1==1;good_form=234;bad_form_123")
+        self.assertEquals({"abc": "123", "def": "1==1", "good_form": "234"}, provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env"])
+        self.assertEquals("abc def good_form", provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env_names"])
+        
+        config.set("templates.default.UserData", ";")
+        self.assertNotIn("custom_env", provider.templates()["templates"][0]["UserData"]["lsf"])
+        self.assertNotIn("custom_env_names", provider.templates()["templates"][0]["UserData"]["lsf"])
+        
+        config.set("templates.default.UserData", None)
+        self.assertNotIn("custom_env", provider.templates()["templates"][0]["UserData"]["lsf"])
+        self.assertNotIn("custom_env_names", provider.templates()["templates"][0]["UserData"]["lsf"])
+        
+        config.set("templates.default.UserData", "all;around;bad")
+        self.assertNotIn("custom_env", provider.templates()["templates"][0]["UserData"]["lsf"])
+        self.assertNotIn("custom_env_names", provider.templates()["templates"][0]["UserData"]["lsf"])
 
 
 if __name__ == "__main__":
