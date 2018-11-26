@@ -145,12 +145,12 @@ def failureresponse(response):
                 with_message["message"] = message
                 return args[0].json_writer(with_message)
             except Exception as e:
-                logger.exception(str(e))
+                logger.exception(unicode(e))
                 with_message = deepcopy(response)
-                with_message["message"] = str(e)
+                with_message["message"] = unicode(e)
                 return args[0].json_writer(with_message)
             except:  # nopep8 ignore the bare except
-                logger.exception(str(e))
+                logger.exception(unicode(e))
                 with_message = deepcopy(response)
                 with_message["message"] = traceback.format_exc()
                 return args[0].json_writer(with_message)
@@ -196,7 +196,7 @@ class ProviderConfig:
             try:
                 return self.jetpack_config.get(key, default_value)
             except ConfigError as e:
-                if key in str(e):
+                if key in unicode(e):
                     return default_value
                 raise
         

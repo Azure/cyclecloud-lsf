@@ -47,7 +47,7 @@ class Cluster:
         try:
             return self.post("/cloud/actions/terminate_node/%s?filter=%s" % (self.cluster_name, fexpr))
         except Exception as e:
-            if "No nodes were found matching your query" in str(e):
+            if "No nodes were found matching your query" in unicode(e):
                 return
             raise
 

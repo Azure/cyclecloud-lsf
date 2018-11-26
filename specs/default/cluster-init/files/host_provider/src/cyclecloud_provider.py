@@ -109,7 +109,7 @@ class CycleCloudProvider:
             nodearrays = response["nodeArrays"]
             
             if self.fine:
-                logger.debug("nodearrays response\n%s" % json.dumps(nodearrays, indent=2))
+                logger.debug("nodearrays response\n%s", json.dumps(nodearrays, indent=2))
             
             currently_available_templates = set()
             
@@ -181,7 +181,7 @@ class CycleCloudProvider:
             for lsf_template in templates_store.values():
                 if lsf_template["templateId"] not in currently_available_templates:
                     if self.fine:
-                        logger.debug("Ignoring old template %s vs %s" % (lsf_template["templateId"], currently_available_templates))
+                        logger.debug("Ignoring old template %s vs %s", lsf_template["templateId"], currently_available_templates)
                     lsf_template["maxNumber"] = 0
            
         new_templates = self.templates_json.read()
@@ -194,8 +194,8 @@ class CycleCloudProvider:
             generator = difflib.context_diff(prior_templates_str.splitlines(), new_templates_str.splitlines())
             difference = "\n".join([str(x) for x in generator])
             new_template_order = ", ".join(["%s:%s" % (x.get("templateId", "?"), x.get("maxNumber", "?")) for x in lsf_templates])
-            logger.warn("Templates have changed - new template priority order: %s" % new_template_order)
-            logger.warn("Diff:\n%s" % str(difference))
+            logger.warn("Templates have changed - new template priority order: %s", new_template_order)
+            logger.warn("Diff:\n%s", str(difference))
 
         # Note: we aren't going to store this, so it will naturally appear as an error during allocation.
         if not at_least_one_available_bucket:
@@ -236,19 +236,19 @@ class CycleCloudProvider:
     
     def _max_count(self, nodearray, machine_cores, bucket):
         if machine_cores < 0:
-            logger.error("Invalid number of machine cores - %s" % machine_cores)
+            logger.error("Invalid number of machine cores - %s", machine_cores)
             return -1
         
         max_count = bucket.get("maxCount")
         
         if max_count is not None:
-            logger.debug("Using maxCount %s for %s" % (max_count, bucket))
+            logger.debug("Using maxCount %s for %s", max_count, bucket)
             return max(-1, max_count)
         
         max_core_count = bucket.get("maxCoreCount")
         if max_core_count is None:
             if nodearray.get("maxCoreCount") is None:
-                logger.error("Need to define either maxCount or maxCoreCount! %s" % pprint.pformat(bucket))
+                logger.error("Need to define either maxCount or maxCoreCount! %s", pprint.pformat(bucket))
                 return -1
             logger.debug("Using maxCoreCount")
             max_core_count = nodearray.get("maxCoreCount")
@@ -296,14 +296,14 @@ class CycleCloudProvider:
                                               'template': _get("nodearray")
                                               }]})
             
-            logger.info("Requested %s instances of machine type %s in nodearray %s." % (machine_count, _get("machinetype"), _get("nodearray")))
+            logger.info("Requested %s instances of machine type %s in nodearray %s.", machine_count, _get("machinetype"), _get("nodearray"))
             
             return self.json_writer({"requestId": request_id, "status": RequestStates.running,
                                      "message": "Request instances success from Azure CycleCloud."})
         except Exception as e:
-            logger.exception("Azure CycleCloud experienced an error, though it may have succeeded: %s" % str(e))
+            logger.exception("Azure CycleCloud experienced an error, though it may have succeeded: %s", e)
             return self.json_writer({"requestId": request_id, "status": RequestStates.running,
-                                     "message": "Azure CycleCloud experienced an error, though it may have succeeded: %s" % str(e)})
+                                     "message": "Azure CycleCloud experienced an error, though it may have succeeded: %s" % unicode(e)})
             
     @failureresponse({"requests": [], "status": RequestStates.running})
     def create_status(self, input_json):
@@ -352,7 +352,7 @@ class CycleCloudProvider:
         for request_id, requested_nodes in nodes_by_request_id.iteritems():
             if not requested_nodes:
                 # nothing to do.
-                logger.warn("No nodes found for request id %s." % request_id)
+                logger.warn("No nodes found for request id %s.", request_id)
             
             machines = []
             request = {"requestId": request_id,
@@ -393,7 +393,7 @@ class CycleCloudProvider:
                     machine_status = MachineStates.active
                     private_ip_address = node.get("Instance").get("PrivateIp")
                     if not private_ip_address:
-                        logger.warn("No ip address found for ready node %s" % node.get("Name"))
+                        logger.warn("No ip address found for ready node %s", node.get("Name"))
                         machine_result = MachineResults.executing
                         machine_status = MachineStates.building
                     else:
@@ -421,14 +421,14 @@ class CycleCloudProvider:
             building = len([x for x in machines if x["status"] == MachineStates.building])
             failed = len([x for x in machines if x["status"] == MachineStates.error])
             
-            logger.info("Machine states for requestId %s: %d active, %d building, %d requesting, %d failed and %d in an unknown state."  
-                        % (request_id, active, building, requesting_count, failed, unknown_state_count))
+            logger.info("Machine states for requestId %s: %d active, %d building, %d requesting, %d failed and %d in an unknown state.", 
+                        request_id, active, building, requesting_count, failed, unknown_state_count)
             
             request["status"] = request_status
             if request_status == RequestStates.complete:
-                logger.info("Request %s is complete." % (request_id))
+                logger.info("Request %s is complete.", request_id)
             elif request_status == RequestStates.complete_with_error:
-                logger.warn("Request %s completed with error: %s." % (request_id, message))
+                logger.warn("Request %s completed with error: %s.", request_id, message)
             request["message"] = message
 
         return self.json_writer(response)
@@ -455,7 +455,7 @@ class CycleCloudProvider:
                             node_ids.extend(termination["machines"])
                 
                 if node_ids:
-                    logger.warn("Re-attempting termination of nodes %s" % node_ids)
+                    logger.warn("Re-attempting termination of nodes %s", node_ids)
                     self.cluster.terminate(node_ids)
                     
                 for termination_id in termination_ids:
@@ -465,7 +465,7 @@ class CycleCloudProvider:
                         
             except Exception:
                 request_status = RequestStates.running
-                logger.exception("Could not terminate nodes with ids %s. Will retry" % (node_ids))
+                logger.exception("Could not terminate nodes with ids %s. Will retry", node_ids)
             
             for termination_id in termination_ids:
                 response_machines = []
@@ -479,9 +479,9 @@ class CycleCloudProvider:
                     machines = termination_request.get("machines", {})
                     
                     if machines:
-                        logger.info("Terminating machines: %s" % ([hostname for hostname in machines.itervalues()]))
+                        logger.info("Terminating machines: %s", [hostname for hostname in machines.itervalues()])
                     else:
-                        logger.warn("No machines found for termination request %s. Will retry." % termination_id)
+                        logger.warn("No machines found for termination request %s. Will retry.", termination_id)
                         request_status = RequestStates.running
                     
                     for machine_id, hostname in machines.iteritems():
@@ -491,8 +491,8 @@ class CycleCloudProvider:
                                                    "machineId": machine_id})
                 else:
                     # we don't recognize this termination request!
-                    logger.warn(("Unknown termination request %s. You may intervene manually by updating terminate_nodes.json" + 
-                                 " to contain the relevant NodeIds. %s ") % (termination_id, terminate_requests))
+                    logger.warn("Unknown termination request %s. You may intervene manually by updating terminate_nodes.json" + 
+                                 " to contain the relevant NodeIds. %s ", termination_id, terminate_requests)
                     # set to running so lsf will keep retrying, hopefully, until someone intervenes.
                     request_status = RequestStates.running
                     request["message"] = "Unknown termination request id."
@@ -515,11 +515,11 @@ class CycleCloudProvider:
                 request_time = float(request_time)
                     
                 if (now - request_time) > retirement:
-                    logger.debug("Found retired request %s" % request)
+                    logger.debug("Found retired request %s", request)
                     requests.pop(req_id)
                 
             except Exception:
-                logger.exception("Could not remove stale request %s" % req_id)
+                logger.exception("Could not remove stale request %s", req_id)
                 
     @failureresponse({"status": RequestStates.complete_with_error})
     def terminate_machines(self, input_json):
@@ -536,7 +536,7 @@ class CycleCloudProvider:
             "status": "complete"
         }
         """
-        request_id = "delete-%s" % (str(uuid.uuid4()))
+        request_id = "delete-%s" % str(uuid.uuid4())
         request_id_persisted = False
         try:
             with self.terminate_json as terminations:
@@ -558,25 +558,25 @@ class CycleCloudProvider:
                 # set to running, we will retry on any status call anyways.
                 request_status = RequestStates.running
                 message = str(message)
-                logger.exception("Could not terminate %s" % machines.keys())
+                logger.exception("Could not terminate %s", machines.keys())
             
-            logger.info("Terminating %d machine(s): %s" % (len(machines), machines.keys()))
+            logger.info("Terminating %d machine(s): %s", len(machines), machines.keys())
             
             return self.json_writer({"message": message,
                                      "requestId": request_id,
                                      "status": request_status
                                      })
         except Exception as e:
-            logger.exception(str(e))
+            logger.exception(unicode(e))
             if request_id_persisted:
                 return self.json_writer({"status": RequestStates.running, "requestId": request_id})
-            return self.json_writer({"status": RequestStates.complete_with_error, "requestId": request_id, "message": str(e)})
+            return self.json_writer({"status": RequestStates.complete_with_error, "requestId": request_id, "message": unicode(e)})
 
 
 def simple_json_writer(data, debug_output=True):  # pragma: no cover
     data_str = json.dumps(data)
     if debug_output:
-        logger.debug("Response: %s" % data_str)
+        logger.debug("Response: %s", data_str)
     print data_str
     return data
 
@@ -611,7 +611,7 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         input_json = util.load_json(input_json_path)
         
         if provider.fine:
-            logger.debug("Arguments - %s %s %s" % (cmd, ignore, json.dumps(input_json)))
+            logger.debug("Arguments - %s %s %s", cmd, ignore, json.dumps(input_json))
                 
         if cmd == "templates":
             provider.templates()
@@ -627,11 +627,11 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
             provider.terminate_machines(input_json)
             
     except ImportError as e:
-        logger.exception(str(e))
+        logger.exception(unicode(e))
 
     except Exception as e:
         if logger:
-            logger.exception(str(e))
+            logger.exception(unicode(e))
         else:
             import traceback
             traceback.print_exc()
