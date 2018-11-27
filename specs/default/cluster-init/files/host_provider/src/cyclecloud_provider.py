@@ -617,12 +617,10 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
             provider.templates()
         elif cmd == "create_machines":
             provider.create_machines(input_json)
-        elif cmd == "status":
-            any_request_id = input_json["requests"][0]["requestId"]
-            if any_request_id.startswith("delete-"):
-                provider.terminate_status(input_json)
-            else:
-                provider.create_status(input_json)
+        elif cmd == "create_status":
+            provider.create_status(input_json)
+        elif cmd == "terminate_status":
+            provider.terminate_status(input_json)
         elif cmd == "terminate_machines":
             provider.terminate_machines(input_json)
             

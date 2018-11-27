@@ -5,7 +5,7 @@ args=$@
 
 groups `whoami` | grep cyclecloud > /dev/null
 if [ $? = 0 ]; then 
-	sg cyclecloud "/opt/cycle/jetpack/system/embedded/bin/python -m cyclecloud_provider create_status $args"
+	sg cyclecloud "/opt/cycle/jetpack/system/embedded/bin/python -m cyclecloud_provider terminate_status $args"
 	exit $?
 else
 	/opt/cycle/jetpack/system/embedded/bin/python -m cyclecloud_provider status $args

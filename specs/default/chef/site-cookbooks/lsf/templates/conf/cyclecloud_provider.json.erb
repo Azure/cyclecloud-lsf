@@ -1,21 +1,24 @@
 {
-  "interfaces": [
+    "host_type": "azure_host",
+    "interfaces":
+    [{
+        "name": "getAvailableTemplates",
+        "action": "resource_connector/azurecc/scripts/getAvailableTemplates.sh"
+    },
     {
-      "action": "resource_connector/azurecc/scripts/getAvailableTemplates.sh", 
-      "name": "getAvailableTemplates"
-    }, 
+        "name": "getReturnRequests",
+        "action": "resource_connector/azurecc/scripts/getReturnRequests.sh"
+    },
     {
-      "action": "resource_connector/azurecc/scripts/requestMachines.sh", 
-      "name": "requestMachines"
-    }, 
+        "name": "requestMachines",
+        "action": "resource_connector/azurecc/scripts/requestMachines.sh"
+    },
     {
-      "action": "resource_connector/azurecc/scripts/requestReturnMachines.sh", 
-      "name": "requestReturnMachines"
-    }, 
+        "name": "requestReturnMachines",
+        "action": "resource_connector/azurecc/scripts/requestReturnMachines.sh"
+    },
     {
-      "action": "resource_connector/azurecc/scripts/getRequestStatus.sh", 
-      "name": "getRequestStatus"
-    }
-  ],
-  "host_type": "azure_host"
+        "name": "getRequestStatus",
+        "action": "resource_connector/azurecc/scripts/getRequestStatus.sh"
+    }]
 }

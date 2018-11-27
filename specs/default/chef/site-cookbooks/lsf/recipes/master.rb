@@ -65,6 +65,10 @@ template "#{lsf_top}/conf/resource_connector/hostProviders.json" do
 end
 
 directory "#{lsf_top}/conf/resource_connector/azurecc/"
+template "#{lsf_top}/conf/resource_connector/azurecc/provider.json" do
+  source 'conf/cyclecloud_provider.json.erb'
+end
+
 template "#{lsf_top}/conf/resource_connector/azurecc/azureccprov_config.json.example" do
   source 'conf/azureccprov_config.json.erb'
   variables(
