@@ -38,31 +38,31 @@
 
         [[[volume proj0]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj1]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj2]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj3]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj4]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
@@ -160,32 +160,32 @@
 
         [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
-    [[nodearray test]]
+#    [[nodearray test]]
 
-        Azure.MaxScalesetSize = $MaxScalesetSize
-        MachineType = $ExecuteMachineType
-        AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
-        Interruptible = $UseLowPrio
+#        Azure.MaxScalesetSize = $MaxScalesetSize
+#        MachineType = $ExecuteMachineType
+#        AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
+#        Interruptible = $UseLowPrio
 
-        MaxCoreCount = $MaxExecuteCoreCount
-        [[[cluster-init lsf:slave:$LsfProjectVersion]]]
-        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+#        MaxCoreCount = $MaxExecuteCoreCount
+#        [[[cluster-init lsf:slave:$LsfProjectVersion]]]
+#        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
-        [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
-        cyclecloud.maintenance_converge.enabled = false
+#        [[[configuration]]]
+#        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
+#        cyclecloud.maintenance_converge.enabled = false
 
-        [[[configuration cyclecloud.mounts.sched-exp]]]
-        type = nfs
-        mountpoint = /usr/share/lsf
-        export_path = /mnt/raid/lsf
+#        [[[configuration cyclecloud.mounts.sched-exp]]]
+#        type = nfs
+#        mountpoint = /usr/share/lsf
+#        export_path = /mnt/raid/lsf
 
-        [[[configuration cyclecloud.mounts.home]]]
-        type = nfs
-        mountpoint = /shared/home
-        export_path = /mnt/raid/home
+#        [[[configuration cyclecloud.mounts.home]]]
+#        type = nfs
+#        mountpoint = /shared/home
+#        export_path = /mnt/raid/home
 
-        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+#        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
 
 [parameters About]
