@@ -29,6 +29,7 @@ template "#{node['lsf']['local_etc']}/lsf.conf" do
   source 'conf/lsf.conf.erb'
   variables(
     :lsf_top => lsf_top,
+    :lsf_clustername => clustername,
     :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) },
     :master_domain => node['domain'],
     :master_hostname => node['lsf']['master']['hostnames'][0]

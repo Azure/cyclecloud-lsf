@@ -69,9 +69,9 @@ LSF_MACHDEP=<%= @lsf_top %>/10.1
 LSF_TOP=<%= @lsf_top %>
 LSF_VERSION=10.1
 LSF_ENABLE_EGO=Y
-LSF_EGO_ENVDIR=<%= @lsf_top %>/conf/ego/azure/kernel
-EGO_WORKDIR=<%= @lsf_top %>/work/azure/ego
-LSF_LIVE_CONFDIR=<%= @lsf_top %>/work/azure/live_confdir
+LSF_EGO_ENVDIR=<%= @lsf_top %>/conf/ego/<%= @lsf_clustername %>/kernel
+EGO_WORKDIR=<%= @lsf_top %>/work/<%= @lsf_clustername %>/ego
+LSF_LIVE_CONFDIR=<%= @lsf_top %>/work/<%= @lsf_clustername %>/live_confdir
 
 # Default tuning parameters
 
