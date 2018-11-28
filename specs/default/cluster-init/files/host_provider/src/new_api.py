@@ -1,10 +1,13 @@
 import json
 
-import cyclecli
 import collections
-import itertools
-import sys
 
+
+try:
+    import cyclecli
+except ImportError:
+    import cyclecliwrapper as cyclecli
+    
 
 class Cluster:
     
@@ -53,28 +56,34 @@ class Cluster:
             if "No nodes were found matching your query" in unicode(e):
                 return
             raise
-
-    def _session(self):
-        try:
-            config = {"verify_certificates": False,
-                      "username": self.provider_config.get("cyclecloud.config.username"),
-                      "password": self.provider_config.get("cyclecloud.config.password"),
-                      "cycleserver": {
-                          "timeout": 60
-                      }
-            }
-            return self.provider_config.get("cyclecloud.config.web_server"), cyclecli.get_session(config=config)
-        except ImportError:
-            raise
         
+    def _session(self):
+        config = {"verify_certificates": False,
+                  "username": self._get_or_raise("cyclecloud.config.username"),
+                  "password": self._get_or_raise("cyclecloud.config.password"),
+                  "cycleserver": {
+                      "timeout": 60
+                  }
+        }
+        return cyclecli.get_session(config=config)
+    
+    def _get_or_raise(self, key):
+        value = self.provider_config.get(key)
+        if not value:
+            #  jetpack.config.get will raise a ConfigError above.
+            raise cyclecli.ConfigError("Please define key %s in the provider config." % key)
+        return value
+    
     def post(self, url, data=None, json=None, **kwargs):
-        root_url, session = self._session()
+        root_url = self._get_or_raise("cyclecloud.config.web_server")
+        session = self._session()
         response = session.post(root_url + url, data, json, **kwargs)
         if response.status_code != 200:
             raise ValueError(response.content)
         
     def get(self, url, **params):
-        root_url, session = self._session()
+        root_url = self._get_or_raise("cyclecloud.config.web_server")
+        session = self._session()
         response = session.get(root_url + url, params=params)
         if response.status_code != 200:
             raise ValueError(response.content, object_pairs_hook=collections.OrderedDict)

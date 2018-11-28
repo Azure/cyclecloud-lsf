@@ -1,3 +1,4 @@
+import collections
 from copy import deepcopy
 import fcntl
 import json
@@ -9,9 +10,12 @@ import subprocess
 import sys
 import traceback
 
-from cyclecli import UserError, ConfigError
-import collections
 
+try:
+    import cyclecli
+except ImportError:
+    import cyclecliwrapper as cyclecli
+    
 
 _logging_init = False
 
@@ -27,7 +31,6 @@ def init_logging(loglevel=logging.INFO, logfile=None):
         jetpack.util.setup_logging()
         for handler in logging.getLogger().handlers:
             handler.setLevel(logging.ERROR)
-    
     except ImportError:
         pass
     
@@ -133,9 +136,11 @@ def failureresponse(response):
             logger = init_logging()
             try:
                 return func(*args, **kwargs)
-            except UserError as ue:
+            except cyclecli.UserError as ue:
                 with_message = deepcopy(response)
-                message = str(ue)
+                message = unicode(ue)
+                logger.debug(traceback.format_exc())
+                
                 try:
                     message_data = json.loads(message)
                     message = "Http Status %(Code)s: %(Message)s" % message_data
@@ -146,11 +151,13 @@ def failureresponse(response):
                 return args[0].json_writer(with_message)
             except Exception as e:
                 logger.exception(unicode(e))
+                logger.debug(traceback.format_exc())
                 with_message = deepcopy(response)
                 with_message["message"] = unicode(e)
                 return args[0].json_writer(with_message)
             except:  # nopep8 ignore the bare except
                 logger.exception(unicode(e))
+                logger.debug(traceback.format_exc())
                 with_message = deepcopy(response)
                 with_message["message"] = traceback.format_exc()
                 return args[0].json_writer(with_message)
@@ -195,7 +202,7 @@ class ProviderConfig:
         if top_value is None:
             try:
                 return self.jetpack_config.get(key, default_value)
-            except ConfigError as e:
+            except cyclecli.ConfigError as e:
                 if key in unicode(e):
                     return default_value
                 raise
