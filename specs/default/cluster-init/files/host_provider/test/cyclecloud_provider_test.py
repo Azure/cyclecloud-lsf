@@ -177,9 +177,9 @@ class Test(unittest.TestCase):
             mutable_node[0]["StatusMessage"] = node_status_message
             
             if status_type == "create":
-                statuses = provider.create_status({"requests": [{"requestId": request["requestId"]}]})
+                statuses = provider.status({"requests": [{"requestId": request["requestId"]}]})
             else:
-                statuses = provider.terminate_status({"requests": [{"requestId": request["requestId"]}]})
+                statuses = provider.status({"requests": [{"requestId": request["requestId"]}]})
                 
             request_status_obj = statuses["requests"][0]
             self.assertEquals(expected_request_status, request_status_obj["status"])
@@ -247,15 +247,15 @@ class Test(unittest.TestCase):
         self.assertTrue(term_response["requestId"] in term_requests.requests)
         self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_response["requestId"]]["machines"])
         
-        status_response = provider.terminate_status({"requests": [{"requestId": term_response["requestId"]}]})
+        status_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertEquals(1, len(status_response["requests"]))
         self.assertEquals(1, len(status_response["requests"][0]["machines"]))
         
-        status_response = provider.create_status({"requests": [{"requestId": "missing"}]})
-        self.assertEquals({'requests': [{'status': 'complete', 'message': '', 'requestId': 'missing', 'machines': []}]}, status_response)
+        status_response = provider.status({"requests": [{"requestId": "missing"}]})
+        self.assertEquals({'status': 'complete', 'requests': [{'status': 'complete', 'message': '', 'requestId': 'missing', 'machines': []}]}, status_response)
         
-        status_response = provider.terminate_status({"requests": [{"requestId": "delete-missing"}]})
-        self.assertEquals({'requests': [{'status': 'running', "message": "Unknown termination request id.", 'requestId': 'delete-missing', 'machines': []}]}, status_response)
+        status_response = provider.status({"requests": [{"requestId": "delete-missing"}]})
+        self.assertEquals({'status': 'running', 'requests': [{'status': 'running', "message": "Unknown termination request id.", 'requestId': 'delete-missing', 'machines': []}]}, status_response)
         
     def test_terminate_error(self):
         provider = self._new_provider()
@@ -275,7 +275,7 @@ class Test(unittest.TestCase):
         self.assertEquals(RequestStates.complete, term_response["status"])
         self.assertEquals(True, provider.terminate_json.read()[term_response["requestId"]].get("terminated"))
         
-        provider.terminate_status({"requests": [{"requestId": failed_request_id}]})
+        provider.status({"requests": [{"requestId": failed_request_id}]})
         self.assertEquals(True, provider.terminate_json.read()[failed_request_id].get("terminated"))
         
     def test_json_store_lock(self):
@@ -344,7 +344,7 @@ class Test(unittest.TestCase):
         term_response = provider.terminate_machines({"machines": [{"machineId": "id-123", "name": "e-1-123"},
                                                                   {"machineId": "id-124", "name": "e-2-234"}]})
         self.assertEquals(RequestStates.complete, term_response["status"])
-        stat_response = provider.terminate_status({"requests": [{"requestId": term_response["requestId"]}]})
+        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertEquals(RequestStates.complete, stat_response["requests"][0]["status"])
         self.assertIn(term_response["requestId"], provider.terminate_json.read())
         
@@ -354,13 +354,13 @@ class Test(unittest.TestCase):
         expired_request = term_response["requestId"]
         
         term_response = provider.terminate_machines({"machines": [{"machineId": "id-234", "name": "n-1-123"}]})
-        stat_response = provider.terminate_status({"requests": [{"requestId": term_response["requestId"]}]})
+        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertEquals(RequestStates.complete, stat_response["requests"][0]["status"])
         self.assertIn(expired_request, provider.terminate_json.read())
         
         # just over 2 hours, it will be gone.
         provider.clock.now = (1970, 1, 1, 2.01, 0, 0)
-        stat_response = provider.terminate_status({"requests": [{"requestId": term_response["requestId"]}]})
+        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertNotIn(expired_request, provider.terminate_json.read())
         
     def test_disable_but_do_not_delete_missing_buckets(self):

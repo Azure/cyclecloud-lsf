@@ -12,6 +12,7 @@ from lsf import RequestStates, MachineStates, MachineResults
 import new_api
 from util import JsonStore, failureresponse
 import util
+import lsf
 
 
 logger = None
@@ -306,7 +307,7 @@ class CycleCloudProvider:
                                      "message": "Azure CycleCloud experienced an error, though it may have succeeded: %s" % unicode(e)})
             
     @failureresponse({"requests": [], "status": RequestStates.running})
-    def create_status(self, input_json):
+    def _create_status(self, input_json):
         """
         input:
         {'requests': [{'requestId': 'req-123'}, {'requestId': 'req-234'}]}
@@ -430,11 +431,13 @@ class CycleCloudProvider:
             elif request_status == RequestStates.complete_with_error:
                 logger.warn("Request %s completed with error: %s.", request_id, message)
             request["message"] = message
-
+        
+        response["status"] = lsf.RequestStates.complete
+        
         return self.json_writer(response)
         
     @failureresponse({"requests": [], "status": RequestStates.running})
-    def terminate_status(self, input_json):
+    def _terminate_status(self, input_json):
         # can transition from complete -> executing or complete -> complete_with_error -> executing
         # executing is a terminal state.
         request_status = RequestStates.complete
@@ -498,6 +501,8 @@ class CycleCloudProvider:
                     request["message"] = "Unknown termination request id."
                
                 request["status"] = request_status
+        
+        response["status"] = request_status
         
         return self.json_writer(response)
         
@@ -571,6 +576,42 @@ class CycleCloudProvider:
             if request_id_persisted:
                 return self.json_writer({"status": RequestStates.running, "requestId": request_id})
             return self.json_writer({"status": RequestStates.complete_with_error, "requestId": request_id, "message": unicode(e)})
+        
+    def status(self, input_json):
+        '''
+        Kludge: can't seem to get provider.json to reliably call the correct request action.
+        '''
+        json_writer = self.json_writer
+        self.json_writer = lambda x: x
+        creates = [x for x in input_json["requests"] if not x["requestId"].startswith("delete-")]
+        deletes = [x for x in input_json["requests"] if x["requestId"].startswith("delete-")]
+        create_response = {}
+        delete_response = {}
+        
+        if creates:
+            create_response = self._create_status({"requests": creates})
+            assert "status" in create_response
+        if deletes:
+            delete_response = self._terminate_status({"requests": deletes})
+            assert "status" in delete_response
+        
+        create_status = create_response.get("status", RequestStates.complete)
+        delete_status = delete_response.get("status", RequestStates.complete)
+        
+        # if either are still running, then we need to mark it as running so this will continued
+        # to be called
+        if RequestStates.running in [create_status, delete_status]:
+            combined_status = RequestStates.running
+        # if one completed with error, then they both did.
+        elif RequestStates.complete_with_error in [create_status, delete_status]:
+            combined_status = RequestStates.complete_with_error
+        else:
+            combined_status = RequestStates.complete
+        
+        response = {"status": combined_status,
+                    "requests": create_response.get("requests", []) + delete_response.get("requests", [])
+                    }
+        return json_writer(response)
 
 
 def simple_json_writer(data, debug_output=True):  # pragma: no cover
@@ -617,10 +658,8 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
             provider.templates()
         elif cmd == "create_machines":
             provider.create_machines(input_json)
-        elif cmd == "create_status":
-            provider.create_status(input_json)
-        elif cmd == "terminate_status":
-            provider.terminate_status(input_json)
+        elif cmd in ["status", "create_status", "terminate_status"]:
+            provider.status(input_json)
         elif cmd == "terminate_machines":
             provider.terminate_machines(input_json)
             
@@ -633,7 +672,7 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         else:
             import traceback
             traceback.print_exc()
-
+            
 
 if __name__ == "__main__":
     main()  # pragma: no cover
