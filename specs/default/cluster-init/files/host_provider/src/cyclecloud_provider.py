@@ -9,7 +9,7 @@ import sys
 import uuid
 
 from lsf import RequestStates, MachineStates, MachineResults
-import new_api
+import cluster
 from util import JsonStore, failureresponse
 import util
 import lsf
@@ -220,10 +220,13 @@ class CycleCloudProvider:
         return ret
         
     def _parse_UserData(self, user_data):
-        if not user_data.strip():
-            return {}
+        user_data = (user_data or "").strip()
         
         key_values = user_data.split(";")
+        
+        # kludge: this can be overridden either at the template level
+        # or during a creation request. We always want it defined in userdata
+        # though.
         
         ret = {}
         
@@ -289,11 +292,26 @@ class CycleCloudProvider:
             def _get(name):
                 return template["attributes"].get(name, [None, None])[1]
             
+            rc_account = input_json.get("rc_account", "default")
+            
+            user_data = template.get("UserData")
+
+            if rc_account != "default":
+                if "lsf" not in user_data:
+                    user_data["lsf"] = {}
+                
+                if "custom_env" not in user_data["lsf"]:
+                    user_data["lsf"]["custom_env"] = {}
+                    
+                user_data["lsf"]["custom_env"]["rc_account"] = rc_account
+                user_data["lsf"]["custom_env_names"] = " ".join(sorted(user_data["lsf"]["custom_env"].keys()))
+            
             # RequestId may or may not be special. Add a subdict most likely.
             self.cluster.add_nodes({'sets': [{'count': machine_count,
                                                'overrides': {'MachineType': _get("machinetype"),
                                                              'RequestId': request_id,
-                                                             'Configuration': template.get("UserData")},
+                                                             'Tags': {"rc_account": rc_account},
+                                                             'Configuration': user_data},
                                               'template': _get("nodearray")
                                               }]})
             
@@ -638,7 +656,7 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         cluster_name = provider_config.get("cyclecloud.cluster.name")
         
         provider = CycleCloudProvider(config=provider_config,
-                                      cluster=new_api.Cluster(cluster_name, provider_config),
+                                      cluster=cluster.Cluster(cluster_name, provider_config),
                                       hostnamer=hostnamer,
                                       json_writer=json_writer,
                                       terminate_requests=JsonStore("terminate_requests.json", data_dir),

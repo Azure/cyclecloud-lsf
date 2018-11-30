@@ -455,17 +455,19 @@ class Test(unittest.TestCase):
         self.assertEquals({"abc": "123", "def": "1==1", "good_form": "234"}, provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env"])
         self.assertEquals("abc def good_form", provider.templates()["templates"][0]["UserData"]["lsf"]["custom_env_names"])
         
+        def assert_no_user_data():
+            templates = provider.templates()
+            self.assertNotIn("custom_env", templates["templates"][0]["UserData"]["lsf"])
+            self.assertNotIn("custom_env_names", templates["templates"][0]["UserData"]["lsf"])
+            
         config.set("templates.default.UserData", ";")
-        self.assertNotIn("custom_env", provider.templates()["templates"][0]["UserData"]["lsf"])
-        self.assertNotIn("custom_env_names", provider.templates()["templates"][0]["UserData"]["lsf"])
+        assert_no_user_data()
         
         config.set("templates.default.UserData", None)
-        self.assertNotIn("custom_env", provider.templates()["templates"][0]["UserData"]["lsf"])
-        self.assertNotIn("custom_env_names", provider.templates()["templates"][0]["UserData"]["lsf"])
+        assert_no_user_data()
         
         config.set("templates.default.UserData", "all;around;bad")
-        self.assertNotIn("custom_env", provider.templates()["templates"][0]["UserData"]["lsf"])
-        self.assertNotIn("custom_env_names", provider.templates()["templates"][0]["UserData"]["lsf"])
+        assert_no_user_data()
 
 
 if __name__ == "__main__":
