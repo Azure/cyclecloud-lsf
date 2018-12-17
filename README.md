@@ -120,7 +120,9 @@ And also add the following resources to the Resource section of _${LSF_TOP}/conf
 
 ```txt
    azurecchost  Boolean  ()       ()       (instances from Azure CycleCloud)
-   nodearray  String     ()       ()       (nodearray from AzureCC)
+   nodearray    String   ()       ()       (nodearray from AzureCC)
+   zone         String   ()       ()       (zone from AzureCC)
+   machinetype  String   ()       ()       (machinetype from AzureCC)
 ```
 
 
@@ -159,6 +161,9 @@ Any host factory attributes can be provided in this file as an override.
 
 The `"templateId"` field corresponds to the nodearray name in the CycleCloud cluster. 
 The `"nodearray"` attribute corresponds to the Resource in _lsf.shared_ and is used by the scheduler for job dispatching.
+
+It's also advisable to increase `RC_MAX_REQUESTS` in lsb.params from the default value
+of 300 to 5000 (or higher).
 
 ### Configure user_data.sh (Optional)
 
