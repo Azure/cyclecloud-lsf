@@ -26,6 +26,7 @@
         lsf.lsf_top = /usr/share/lsf
         lsf.lsf_logdir = /tmp
         lsf.admin.home = /shared/home/lsfadmin
+        lsf.autoscale.by_queues = $AutoscaleByQueues
 
         cyclecloud.selinux.policy = permissive
 
@@ -262,6 +263,11 @@ Order = 20
         DefaultValue = =undefined
         Description = Cluster init specs to apply to execute nodes
         ParameterType = Cloud.ClusterInitSpecs
+
+        [[[parameter AutoscaleByQueues]]]
+        Label = Queue-Based Autoscale
+        Description = Autoscale nodes by queue, queues linked to nodearray name
+        DefaultValue = False
 
         [[[parameter LsfProjectVersion]]]
         Label = Project Version

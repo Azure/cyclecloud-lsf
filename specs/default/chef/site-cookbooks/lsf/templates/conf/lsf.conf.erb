@@ -103,3 +103,6 @@ LSF_EGO_DAEMON_CONTROL=N
 LSF_RSH="ssh -o 'PasswordAuthentication no' -o 'StrictHostKeyChecking no'"
 LSF_STRIP_DOMAIN=.<%= @master_domain %>
 LSF_DYNAMIC_HOST_TIMEOUT=10m
+<% if @add_lsf_local_resources %>
+LSF_LOCAL_RESOURCES="[resourcemap <%= @array_template_name %>*nodearray]"
+<% end %>

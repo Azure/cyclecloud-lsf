@@ -17,15 +17,15 @@ ruby_block 'check_valid_masterlist' do
   end
 end
 
-template "/usr/share/lsf/conf/lsf.conf" do
+directory node['lsf']['local_etc']
+
+template "#{node['lsf']['local_etc']}/lsf.conf" do
   source 'conf/lsf.conf.erb'
   variables(
     :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) },
     :master_domain => node['domain']
   )
 end
-
-directory node['lsf']['local_etc']
 
 template "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}" do
   source 'conf/lsf.cluster.erb'

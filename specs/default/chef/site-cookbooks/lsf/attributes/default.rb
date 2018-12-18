@@ -15,6 +15,7 @@ default['lsf']['lsf_envdir'] = "#{node['lsf']['lsf_top']}/conf"
 default['lsf']['admin']['username'] = 'lsfadmin'
 default['lsf']['admin']['home'] = "#{node['lsf']['lsf_top']}/lsfadmin"
 default['lsf']['autoscale']['log'] = "/var/log/lsf-autoscale.log"
+default['lsf']['autoscale']['by_queues'] = false
 default['lsf']['execute']['server'] = 1
 
 # for search

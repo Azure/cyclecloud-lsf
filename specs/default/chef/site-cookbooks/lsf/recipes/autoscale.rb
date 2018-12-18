@@ -30,10 +30,16 @@ cookbook_file '/root/bin/autoscale.py' do
   group "root"
 end
 
+if node['lsf']['autoscale']['by_queues']
+  autoscale_arg = "queues"
+else
+  autoscale_arg = ""
+end
+
 file "/root/bin/autostart.sh" do
   content <<-EOH
 source /etc/profile.d/lsf.sh
-python /root/bin/autoscale.py -t #{node['lsf']['host_tokens_dir']} debug autostart
+python /root/bin/autoscale.py -t #{node['lsf']['host_tokens_dir']} debug autostart #{autoscale_arg}
   EOH
   mode '500'
 end

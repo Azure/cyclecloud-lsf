@@ -45,11 +45,13 @@ def get_jobs_bqueues(queue_name=None,logger=None):
     call_keys = ["QUEUE_NAME","NJOBS"]
     queues = lsf_cmd_call("bqueues", call_keys=call_keys, logger=logger)
     total_jobs = 0
+    njobs_in_queues = {}
     for queue in queues:
         queue_name = queue['QUEUE_NAME']
         njobs = int(queue['NJOBS'])
         total_jobs += njobs
-    return total_jobs
+        njobs_in_queues[queue_name] = njobs
+    return total_jobs, njobs_in_queues
 
 def get_jobs_bjobs(logger, queue_name=None):
     call_keys = ["JOBID", "STAT", "QUEUE", "SLOTS"]
@@ -151,6 +153,7 @@ class lsf:
         self.logger = logger 
         self.masters = get_masters() + [socket.gethostname()]
         self.njobs = 0
+        self.njobs_in_queues = {}
         self.last_seen_max = 90
         self.tokens_dir = jcfg.get("lsf.host_tokens_dir")
 
@@ -319,17 +322,26 @@ class lsf:
         if method == "bjobs":
             self.njobs = get_jobs_bjobs(logger=self.logger)
         else:
-            self.njobs = get_jobs_bqueues(logger=self.logger)
+            self.njobs, self.njobs_in_queues = get_jobs_bqueues(logger=self.logger)
 
-    def send_autoscale_request(self):
+    def send_autoscale_request(self,by_queues=False):
         array = {
             'Name': 'execute',
             'TargetCoreCount': self.njobs
         }
         try:
-            logger.debug("autoscale request of %s cores for %s nodearray" % (self.njobs, array['Name']))
-            import jetpack.autoscale
-            jetpack.autoscale.update([array])
+            if self.njobs_in_queues and by_queues:
+                arrays = []
+                for queue_name, njobs in self.njobs_in_queues.iteritems():
+                    arrays.append({ 'Name' : queue_name.lower(), 'TargetCoreCount' : njobs})
+                logger.debug("autoscale request of %s " % arrays)
+                import jetpack.autoscale
+                jetpack.autoscale.update(arrays)
+            else:
+                logger.debug("autoscale request of %s cores for %s nodearray" % (self.njobs, array['Name']))
+                import jetpack.autoscale
+                jetpack.autoscale.update([array])
+
         except Exception as err:
             self.logger.info("jetpack exception: %s" % err)
 
@@ -371,4 +383,7 @@ if __name__ == "__main__":
         if "dryrun" in [x.lower() for x in sys.argv]:
             pass
         else:
-            h_lsf.send_autoscale_request()
+            if "queues" in [x.lower() for x in sys.argv]:
+                h_lsf.send_autoscale_request(by_queues=True)
+            else:
+                h_lsf.send_autoscale_request()

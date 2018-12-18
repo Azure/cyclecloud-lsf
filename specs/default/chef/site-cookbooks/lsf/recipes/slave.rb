@@ -16,6 +16,16 @@ end
 
 directory node['lsf']['local_etc']
 
+template "#{node['lsf']['local_etc']}/lsf.conf" do
+  source 'conf/lsf.conf.erb'
+  variables(
+    :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) },
+    :master_domain => node['domain'],
+    :add_lsf_local_resources => node['lsf']['autoscale']['by_queues'],
+    :array_template_name => node['cyclecloud']['node']['template']
+  )
+end
+
 template "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}" do
   source 'conf/lsf.cluster.erb'
   variables(
@@ -31,26 +41,27 @@ template "#{node['lsf']['local_etc']}/lsb.hosts" do
   }}
 end
   
+defer_block "Defer starting lsf until end of the converge" do
+ execute 'lsadmin limstartup' do 
+   command 'source /usr/share/lsf/conf/profile.lsf && lsadmin limstartup -f'
+   not_if 'pidof lim'
+   user 'lsfadmin'
+   group 'lsfadmin'  
+ end
 
-execute 'lsadmin limstartup' do 
-  command 'source /usr/share/lsf/conf/profile.lsf && lsadmin limstartup -f'
-  not_if 'pidof lim'
-  user 'lsfadmin'
-  group 'lsfadmin'  
-end
+ execute 'lsadmin resstartup' do 
+   command 'source /usr/share/lsf/conf/profile.lsf && lsadmin resstartup -f'
+   not_if 'pidof res'
+   user 'lsfadmin'
+   group 'lsfadmin'
+ end
 
-execute 'lsadmin resstartup' do 
-  command 'source /usr/share/lsf/conf/profile.lsf && lsadmin resstartup -f'
-  not_if 'pidof res'
-  user 'lsfadmin'
-  group 'lsfadmin'
-end
-
-defer_block 'defer start of sbatchd to end of run' do
-  execute 'badmin hstartup' do 
-    command 'source /usr/share/lsf/conf/profile.lsf && badmin hstartup -f'
-    not_if 'pidof sbatchd'
-    user 'lsfadmin'
-    group 'lsfadmin'
-  end
+ defer_block 'defer start of sbatchd to end of run' do
+   execute 'badmin hstartup' do 
+     command 'source /usr/share/lsf/conf/profile.lsf && badmin hstartup -f'
+     not_if 'pidof sbatchd'
+     user 'lsfadmin'
+     group 'lsfadmin'
+   end
+ end
 end
