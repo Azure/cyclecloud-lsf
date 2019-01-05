@@ -13,6 +13,7 @@ import cluster
 from util import JsonStore, failureresponse
 import util
 import lsf
+from cyclecliwrapper import UserError
 
 
 logger = None
@@ -105,7 +106,7 @@ class CycleCloudProvider:
         with self.templates_json as templates_store:
             
             # returns Cloud.Node records joined on MachineType - the array node only
-            response = self.cluster.nodearrays()
+            response = self.cluster.describe()
 
             nodearrays = response["nodeArrays"]
             
@@ -220,7 +221,12 @@ class CycleCloudProvider:
         return ret
         
     def _parse_UserData(self, user_data):
+        ret = {}
+        
         user_data = (user_data or "").strip()
+        
+        if not user_data:
+            return ret
         
         key_values = user_data.split(";")
         
@@ -228,7 +234,6 @@ class CycleCloudProvider:
         # or during a creation request. We always want it defined in userdata
         # though.
         
-        ret = {}
         
         for kv in key_values:
             try:
@@ -307,7 +312,8 @@ class CycleCloudProvider:
                 user_data["lsf"]["custom_env_names"] = " ".join(sorted(user_data["lsf"]["custom_env"].keys()))
             
             # RequestId may or may not be special. Add a subdict most likely.
-            self.cluster.add_nodes({'sets': [{'count': machine_count,
+            self.cluster.add_nodes({'requestId': request_id,
+                                    'sets': [{'count': machine_count,
                                                'overrides': {'MachineType': _get("machinetype"),
                                                              'RequestId': request_id,
                                                              'Tags': {"rc_account": rc_account},
@@ -319,6 +325,14 @@ class CycleCloudProvider:
             
             return self.json_writer({"requestId": request_id, "status": RequestStates.running,
                                      "message": "Request instances success from Azure CycleCloud."})
+        except UserError as e:
+            logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
+            return self.json_writer({"requestId": request_id, "status": RequestStates.complete_with_error,
+                                     "message": "Azure CycleCloud experienced an error: %s" % unicode(e)})
+        except ValueError as e:
+            logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
+            return self.json_writer({"requestId": request_id, "status": RequestStates.complete_with_error,
+                                     "message": "Azure CycleCloud experienced an error: %s" % unicode(e)})
         except Exception as e:
             logger.exception("Azure CycleCloud experienced an error, though it may have succeeded: %s", e)
             return self.json_writer({"requestId": request_id, "status": RequestStates.running,
@@ -350,18 +364,19 @@ class CycleCloudProvider:
         request_status = RequestStates.complete
         
         request_ids = [r["requestId"] for r in input_json["requests"]]
+        try:
+            nodes_by_request_id = self.cluster.nodes(request_ids=request_ids)
+        except UserError as e:
+            logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
+            return self.json_writer({"status": RequestStates.complete_with_error,
+                                    "requests": [{"requestId": request_id, "status": RequestStates.complete_with_error} for request_id in request_ids] ,
+                                     "message": "Azure CycleCloud experienced an error: %s" % unicode(e)})
+        except ValueError as e:
+            logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
+            return self.json_writer({"requestId": request_id, "status": RequestStates.complete_with_error,
+                                     "message": "Azure CycleCloud experienced an error: %s" % unicode(e)})
         
-        all_nodes = self.cluster.nodes(RequestId=request_ids)
-
         message = ""
-        
-        nodes_by_request_id = {}
-        for request in input_json["requests"]:
-            nodes_by_request_id[request["requestId"]] = []
-        
-        for node in all_nodes:
-            req_id = node["RequestId"]
-            nodes_by_request_id[req_id].append(node)
         
         response = {"requests": []}
         
@@ -379,11 +394,10 @@ class CycleCloudProvider:
             
             response["requests"].append(request)
             
-            for node in requested_nodes:
-                    
+            for node in requested_nodes["nodes"]:
                 # for new nodes, completion is Ready. For "released" nodes, as long as
                 # the node has begun terminated etc, we can just say success.
-                node_status = node.get("Status")
+                node_status = node.get("State")
                 node_target_state = node.get("TargetState", "Started")
                 
                 machine_status = MachineStates.active
@@ -407,10 +421,10 @@ class CycleCloudProvider:
                     request_status = RequestStates.running
                     continue
                 
-                elif node_status == "Ready":
+                elif node_status == "Started":
                     machine_result = MachineResults.succeed
                     machine_status = MachineStates.active
-                    private_ip_address = node.get("Instance").get("PrivateIp")
+                    private_ip_address = node.get("PrivateIp")
                     if not private_ip_address:
                         logger.warn("No ip address found for ready node %s", node.get("Name"))
                         machine_result = MachineResults.executing
@@ -656,7 +670,7 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         cluster_name = provider_config.get("cyclecloud.cluster.name")
         
         provider = CycleCloudProvider(config=provider_config,
-                                      cluster=cluster.Cluster(cluster_name, provider_config),
+                                      cluster=cluster.Cluster(cluster_name, provider_config, logger),
                                       hostnamer=hostnamer,
                                       json_writer=json_writer,
                                       terminate_requests=JsonStore("terminate_requests.json", data_dir),

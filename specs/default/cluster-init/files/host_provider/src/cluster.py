@@ -1,6 +1,7 @@
 import json
 
 import collections
+import logging
 
 
 try:
@@ -11,41 +12,23 @@ except ImportError:
 
 class Cluster:
     
-    def __init__(self, cluster_name, provider_config):
+    def __init__(self, cluster_name, provider_config, logger=None):
         self.cluster_name = cluster_name
         self.provider_config = provider_config
+        self.logger = logger or logging.getLogger()
     
-    def nodearrays(self):
+    def describe(self):
         '''pprint.pprint(json.dumps(json.loads(dougs_example)))'''
-        return self._add_missing_limits(self.get("/nodearrays?cluster=%s" % self.cluster_name))
-    
-    def _add_missing_limits(self, arrays):
-        known_machine_limits = {"Standard_B2s": 6,
-                                "Standard_B2ms": 10,
-                                "Standard_B4ms": 0,
-                                "Standard_D2_v2": 100,
-                                "Standard_D3_v2": 100
-                                }
-        for a in arrays["nodeArrays"]:
-            a["maxCoreCount"] = 100
-            for b in a["buckets"]:
-                b["maxCount"] = None
-                b["maxCoreCount"] = known_machine_limits.get(b["overrides"]["MachineType"], 100)
-        return arrays
+        return self.get("/clusters/%s" % self.cluster_name)
 
     def add_nodes(self, request):
         return self.post("/nodes/create?cluster=%s" % self.cluster_name, json=request)
     
-    def nodes(self, **kwattrs):
-        exprs = []
-        for attr, value in kwattrs.iteritems():
-            if isinstance(value, list) or isinstance(value, set):
-                expr = '%s in {%s}' % (attr, ",".join(['"%s"' % x for x in value]))
-            elif isinstance(value, basestring):
-                expr = '%s=="%s"' % (attr, value)
-            exprs.append(expr)
-        filter_expr = "&&".join(exprs)
-        return self.get("/node/searchtmp", Filter=filter_expr)
+    def nodes(self, request_ids):
+        responses = {}
+        for request_id in request_ids:
+            responses[request_id] = self.get("/nodes", request_id=request_id)
+        return responses
     
     def terminate(self, node_ids):
         # kludge: work around
@@ -76,15 +59,17 @@ class Cluster:
     
     def post(self, url, data=None, json=None, **kwargs):
         root_url = self._get_or_raise("cyclecloud.config.web_server")
+        self.logger.debug("POST %s with data %s json %s kwargs %s", root_url + url, data, json, kwargs)
         session = self._session()
         response = session.post(root_url + url, data, json, **kwargs)
-        if response.status_code != 200:
+        if response.status_code < 200 or response.status_code > 299:
             raise ValueError(response.content)
         
     def get(self, url, **params):
         root_url = self._get_or_raise("cyclecloud.config.web_server")
+        self.logger.debug("GET %s with params %s", root_url + url, params)
         session = self._session()
         response = session.get(root_url + url, params=params)
-        if response.status_code != 200:
+        if response.status_code < 200 or response.status_code > 299:
             raise ValueError(response.content, object_pairs_hook=collections.OrderedDict)
         return json.loads(response.content)

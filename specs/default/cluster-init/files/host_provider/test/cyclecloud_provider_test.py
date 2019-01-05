@@ -45,7 +45,7 @@ class MockCluster:
         self.raise_during_termination = False
         self.raise_during_add_nodes = False
 
-    def nodearrays(self):
+    def describe(self):
         return self._nodearrays
 
     def add_nodes(self, request):
@@ -82,11 +82,23 @@ class MockCluster:
                 "TargetState": "Started"
             })
             
-    def nodes(self, **attrs):
+    def nodes(self, request_ids=[]):
+        ret = {}
+        
+        for request_id in request_ids:
+            ret[request_id] = {"nodes": []}
+            
+        for node in self.inodes(RequestId=request_ids):
+            ret[node["RequestId"]]["nodes"].append(node)
+        return ret
+            
+    def inodes(self, **attrs):
         '''
         Just yield each node that matches the attrs specified. If the value is a 
         list or set, use 'in' instead of ==
         '''
+        ret = {}
+        
         def _yield_nodes(**attrs):
             for nodes_for_template in self._nodes.itervalues():
                 for node in nodes_for_template:
@@ -97,6 +109,7 @@ class MockCluster:
                         else:
                             all_match = all_match and node[key] == value
                     if all_match:
+                        ret[key] = node
                         yield node
         return list(_yield_nodes(**attrs))
     
@@ -169,12 +182,13 @@ class Test(unittest.TestCase):
             if expected_node_status is None:
                 expected_node_status = node_status
                 
-            mutable_node = provider.cluster.nodes(Name="execute-1")
-            mutable_node[0]["Status"] = node_status
+            mutable_node = provider.cluster.inodes(Name="execute-1")
+            mutable_node[0]["State"] = node_status
             mutable_node[0]["TargetState"] = node_target_state
             mutable_node[0]["Instance"] = instance
             mutable_node[0]["InstanceId"] = instance["InstanceId"] if instance else None
             mutable_node[0]["StatusMessage"] = node_status_message
+            mutable_node[0]["PrivateIp"] = (instance or {}).get("PrivateIp")
             
             if status_type == "create":
                 statuses = provider.status({"requests": [{"requestId": request["requestId"]}]})
@@ -185,7 +199,7 @@ class Test(unittest.TestCase):
             self.assertEquals(expected_request_status, request_status_obj["status"])
             machines = request_status_obj["machines"]
             self.assertEquals(expected_machines, len(machines))
-            self.assertEquals(expected_node_status, mutable_node[0]["Status"])
+            self.assertEquals(expected_node_status, mutable_node[0]["State"])
 
             if expected_machines == 0:
                 return
@@ -210,7 +224,7 @@ class Test(unittest.TestCase):
                  expected_machine_result=MachineResults.failed)
         
         # node is ready to go
-        run_test(node_status="Ready", expected_machine_result=MachineResults.succeed, 
+        run_test(node_status="Started", expected_machine_result=MachineResults.succeed, 
                                       expected_machine_status=MachineStates.active,
                                       expected_request_status=RequestStates.complete)
         
@@ -364,7 +378,6 @@ class Test(unittest.TestCase):
         self.assertNotIn(expired_request, provider.terminate_json.read())
         
     def test_disable_but_do_not_delete_missing_buckets(self):
-        # TODO RDH - really this on
         provider = self._new_provider()
         templates = provider.templates()["templates"]
         

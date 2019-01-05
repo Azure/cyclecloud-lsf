@@ -1,12 +1,15 @@
 import version
 
 
-class UserError(Exception):
-    pass
-
-
-class ConfigError(Exception):
-    pass
+try:
+    from cyclecli import UserError
+    from cyclecli import ConfigError
+except ImportError:
+    class UserError(Exception):
+        pass
+    
+    class ConfigError(Exception):
+        pass
 
 
 def get_session(config):
