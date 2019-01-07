@@ -81,7 +81,7 @@ cp $rc_source_dir/src/*.py $rc_scripts_dir/src/
 
 LSF will be communicating to CC via the azurecc resource connector.
 The azurecc provider includes a CycleCloud host and cluster.
-With a CycleCloud cluster configured add a provider entry to the azurecc provider file: _${LSF_TOP}/conf/resource_connector/azurecc/azureccprov_config.json_
+With a CycleCloud cluster configured add a provider entry to the azurecc provider file: _${LSF_TOP}/conf/resource_connector/azurecc/conf/azureccprov_config.json_
 
 An example of the provider file with a single cluster is below. The user name and password correspond to a CycleCloud user.
 This user should be assigned the _cyclecloud_access_ role. 

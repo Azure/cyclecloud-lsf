@@ -222,8 +222,8 @@ class ProviderConfig:
 
 
 def provider_config_from_environment(pro_conf_dir=os.getenv('PRO_CONF_DIR', os.getcwd())):
-    config_file = os.path.join(pro_conf_dir, "azureccprov_config.json")
-    templates_file = os.path.join(pro_conf_dir, "azureccprov_templates.json")
+    config_file = os.path.join(pro_conf_dir, "conf", "azureccprov_config.json")
+    templates_file = os.path.join(pro_conf_dir, "conf", "azureccprov_templates.json")
     
     delayed_log_statements = []
     

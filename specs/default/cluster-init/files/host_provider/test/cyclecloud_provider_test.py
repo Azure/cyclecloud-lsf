@@ -428,11 +428,13 @@ class Test(unittest.TestCase):
         
     def test_provider_config_from_env(self):
         tempdir = tempfile.mkdtemp()
+        confdir = os.path.join(tempdir, "conf")
+        os.makedirs(confdir)
         try:
-            with open(tempdir + os.sep + "azureccprov_config.json", "w") as fw:
+            with open(os.path.join(confdir, "azureccprov_config.json"), "w") as fw:
                 json.dump({}, fw)
                 
-            with open(tempdir + os.sep + "azureccprov_templates.json", "w") as fw:
+            with open(os.path.join(confdir, "azureccprov_templates.json"), "w") as fw:
                 json.dump({"templates": 
                            [{"templateId": "default", "attributes": {"custom": ["String", "VALUE"]}}]}, fw)
             
