@@ -31,14 +31,7 @@ class Cluster:
         return responses
     
     def terminate(self, node_ids):
-        # kludge: work around
-        fexpr = 'NodeId in {%s}' % ",".join(['"%s"' % x for x in node_ids])
-        try:
-            self.post("/cloud/actions/terminate_node/%s" % self.cluster_name, json={"filter": fexpr})
-        except Exception as e:
-            if "No nodes were found matching your query" in unicode(e):
-                return
-            raise
+        self.post("/nodes/terminate/%s" % self.cluster_name, json={"ids": node_ids})
         
     def _session(self):
         config = {"verify_certificates": False,
