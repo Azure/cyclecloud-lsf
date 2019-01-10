@@ -156,8 +156,9 @@ class CycleCloudProvider:
                             "ncores": ["Numeric", machine_type.get("vcpuCount")],
                             "azurecchost": ["Boolean", "1"],
                             "type": ["String", "X86_64"],
-                            "machinetype": ["String", machine_type_name],
-                            "nodearray": ["String", nodearray_name]
+                            "machinetypefull": ["String", machine_type_name],
+                            "machinetype": ["String", machine_type_short],
+                            "nodearray": ["String", nodearray_name],
                         }
                     }
                     
@@ -321,13 +322,13 @@ class CycleCloudProvider:
             
             self.cluster.add_nodes({'requestId': request_id,
                                     'sets': [{'count': machine_count,
-                                              'definition': {'machineType': _get("machinetype")},
+                                              'definition': {'machineType': _get("machinetypefull")},
                                               'nodeAttributes': {'Tags': {"rc_account": rc_account},
                                                                  'Configuration': user_data},
                                               'nodearray': _get("nodearray")
                                               }]})
             
-            logger.info("Requested %s instances of machine type %s in nodearray %s.", machine_count, _get("machinetype"), _get("nodearray"))
+            logger.info("Requested %s instances of machine type %s in nodearray %s.", machine_count, _get("machinetypefull"), _get("nodearray"))
             
             return self.json_writer({"requestId": request_id, "status": RequestStates.running,
                                      "message": "Request instances success from Azure CycleCloud."})
