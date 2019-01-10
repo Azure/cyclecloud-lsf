@@ -2,6 +2,7 @@ import json
 
 import collections
 import logging
+from urllib import urlencode
 
 
 try:
@@ -30,9 +31,34 @@ class Cluster:
             responses[request_id] = self.get("/nodes", request_id=request_id)
         return responses
     
-    def terminate(self, node_ids):
-        self.post("/nodes/terminate/%s" % self.cluster_name, json={"ids": node_ids})
+    def terminate(self, machines, hostnamer):
+        id_to_ip = {}
+        for machine in machines:
+            id_to_ip[machine["machineId"]] = hostnamer.private_ip_address(machine["name"])
         
+        response_raw = self.post("/nodes/terminate/%s" % self.cluster_name, json={"ids": id_to_ip.keys()})
+        response = json.loads(response_raw)
+        for node in response["nodes"]:
+            id_to_ip.pop(node["id"])
+        
+        # kludge: work around
+        # if LSF has a stale machineId -> hostname mapping, find the existing instance with that ip and kill it
+        
+        if id_to_ip:
+            ips = id_to_ip.values()
+            self.logger.warn("Terminating the following nodes by ip address: %s", id_to_ip.keys())
+            
+            for i in range(0, len(ips), 10):
+                subset_ips = ips[i:min(len(ips), i + 10)]
+                f = urlencode({"instance-filter": 'PrivateIp in {%s}' % ",".join('"%s"' % x for x in subset_ips)})
+                
+                try:
+                    self.post("/cloud/actions/terminate_node/%s?%s" % (self.cluster_name, f))
+                except cyclecli.UserError as e:
+                    if "No instances were found matching your query" in unicode(e):
+                        return
+                    raise
+            
     def _session(self):
         config = {"verify_certificates": False,
                   "username": self._get_or_raise("cyclecloud.config.username"),
@@ -57,6 +83,7 @@ class Cluster:
         response = session.post(root_url + url, data, json, **kwargs)
         if response.status_code < 200 or response.status_code > 299:
             raise ValueError(response.content)
+        return response.content
         
     def get(self, url, **params):
         root_url = self._get_or_raise("cyclecloud.config.web_server")

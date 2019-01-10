@@ -113,7 +113,7 @@ class MockCluster:
                         yield node
         return list(_yield_nodes(**attrs))
     
-    def terminate(self, node_ids):
+    def terminate(self, node_ids, unused):
         if self.raise_during_termination:
             raise RuntimeError("raise_during_termination")
         

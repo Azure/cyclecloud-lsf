@@ -316,6 +316,10 @@ class Hostnamer:
         else:
             return toks[-1]
         
+    def private_ip_address(self, hostname):
+        toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", hostname]).split()]
+        return toks[0]
+    
         
 def load_json(path):
     with open(path) as fr:

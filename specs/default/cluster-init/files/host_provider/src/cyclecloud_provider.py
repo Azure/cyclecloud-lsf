@@ -487,11 +487,12 @@ class CycleCloudProvider:
                     if termination_id in terminate_requests:
                         termination = terminate_requests[termination_id]
                         if not termination.get("terminated"):
-                            node_ids.extend(termination["machines"])
+                            for machine_id, name in termination["machines"].iteritems():
+                                node_ids.append({"machineId": machine_id, "name": name})
                 
                 if node_ids:
                     logger.warn("Re-attempting termination of nodes %s", node_ids)
-                    self.cluster.terminate(node_ids)
+                    self.cluster.terminate(node_ids, self.hostnamer)
                     
                 for termination_id in termination_ids:
                     if termination_id in terminate_requests:
@@ -588,7 +589,7 @@ class CycleCloudProvider:
             message = "CycleCloud is terminating the VM(s)",
 
             try:
-                self.cluster.terminate(machines.keys())
+                self.cluster.terminate(input_json["machines"], self.hostnamer)
                 with self.terminate_json as terminations:
                     terminations[request_id]["terminated"] = True
             except Exception:
