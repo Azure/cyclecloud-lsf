@@ -36,6 +36,13 @@ template "#{node['lsf']['local_etc']}/lsf.conf" do
   )
 end
 
+directory "/opt/cycle/jetpack/system/bootstrap/lsf/"
+
+template "/opt/cycle/jetpack/system/bootstrap/lsf/modify-lsf-local-resources.sh" do
+  source 'modify-lsf-local-resources.sh'
+  mode '0700'
+end
+
 template "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}" do
   source 'conf/lsf.cluster.erb'
   variables(
@@ -53,11 +60,22 @@ end
   
 
 defer_block "Defer starting lsf until end of the converge" do
+  if !system("cd /opt/cycle/jetpack/system/bootstrap/lsf/ && ./modify-lsf-local-resources.sh 2> modify-lsf-local-resources.sh.err 1>modify-lsf-local-resources.sh.out")
+	raise "01-modify-lsf-local-resources.sh failed!" 
+  end
+ 
   execute 'lsadmin limstartup' do 
     command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
     not_if 'pidof lim'
     user 'lsfadmin'
     group 'lsfadmin'  
+  end
+
+  execute 'lsadmin limstartup' do 
+    command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
+    not_if 'pidof lim'
+    user 'lsfadmin'
+    group 'lsfadmin' 
   end
 
   execute 'lsadmin resstartup' do 

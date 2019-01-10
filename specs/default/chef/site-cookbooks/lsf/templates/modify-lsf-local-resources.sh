@@ -15,18 +15,22 @@ function do_modification() {
 	    if [ $(is_blacklisted $attribute) != 0 ]; then
 	        continue
 	    fi;
-	
+		
 	    value=$( attribute_value $attribute )
-	    
-	    if [ "$value" == "1" ]; then
-	        value="true"
-	    fi
-	
-	    if [ "$value" == "true" ]; then
+	    shopt -s nocasematch
+		
+		echo $attribute $value >&2
+
+	    if [[ "$value" == "true" ]]; then
 	        expr="$expr [resource $attribute]"
+	    elif [[ "$value" == "false" ]]; then
+	    	# not declaring a boolean resource is declaring it as false.
+	    	true;
 	    else
 	        expr="$expr [resourcemap $value*$attribute]"
 	    fi
+	   
+	   shopt -u nocasematch
 	    
 	done
 	
@@ -45,12 +49,17 @@ function local_lsf_conf() {
 
 function should_skip_script() {
 	# if jetpack is installed and the user has decided to skip
-	
 	set +e
 	which jetpack 1>&2 2>/dev/null
+	jetpack_exists=$?
 	set -e
-	
-	if [ $? == 0 ]; then
+
+	if [ $jetpack_exists == 0 ]; then
+		template=$(jetpack config cyclecloud.node.template execute)
+		if [ "$template" == "master" ]; then
+			echo 0
+			return
+		fi
 		skip_modify_local_resources=$(jetpack config lsf.skip_modify_local_resources 0)
 		custom_script_uri=$(jetpack config lsf.custom_script_uri 0)
 		if [ $skip_modify_local_resources != 0 ]; then
@@ -73,7 +82,7 @@ function should_skip_script() {
 function is_blacklisted() {
 	# attributes we want exposed to allocate VMs but that we don't want to
 	# override as a local resource
-	blacklisted_attributes=("mem" "ncpus" "type" "ncores")
+	blacklisted_attributes=("mem" "ncpus" "type" "ncores", "machinetypefull")
 	
     # ex: is_blacklisted "mem"
     if [[ "${blacklisted_attributes[@]}" =~ "$1" ]]; then
