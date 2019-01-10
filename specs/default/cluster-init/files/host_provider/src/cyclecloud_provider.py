@@ -311,11 +311,9 @@ class CycleCloudProvider:
                 user_data["lsf"]["custom_env"]["rc_account"] = rc_account
                 user_data["lsf"]["custom_env_names"] = " ".join(sorted(user_data["lsf"]["custom_env"].keys()))
             
-            # RequestId may or may not be special. Add a subdict most likely.
             self.cluster.add_nodes({'requestId': request_id,
                                     'sets': [{'count': machine_count,
                                                'overrides': {'MachineType': _get("machinetype"),
-                                                             'RequestId': request_id,
                                                              'Tags': {"rc_account": rc_account},
                                                              'Configuration': user_data},
                                               'template': _get("nodearray")
