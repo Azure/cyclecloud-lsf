@@ -38,7 +38,9 @@ HOST_NAME MXJ   r1m     pg    ls    tmp  DISPATCH_WINDOW  AFFINITY  # Keywords
 #hostD     !    ()      ()    ()     ()     ()            (Y)   # Example
 #hostE     4    ()      ()    ()     ()     ()            (Y)   # Example
 <% if @is_master %>
-<%= @master_hostname %>      0    ()     ()    ()    ()     ()     ()
+<% @master_list.each do |master_name| %>
+<%= master_name %>      9999    ()     ()    ()    ()     ()     ()
+<% end %>
 <% end %>
 default       !   ()     ()    ()    ()     ()     ()		   # Example
 End Host

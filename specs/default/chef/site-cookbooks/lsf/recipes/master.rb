@@ -35,16 +35,16 @@ template "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}" do
   source 'conf/lsf.cluster.erb'
   variables(
     :is_slave => false,
-    :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) },
+    :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) }
   )
 end
-
 
 template "#{node['lsf']['local_etc']}/lsb.hosts" do
   source 'conf/lsb.hosts.erb'
   variables lazy {{
     :is_master => true,
-    :master_hostname => node['hostname']
+    :master_hostname => node['hostname'],
+    :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) }
   }}
 end
 
@@ -69,3 +69,8 @@ execute 'badmin hstartup' do
   group 'lsfadmin'
 end
 
+execute "close_master_host" do
+  command "source #{lsf_top}/conf/profile.lsf && badmin hclose `hostname` "
+  user 'lsfadmin'
+  group 'lsfadmin' 
+end
