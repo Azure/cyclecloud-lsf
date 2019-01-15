@@ -20,15 +20,15 @@ class Cluster:
     
     def describe(self):
         '''pprint.pprint(json.dumps(json.loads(dougs_example)))'''
-        return self.get("/clusters/%s" % self.cluster_name)
+        return self.get("/clusters/%s/status" % self.cluster_name)
 
     def add_nodes(self, request):
-        return self.post("/nodes/create?cluster=%s" % self.cluster_name, json=request)
+        return self.post("/clusters/%s/nodes/create" % self.cluster_name, json=request)
     
     def nodes(self, request_ids):
         responses = {}
         for request_id in request_ids:
-            responses[request_id] = self.get("/nodes", request_id=request_id)
+            responses[request_id] = self.get("/clusters/%s/nodes" % self.cluster_name, request_id=request_id)
         return responses
     
     def terminate(self, machines, hostnamer):
@@ -36,7 +36,7 @@ class Cluster:
         for machine in machines:
             id_to_ip[machine["machineId"]] = hostnamer.private_ip_address(machine["name"])
         
-        response_raw = self.post("/nodes/terminate/%s" % self.cluster_name, json={"ids": id_to_ip.keys()})
+        response_raw = self.post("/clusters/%s/nodes/terminate" % self.cluster_name, json={"ids": id_to_ip.keys()})
         response = json.loads(response_raw)
         for node in response["nodes"]:
             id_to_ip.pop(node["id"])
