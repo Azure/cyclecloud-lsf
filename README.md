@@ -183,6 +183,60 @@ jobs to the scheduler:
 1. You'll see an execute node start up and prepare to run jobs.
 1. When the job queue is cleared, nodes will autoscale back down.
 
+## Start a "Headless" LSF Cluster
+
+This project supports configuring and installing an LSF master host without
+using the automation built in.  The following instructions describe how to set 
+up this use-case.
+
+### "Headless" cluster requisites
+
+For this use-case certain assumptions are made about configurations.  The 
+
+1. Using a custom VM image with either the LSF_CONF dir shared by NFS or a local copy of LSF_CONF
+1. LSF is pre-installed on the master and/or a shared file system.
+
+### Upload this project to your locker
+
+Unlike the normal cluster, the "headless" cluster assumes that LSF is already installed
+so that the cluster automation doesn't need the LSF installers and binaries.
+**Remove the `[blobs]` section from the project.ini file** so that the lsf installers
+are not expected.  Then, upload the project.
+
+```bash
+cyclecloud project upload my-locker
+```
+
+### Import the "Headless" cluster template
+
+In the _templates_ directory exists the _lsf-headless.txt_ file.  This is appropriate
+for the "headless" use-case.  Import the file as a cluster template into CycleCloud
+
+```bash
+cyclecloud import_cluster LSF-headless -f lsf-headless.txt -c lsf -t
+```
+
+### Configure the cluster in the UI
+
+Using the create cluster menu, find the _LSF-headless_ template and proceed through
+the configuration menus. General CycleCloud documentation can guide you through
+selecting subnet and machine types.  Critical configurations for the "headless" lsf
+project are in the Advanced/Software sub menu. 
+
+* Base OS is the VM image that's been pre-created in the subscription referenced by Resource ID
+* Select the _lsf:execute:1.0.0_ cluster-init in the picker, which you've just uploaded.
+* For the custom image, provide the location of _LSF_TOP_, the root of the LSF install.
+* For the custom image, provide the location of lsf.conf by setting _LSF\_ENVDIR_
+
+![Headless cluster advanced configurations](images/headless-config.png)
+
+### Start the cluster and point azurecc_prov to the cluster and nodearray.
+
+Now that the cluster is configure, it can be started. Start the cluster, and change
+the azurecc_prov details to reference the new clustername and the _execute_ node array. 
+The node array name should match the _templateId_ in azureccprov_templates.json.
+
+
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a

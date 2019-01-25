@@ -1,0 +1,137 @@
+
+[cluster lsf]
+    FormLayout = selectionpanel
+    Category = Infrastructure
+
+    Autoscale = $Autoscale
+
+    [[node defaults]]
+
+        Credentials = $Credentials
+        Region = $Region
+        KeyPairLocation = ~/.ssh/cyclecloud.pem
+        ImageId = $ImageId
+        ImageOS = linux
+        SubnetId = $ComputeSubnet
+
+        [[[configuration]]]
+        cyclecloud.selinux.policy = permissive
+        lsf.lsf_top = $LSF_TOP
+        lsf.local_etc = $LSF_ENVDIR
+
+    [[nodearray execute]]
+
+        Azure.MaxScalesetSize = $MaxScalesetSize
+        MachineType = $ExecuteMachineType
+        AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
+        Interruptible = $UseLowPrio
+
+        MaxCoreCount = $MaxExecuteCoreCount
+
+        [[[configuration]]]
+        cyclecloud.maintenance_converge.enabled = false
+
+
+[parameters About]
+Order = 1
+
+    [[parameters About LSF]]
+
+        [[[parameter LSF]]]
+        HideLabel = true
+        Config.Plugin = pico.widget.HtmlTemplateWidget
+        Config.Template := "IBM Spectrum LSF is a complete workload management solution for demanding HPC environments"
+
+        [[[parameter Readme]]]
+        HideLabel = true
+        Config.Plugin = pico.widget.HtmlTemplateWidget
+        Config.Template = "Follow the instructions in the <a href="https://github.com/Azure/cyclecloud-lsf" target=\"_blank\">README</a> for details on instructions on extending and configuring the Project for your environment."
+
+
+[parameters Required Settings]
+Order = 10
+
+    [[parameters Cloud Service Provider Configuration]]
+    Description = Configure the Cloud Provider account options.
+    Order = 10
+
+        [[[parameter Region]]]
+        Label = Region
+        Description = Deployment Location
+        ParameterType = Cloud.Region
+
+    [[parameters Compute Configurations]]
+    Description = "Configure the execute array for the cluster.  VM sizes, autoscaling limits and priority."
+    Order = 20
+
+        [[[parameter ExecuteMachineType]]]
+        Label = Compute Type
+        Description = The machine type for execute nodes
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_F16
+        Config.Multiselect = true
+
+        [[[parameter Autoscale]]]
+        Label = Autoscale
+        DefaultValue = true
+        Widget.Plugin = pico.form.BooleanCheckBox
+        Widget.Label = Start and stop execute nodes automatically
+
+        [[[parameter MaxExecuteCoreCount]]]
+        Label = Max Cores
+        Description = The total number of execute cores to start
+        DefaultValue = 500
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 1
+        Config.MaxValue = 5000
+        Config.IntegerOnly = true
+
+        [[[parameter UseLowPrio]]]
+        Label = Low Priority
+        DefaultValue = false
+        Widget.Plugin = pico.form.BooleanCheckBox
+        Widget.Label = Use low priority instances for execute hosts
+
+    [[parameters Networking]]
+    Description = Networking settings
+    Order = 40
+
+        [[[parameter ComputeSubnet]]]
+        Label = Compute Subnet
+        Description = Subnet Resource Path (ResourceGroup/VirtualNetwork/Subnet)
+        Required = true
+        ParameterType = Azure.Subnet
+
+[parameters Advanced Settings]
+Order = 20
+
+    [[parameters Azure Settings]]
+    Order = 10 
+
+        [[[parameter Credentials]]]
+        Description = The credentials for the cloud provider
+        ParameterType = Cloud.Credentials
+
+    [[parameters Software]]
+    Description = "Specify the scheduling software, and base OS installed on all nodes, and optionally the cluster-init and chef versions from your Locker."
+    Order = 20
+
+        [[[parameter ImageId]]]
+        Label = Base OS
+        DefaultValue = /my/image/resource/id
+
+        [[[parameter ExecuteClusterInitSpecs]]]
+        Label = Execute Cluster-Init
+        DefaultValue = =undefined
+        Description = Cluster init specs to apply to execute nodes
+        ParameterType = Cloud.ClusterInitSpecs
+
+        [[[parameter LSF_TOP]]]
+        label = LSF_TOP Variable
+        Description = LSF environment variable equivalent to LSF_TOP, root lsf directory
+        DefaultValue = /usr/share/lsf
+
+        [[[parameter LSF_ENVDIR]]]
+        label = LSF_ENVDIR Variable
+        Description = LSF environment variable equivalent to LSF_ENVDIR, specifies location of local lsf.conf
+        DefaultValue = /usr/share/lsf/conf
