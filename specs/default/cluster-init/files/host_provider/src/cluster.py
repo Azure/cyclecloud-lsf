@@ -1,6 +1,5 @@
 import json
 
-import collections
 import logging
 from urllib import urlencode
 
@@ -18,7 +17,7 @@ class Cluster:
         self.provider_config = provider_config
         self.logger = logger or logging.getLogger()
     
-    def describe(self):
+    def status(self):
         '''pprint.pprint(json.dumps(json.loads(dougs_example)))'''
         return self.get("/clusters/%s/status" % self.cluster_name)
 
@@ -91,5 +90,5 @@ class Cluster:
         session = self._session()
         response = session.get(root_url + url, params=params)
         if response.status_code < 200 or response.status_code > 299:
-            raise ValueError(response.content, object_pairs_hook=collections.OrderedDict)
+            raise ValueError(response.content)
         return json.loads(response.content)

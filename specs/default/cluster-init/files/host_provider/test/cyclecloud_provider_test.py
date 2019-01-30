@@ -15,8 +15,8 @@ import util
 
 
 MACHINE_TYPES = {
-    "A4": {"Name": "A4", "CoreCount": 4, "Memory": 1., "Location": "ukwest", "Quota": 10},
-    "A8": {"Name": "A8", "CoreCount": 8, "Memory": 2., "Location": "ukwest", "Quota": 20}
+    "A4": {"Name": "A4", "vcpuCount": 4, "memory": 1., "Location": "ukwest", "Quota": 10},
+    "A8": {"Name": "A8", "vcpuCount": 8, "memory": 2., "Location": "ukwest", "Quota": 20}
 }
 
 
@@ -38,17 +38,17 @@ class MockHostnamer:
 class MockCluster:
     def __init__(self, nodearrays):
         self._nodearrays = nodearrays
-        self._nodearrays["nodeArrays"].append({"templateName": "execute",
-                                               "nodeArray": {"Configuration": {"run_list": ["recipe[lsf::master]"]}}})
+        self._nodearrays["nodearrays"].append({"name": "execute",
+                                               "nodearray": {"Configuration": {"run_list": ["recipe[lsf::master]"]}}})
         # template -> requestI
         self._nodes = {}
         self.raise_during_termination = False
         self.raise_during_add_nodes = False
 
-    def describe(self):
+    def status(self):
         return self._nodearrays
 
-    def add_nodes(self, request):
+    def add_nodes(self, request_all):
         '''
                 self.cluster.add_node({'Name': nodearray_name,
                                 'TargetCount': machine_count,
@@ -59,25 +59,25 @@ class MockCluster:
         '''
         if self.raise_during_add_nodes:
             raise RuntimeError("raise_during_add_nodes")
-        request = request["sets"][0]
-        template = request["template"]
+        request = request_all["sets"][0]
+        nodearray = request["nodearray"]
+        request_id = request_all["requestId"]
         count = request["count"]
-        machine_type = request["overrides"]["MachineType"]
-        request_id = request["overrides"]["RequestId"]
+        machine_type = request["definition"]["machineType"]
         
-        if template not in self._nodes:
-            self._nodes[template] = []
+        if nodearray not in self._nodes:
+            self._nodes[nodearray] = []
             
-        node_list = self._nodes[template]
+        node_list = self._nodes[nodearray]
 
         for i in range(count):
             node_index = len(node_list) + i + 1
         
             node_list.append({
-                "Name": "%s-%d" % (template, node_index),
-                "NodeId": "%s-%d_id" % (template, node_index),
+                "Name": "%s-%d" % (nodearray, node_index),
+                "NodeId": "%s-%d_id" % (nodearray, node_index),
                 "RequestId": request_id,
-                "MachineType": MACHINE_TYPES[machine_type],
+                "machineType": MACHINE_TYPES[machine_type],
                 "Status": "Allocating",
                 "TargetState": "Started"
             })
@@ -146,7 +146,7 @@ class Test(unittest.TestCase):
 
     def test_simple_lifecycle(self):
         provider = self._new_provider()
-        provider.cluster._nodearrays["nodeArrays"][0]["buckets"].pop(1)
+        provider.cluster._nodearrays["nodearrays"][0]["buckets"].pop(1)
         
         templates = provider.templates()["templates"]
         
@@ -155,7 +155,7 @@ class Test(unittest.TestCase):
         self.assertEquals(["Numeric", 4], templates[0]["attributes"]["ncores"])
         self.assertEquals(["Numeric", 4], templates[0]["attributes"]["ncpus"])
         
-        provider.cluster._nodearrays["nodeArrays"][0]["buckets"].append({"maxCount": 2, "overrides": {"MachineType": "A8"}})
+        provider.cluster._nodearrays["nodearrays"][0]["buckets"].append({"maxCount": 2, "definition": {"machineType": "A8"}, "virtualMachine": MACHINE_TYPES["A8"]})
         
         templates = provider.templates()["templates"]
         
@@ -233,13 +233,12 @@ class Test(unittest.TestCase):
                  expected_request_status=RequestStates.complete)
         
     def _new_provider(self, provider_config=util.ProviderConfig({}, {}), UserData=""):
-        a4bucket = {"maxCount": 2, "overrides": {"MachineType": "A4"}}
-        a8bucket = {"maxCoreCount": 24, "overrides": {"MachineType": "A8"}}
-        cluster = MockCluster({"nodeArrays": [{"templateName": "execute",
+        a4bucket = {"maxCount": 2, "definition": {"machineType": "A4"}, "virtualMachine": MACHINE_TYPES["A4"]}
+        a8bucket = {"maxCoreCount": 24, "definition": {"machineType": "A8"}, "virtualMachine": MACHINE_TYPES["A8"]}
+        cluster = MockCluster({"nodearrays": [{"name": "execute",
                                                "UserData": UserData,
-                                               "nodeArray": {"MachineType": ["a4", "a8"]},
-                                               "buckets": [a4bucket, a8bucket]}],
-                               "machineTypes": MACHINE_TYPES})
+                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"run_list": ["recipe[lsf::slave]"]}},
+                                               "buckets": [a4bucket, a8bucket]}]})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
         return cyclecloud_provider.CycleCloudProvider(provider_config, cluster, hostnamer, json_writer, RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
@@ -303,7 +302,7 @@ class Test(unittest.TestCase):
         
     def test_templates(self):
         provider = self._new_provider()
-        a4bucket, a8bucket = provider.cluster._nodearrays["nodeArrays"][0]["buckets"]
+        a4bucket, a8bucket = provider.cluster._nodearrays["nodearrays"][0]["buckets"]
         nodearray = {"MaxCoreCount": 100}
         self.assertEquals(2, provider._max_count(nodearray, 4, {"maxCount": 2}))
         self.assertEquals(3, provider._max_count(nodearray, 8, {"maxCoreCount": 24}))
@@ -389,7 +388,7 @@ class Test(unittest.TestCase):
         self.assertTrue(_maxNumber("executea4") > 0)
         self.assertTrue(_maxNumber("executea8") > 0)
         
-        provider.cluster._nodearrays["nodeArrays"][0]["buckets"] = [{"maxCount": 2, "overrides": {"MachineType": "A4"}}]
+        provider.cluster._nodearrays["nodearrays"][0]["buckets"] = [{"maxCount": 2, "definition": {"machineType": "A4"}, "virtualMachine": MACHINE_TYPES["A4"]}]
         templates = provider.templates()["templates"]
         
         self.assertTrue(_maxNumber("executea4") > 0)
@@ -397,9 +396,9 @@ class Test(unittest.TestCase):
         
     def test_override_template(self):
         provider = self._new_provider()
-        other_array = deepcopy(provider.cluster._nodearrays["nodeArrays"][0])
-        other_array["templateName"] = "other"
-        provider.cluster._nodearrays["nodeArrays"].append(other_array)
+        other_array = deepcopy(provider.cluster._nodearrays["nodearrays"][0])
+        other_array["name"] = "other"
+        provider.cluster._nodearrays["nodearrays"].append(other_array)
         
         def any_template(template_name):
             return [x for x in provider.templates()["templates"] if x["templateId"].startswith(template_name)][0]

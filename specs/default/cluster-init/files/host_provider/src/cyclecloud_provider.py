@@ -28,6 +28,10 @@ PLACEHOLDER_TEMPLATE = {"templateId": "exceptionPlaceholder",
                         }
 
 
+class InvalidCycleCloudVersionError(RuntimeError):
+    pass
+
+
 class CycleCloudProvider:
     
     def __init__(self, config, cluster, hostnamer, json_writer, terminate_requests, templates, clock):
@@ -106,9 +110,13 @@ class CycleCloudProvider:
         with self.templates_json as templates_store:
             
             # returns Cloud.Node records joined on MachineType - the array node only
-            response = self.cluster.describe()
+            response = self.cluster.status()
 
-            nodearrays = response["nodeArrays"]
+            nodearrays = response["nodearrays"]
+            
+            if "nodeArrays" in nodearrays:
+                logger.error("Invalid CycleCloud version. Please upgrade your CycleCloud instance.")
+                raise InvalidCycleCloudVersionError("Invalid CycleCloud version. Please upgrade your CycleCloud instance.")
             
             if self.fine:
                 logger.debug("nodearrays response\n%s", json.dumps(nodearrays, indent=2))
@@ -118,28 +126,25 @@ class CycleCloudProvider:
             default_priority = len(nodearrays) * 10
             
             for nodearray_root in nodearrays:
-                nodearray = nodearray_root.get("nodeArray")
-                if "recipe[lsf::master]" in nodearray.get("Configuration", {}).get("run_list", []):
+                nodearray = nodearray_root.get("nodearray")
+                if "recipe[lsf::slave]" not in nodearray.get("Configuration", {}).get("run_list", []):
                     continue
                 
-                dimensions = nodearray_root.get("dimensions", ["MachineType"])
-                assert nodearray.get("dimensions", ["MachineType"]) == ["MachineType"], "Unsupported dimensions at this time: %s" % dimensions
-                
                 for bucket in nodearray_root.get("buckets"):
-                    machine_type_name = bucket["overrides"]["MachineType"]
-                    machine_type = response["machineTypes"][machine_type_name]
+                    machine_type_name = bucket["definition"]["machineType"]
+                    machine_type = bucket["virtualMachine"]
                     
                     # LSF hates special characters
-                    template_name = nodearray_root.get("templateName")
-                    template_id = "%s%s" % (template_name, machine_type_name)
+                    nodearray_name = nodearray_root["name"]
+                    template_id = "%s%s" % (nodearray_name, machine_type_name)
                     template_id = self._escape_id(template_id)
                     currently_available_templates.add(template_id)
                     
-                    max_count = self._max_count(nodearray, machine_type.get("CoreCount"), bucket)
-                    
+                    max_count = self._max_count(nodearray, machine_type.get("vcpuCount"), bucket)
+
                     at_least_one_available_bucket = at_least_one_available_bucket or max_count > 0
-                    memory = machine_type.get("Memory") * 1024
-                        
+                    memory = machine_type.get("memory") * 1024
+                    
                     record = {
                         "maxNumber": max_count,
                         "templateId": template_id,
@@ -147,18 +152,18 @@ class CycleCloudProvider:
                         "attributes": {
                             "zone": ["String", nodearray.get("Region")],
                             "mem": ["Numeric", memory],
-                            "ncpus": ["Numeric", machine_type.get("CoreCount")],
-                            "ncores": ["Numeric", machine_type.get("CoreCount")],
+                            "ncpus": ["Numeric", machine_type.get("vcpuCount")],
+                            "ncores": ["Numeric", machine_type.get("vcpuCount")],
                             "azurecchost": ["Boolean", "1"],
                             "type": ["String", "X86_64"],
                             "machinetype": ["String", machine_type_name],
-                            "nodearray": ["String", nodearray_root.get("templateName")]
+                            "nodearray": ["String", nodearray_name]
                         }
                     }
                     
                     # deepcopy so we can pop attributes
                     
-                    for override_sub_key in ["default", template_name]:
+                    for override_sub_key in ["default", nodearray_name]:
                         overrides = deepcopy(self.config.get("templates.%s" % override_sub_key, {}))
                         attribute_overrides = overrides.pop("attributes", {})
                         record.update(overrides)
@@ -217,6 +222,9 @@ class CycleCloudProvider:
                     ret[key] = "true"
             else:
                 ret[key] = value_array[1]
+        
+        if template.get("customScriptUri"):
+            ret["custom_script_uri"] = template.get("customScriptUri")
             
         return ret
         
@@ -313,10 +321,10 @@ class CycleCloudProvider:
             
             self.cluster.add_nodes({'requestId': request_id,
                                     'sets': [{'count': machine_count,
-                                               'overrides': {'MachineType': _get("machinetype"),
-                                                             'Tags': {"rc_account": rc_account},
-                                                             'Configuration': user_data},
-                                              'template': _get("nodearray")
+                                              'definition': {'machineType': _get("machinetype")},
+                                              'nodeAttributes': {'Tags': {"rc_account": rc_account},
+                                                                 'Configuration': user_data},
+                                              'nodearray': _get("nodearray")
                                               }]})
             
             logger.info("Requested %s instances of machine type %s in nodearray %s.", machine_count, _get("machinetype"), _get("nodearray"))
@@ -480,17 +488,17 @@ class CycleCloudProvider:
             
             termination_ids = [r["requestId"] for r in input_json["requests"] if r["requestId"]]
             try:
-                node_ids = []
+                machines_to_terminate = []
                 for termination_id in termination_ids:
                     if termination_id in terminate_requests:
                         termination = terminate_requests[termination_id]
                         if not termination.get("terminated"):
                             for machine_id, name in termination["machines"].iteritems():
-                                node_ids.append({"machineId": machine_id, "name": name})
+                                machines_to_terminate.append({"machineId": machine_id, "name": name})
                 
-                if node_ids:
-                    logger.warn("Re-attempting termination of nodes %s", node_ids)
-                    self.cluster.terminate(node_ids, self.hostnamer)
+                if machines_to_terminate:
+                    logger.warn("Re-attempting termination of nodes %s", machines_to_terminate)
+                    self.cluster.terminate(machines_to_terminate, self.hostnamer)
                     
                 for termination_id in termination_ids:
                     if termination_id in terminate_requests:
@@ -499,7 +507,7 @@ class CycleCloudProvider:
                         
             except Exception:
                 request_status = RequestStates.running
-                logger.exception("Could not terminate nodes with ids %s. Will retry", node_ids)
+                logger.exception("Could not terminate nodes with ids %s. Will retry", machines_to_terminate)
             
             for termination_id in termination_ids:
                 response_machines = []
