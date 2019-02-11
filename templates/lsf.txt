@@ -29,7 +29,6 @@
 
         cyclecloud.selinux.policy = permissive
 
-        
 
         [[[cluster-init lsf:default:$LsfProjectVersion]]]
 
@@ -98,6 +97,7 @@
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master],recipe[lsf::autoscale]
         cshared.server.shared_dir = /shared
         cyclecloud.discoverable = true
+        lsf.num_placement_groups = $MaxNumScalesets
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -132,12 +132,12 @@
         PrivatePort = 22
         PublicPort = 22
 
-    [[nodearray execute]]
-
+    [[nodearray ondemand]]
+        Priority = 500
         Azure.MaxScalesetSize = $MaxScalesetSize
         MachineType = $ExecuteMachineType
         AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
-        Interruptible = $UseLowPrio
+        Interruptible = False
 
         MaxCoreCount = $MaxExecuteCoreCount
         [[[cluster-init lsf:slave:$LsfProjectVersion]]]
@@ -160,33 +160,19 @@
 
         [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
-#    [[nodearray test]]
+    [[nodearray lowprio]]
+        Priority = 400
+        Extends = ondemand
+        Interruptible = True
 
-#        Azure.MaxScalesetSize = $MaxScalesetSize
-#        MachineType = $ExecuteMachineType
-#        AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
-#        Interruptible = $UseLowPrio
-
-#        MaxCoreCount = $MaxExecuteCoreCount
-#        [[[cluster-init lsf:slave:$LsfProjectVersion]]]
-#        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
-
-#        [[[configuration]]]
-#        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
-#        cyclecloud.maintenance_converge.enabled = false
-
-#        [[[configuration cyclecloud.mounts.sched-exp]]]
-#        type = nfs
-#        mountpoint = /usr/share/lsf
-#        export_path = /mnt/raid/lsf
-
-#        [[[configuration cyclecloud.mounts.home]]]
-#        type = nfs
-#        mountpoint = /shared/home
-#        export_path = /mnt/raid/home
-
-#        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
-
+    [[nodearray gpu]]
+        Priority = 300
+        Extends = ondemand
+        ImageName = $GPUImageName
+        MachineType = $GPUMachineType
+        AdditionalClusterInitSpecs = $GPUClusterInitSpecs
+        [[[configuration]]]
+        lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
 
 [parameters About]
 Order = 1
@@ -227,6 +213,41 @@ Order = 10
         DefaultValue = Standard_H16, Standard_F16
         Config.Multiselect = true
 
+        [[[parameter GPUMachineType]]]
+        Label = GPU Type
+        Description = The machine type for GPU nodes
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_NC12
+        Config.Multiselect = false
+
+        [[[parameter num_gpus_dict]]]
+        required = True
+        label = Lookup number of GPUs based on machine type.
+        parametertype = hidden
+            [[[[record DefaultValue]]]]
+            Standard_NC6 = 1
+            Standard_NC6s_v2 = 1
+            Standard_NC6s_v3 = 1
+            Standard_ND6s = 1
+            Standard_NV6 = 1
+
+            Standard_NC12 = 2
+            Standard_NC12s_v2 = 2
+            Standard_NC12s_v3 = 2
+            Standard_ND12s = 2
+            Standard_NV12 = 2
+
+            Standard_NC24 = 4
+            Standard_NC24r = 4
+            Standard_NC24rs_v2 = 4
+            Standard_NC24rs_v3 = 4
+            Standard_NC24s_v2 = 4
+            Standard_NC24s_v3 = 4
+            Standard_ND24rs = 4
+            Standard_ND24s = 4
+            Standard_NV24 = 4
+
+
         [[[parameter Autoscale]]]
         Label = Autoscale
         DefaultValue = true
@@ -242,11 +263,6 @@ Order = 10
         Config.MaxValue = 5000
         Config.IntegerOnly = true
 
-        [[[parameter UseLowPrio]]]
-        Label = Low Priority
-        DefaultValue = false
-        Widget.Plugin = pico.form.BooleanCheckBox
-        Widget.Label = Use low priority instances for execute hosts
 
     [[parameters Networking]]
     Description = Networking settings
@@ -279,6 +295,13 @@ Order = 20
         DefaultValue = cycle.image.centos7
         Config.Filter := Package in {"cycle.image.centos7"}
 
+        [[[parameter GPUImageName]]]
+        Label = GPU Base OS
+        ParameterType = Cloud.Image
+        Config.OS = linux
+        DefaultValue = cycle.image.centos7
+        Config.Filter := Package in {"cycle.image.centos7"}
+
         [[[parameter MasterClusterInitSpecs]]]
         Label = Master Cluster-Init
         DefaultValue = =undefined
@@ -288,7 +311,13 @@ Order = 20
         [[[parameter ExecuteClusterInitSpecs]]]
         Label = Execute Cluster-Init
         DefaultValue = =undefined
-        Description = Cluster init specs to apply to execute nodes
+        Description = Cluster init specs to apply to non-GPU execute nodes
+        ParameterType = Cloud.ClusterInitSpecs
+
+        [[[parameter GPUClusterInitSpecs]]]
+        Label = GPU Cluster-Init
+        DefaultValue = =undefined
+        Description = Cluster init specs to apply to GPU nodes only
         ParameterType = Cloud.ClusterInitSpecs
 
         [[[parameter LsfProjectVersion]]]
@@ -364,4 +393,13 @@ Order = 20
         Config.Plugin = pico.form.NumberTextBox
         Config.MinValue = 20
         Config.MaxValue = 1000
+        Config.IntegerOnly = true
+
+        [[[parameter MaxNumScalesets]]]
+        Label = Max VMSS count
+        Description = Max number of VMSS that the RC can allocate.
+        DefaultValue = 1
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 0
+        Config.MaxValue = 500
         Config.IntegerOnly = true
