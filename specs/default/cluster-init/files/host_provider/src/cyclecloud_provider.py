@@ -127,11 +127,17 @@ class CycleCloudProvider:
             
             for nodearray_root in nodearrays:
                 nodearray = nodearray_root.get("nodearray")
+                
+                # legacy, ignore any dynamically created arrays.
+                if nodearray.get("Dynamic"):
+                    continue
+                
                 if "recipe[lsf::slave]" not in nodearray.get("Configuration", {}).get("run_list", []):
                     continue
                 
                 for bucket in nodearray_root.get("buckets"):
                     machine_type_name = bucket["definition"]["machineType"]
+                    machine_type_short = machine_type_name.lower().replace("standard_", "").replace("basic_", "").replace("_", "")
                     machine_type = bucket["virtualMachine"]
                     
                     # LSF hates special characters
@@ -144,6 +150,12 @@ class CycleCloudProvider:
 
                     at_least_one_available_bucket = at_least_one_available_bucket or max_count > 0
                     memory = machine_type.get("memory") * 1024
+                    is_low_prio = nodearray.get("Interruptible", False)
+                    ngpus = 0
+                    try:
+                        ngpus = int(nodearray.get("Configuration", {}).get("lsf", {}).get("ngpus", 0))
+                    except ValueError:
+                        logger.exception("Ignoring lsf.ngpus for nodearray %s" % nodearray_name)
                     
                     record = {
                         "maxNumber": max_count,
@@ -154,11 +166,14 @@ class CycleCloudProvider:
                             "mem": ["Numeric", memory],
                             "ncpus": ["Numeric", machine_type.get("vcpuCount")],
                             "ncores": ["Numeric", machine_type.get("vcpuCount")],
+                            "ngpus": ["Numeric", ngpus],
                             "azurecchost": ["Boolean", "1"],
                             "type": ["String", "X86_64"],
                             "machinetypefull": ["String", machine_type_name],
                             "machinetype": ["String", machine_type_short],
                             "nodearray": ["String", nodearray_name],
+                            "azureccmpi": ["Boolean", "0"],
+                            "azurecclowprio": ["Boolean", "1" if is_low_prio else "0"]
                         }
                     }
                     
@@ -183,6 +198,30 @@ class CycleCloudProvider:
                     record["UserData"]["lsf"]["attribute_names"] = " ".join(sorted(attributes.iterkeys()))
                     
                     templates_store[template_id] = record
+                    
+                    for n, placement_group in enumerate(_placement_groups(self.config)):
+                        template_id = record["templateId"] + placement_group
+                        if is_low_prio:
+                            # not going to create mpi templates for interruptible nodearrays.
+                            # if the person updated the template, set maxNumber to 0 on any existing ones
+                            if template_id in templates_store:
+                                templates_store[template_id]["maxNumber"] = 0
+                                continue
+                            else:
+                                break
+                        
+                        record_mpi = deepcopy(record)
+                        record_mpi["attributes"]["placementgroup"] = ["String", placement_group]
+                        record_mpi["UserData"]["lsf"]["attributes"]["placementgroup"] = placement_group
+                        record_mpi["attributes"]["azureccmpi"] = ["Boolean", "1"]
+                        record_mpi["UserData"]["lsf"]["attributes"]["azureccmpi"] = True
+                        # regenerate names, as we have added placementgroup
+                        record_mpi["UserData"]["lsf"]["attribute_names"] = " ".join(sorted(record_mpi["attributes"].iterkeys()))
+                        record_mpi["priority"] = record_mpi["priority"] - n - 1
+                        record_mpi["templateId"] = template_id
+                        record_mpi["maxNumber"] = min(record["maxNumber"], nodearray.get("Azure", {}).get("MaxScalesetSize", 40))
+                        templates_store[record_mpi["templateId"]] = record_mpi
+                        currently_available_templates.add(record_mpi["templateId"])
                     default_priority = default_priority - 10
             
             # for templates that are no longer available, advertise them but set maxNumber = 0
@@ -219,8 +258,7 @@ class CycleCloudProvider:
                 logger.error("Invalid attribute %s %s", key, value_array)
                 continue
             if value_array[0].lower() == "boolean":
-                if value_array[1]:
-                    ret[key] = "true"
+                ret[key] = str(value_array[1] != "0").lower()
             else:
                 ret[key] = value_array[1]
         
@@ -242,7 +280,6 @@ class CycleCloudProvider:
         # kludge: this can be overridden either at the template level
         # or during a creation request. We always want it defined in userdata
         # though.
-        
         
         for kv in key_values:
             try:
@@ -320,15 +357,24 @@ class CycleCloudProvider:
                 user_data["lsf"]["custom_env"]["rc_account"] = rc_account
                 user_data["lsf"]["custom_env_names"] = " ".join(sorted(user_data["lsf"]["custom_env"].keys()))
             
-            self.cluster.add_nodes({'requestId': request_id,
-                                    'sets': [{'count': machine_count,
-                                              'definition': {'machineType': _get("machinetypefull")},
-                                              'nodeAttributes': {'Tags': {"rc_account": rc_account},
-                                                                 'Configuration': user_data},
-                                              'nodearray': _get("nodearray")
-                                              }]})
+            nodearray = _get("nodearray")
             
-            logger.info("Requested %s instances of machine type %s in nodearray %s.", machine_count, _get("machinetypefull"), _get("nodearray"))
+            machinetype_name = _get("machinetypefull")
+            
+            request_set = {'count': machine_count,
+                       'definition': {'machineType': machinetype_name},
+                       'nodeAttributes': {'Tags': {"rc_account": rc_account},
+                                          'Configuration': user_data},
+                       'nodearray': nodearray}
+            if template["attributes"].get("placementgroup"):
+                request_set["placementGroupId"] = template["attributes"].get("placementgroup")[1]
+                       
+            self.cluster.add_nodes({'requestId': request_id,
+                                    'sets': [request_set]})
+            if template["attributes"].get("placementgroup"):
+                logger.info("Requested %s instances of machine type %s in placement group %s for nodearray %s.", machine_count, machinetype_name, _get("placementgroup"), _get("nodearray"))
+            else:
+                logger.info("Requested %s instances of machine type %s in nodearray %s.", machine_count, machinetype_name, _get("nodearray"))
             
             return self.json_writer({"requestId": request_id, "status": RequestStates.running,
                                      "message": "Request instances success from Azure CycleCloud."})
@@ -652,6 +698,17 @@ class CycleCloudProvider:
                     "requests": create_response.get("requests", []) + delete_response.get("requests", [])
                     }
         return json_writer(response)
+    
+
+def _placement_groups(config):
+    try:
+        num_placement_groups = min(26 * 26, int(config.get("lsf.num_placement_groups", 0)))
+    except ValueError:
+        raise ValueError("Expected a positive integer for lsf.num_placement_groups, got %s" % config.get("lsf.num_placement_groups"))
+    if num_placement_groups <= 0:
+        return []
+    else:
+        return ["pg%s" % x for x in xrange(num_placement_groups)]
 
 
 def simple_json_writer(data, debug_output=True):  # pragma: no cover

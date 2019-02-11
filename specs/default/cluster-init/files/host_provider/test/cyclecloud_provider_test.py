@@ -64,6 +64,7 @@ class MockCluster:
         request_id = request_all["requestId"]
         count = request["count"]
         machine_type = request["definition"]["machineType"]
+        node_attrs = request["nodeAttributes"]
         
         if nodearray not in self._nodes:
             self._nodes[nodearray] = []
@@ -72,15 +73,15 @@ class MockCluster:
 
         for i in range(count):
             node_index = len(node_list) + i + 1
-        
-            node_list.append({
-                "Name": "%s-%d" % (nodearray, node_index),
-                "NodeId": "%s-%d_id" % (nodearray, node_index),
-                "RequestId": request_id,
-                "machineType": MACHINE_TYPES[machine_type],
-                "Status": "Allocating",
-                "TargetState": "Started"
-            })
+            node = {"Name": "%s-%d" % (nodearray, node_index),
+                    "NodeId": "%s-%d_id" % (nodearray, node_index),
+                    "RequestId": request_id,
+                    "machineType": MACHINE_TYPES[machine_type],
+                    "Status": "Allocating",
+                    "TargetState": "Started"
+            }
+            node.update(node_attrs)
+            node_list.append(node)
             
     def nodes(self, request_ids=[]):
         ret = {}
@@ -232,7 +233,8 @@ class Test(unittest.TestCase):
         run_test(expected_machines=0, node_status="Off", node_target_state="Off",
                  expected_request_status=RequestStates.complete)
         
-    def _new_provider(self, provider_config=util.ProviderConfig({}, {}), UserData=""):
+    def _new_provider(self, provider_config=None, UserData=""):
+        provider_config = provider_config or util.ProviderConfig({}, {})
         a4bucket = {"maxCount": 2, "definition": {"machineType": "A4"}, "virtualMachine": MACHINE_TYPES["A4"]}
         a8bucket = {"maxCoreCount": 24, "definition": {"machineType": "A8"}, "virtualMachine": MACHINE_TYPES["A8"]}
         cluster = MockCluster({"nodearrays": [{"name": "execute",
@@ -440,7 +442,7 @@ class Test(unittest.TestCase):
             config, _logger, _fine = util.provider_config_from_environment(tempdir)
             provider = self._new_provider(provider_config=config)
             for template in provider.templates()["templates"]:
-                self.assertIn(template["templateId"], ["executea4", "executea8"])
+                self.assertIn(template["templateId"], ["executea4", "executea4:single", "executea8", "executea8:single"])
                 assert "custom" in template["attributes"]
                 self.assertEquals(["String", "VALUE"], template["attributes"]["custom"])
             
@@ -483,6 +485,34 @@ class Test(unittest.TestCase):
         config.set("templates.default.UserData", "all;around;bad")
         assert_no_user_data()
 
+    def test_placement_groups(self):
+        def pgs(x):
+            return list(cyclecloud_provider._placement_groups({"lsf.num_placement_groups": x}))
+        self.assertEquals(["pg0"], pgs(1))
+        self.assertEquals(["pg0", "pg1"], pgs(2))
+        
+    def test_mpi(self):
+        provider = self._new_provider()
+            
+        provider.config.set("lsf.num_placement_groups", 1)
+        provider.templates()
+        resp = provider.create_machines(self._make_request("executea4pg0", 1))
+        self.assertEquals(resp["status"], "running")
+        self.assertEquals(True, provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["azureccmpi"])
+        self.assertEquals("pg0", provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["placementgroup"])
+        
+        for nodearray in provider.cluster._nodearrays["nodearrays"]:
+            nodearray["nodearray"]["Interruptible"] = True
+        
+        templates = provider.templates()
+        # should still have the interruptible mpi templates, but their maxNumber should be 0 now
+        self.assertEquals(4, len(templates["templates"]))
+        pg_templates = [x for x in templates["templates"] if x["attributes"].get("placementgroup")]
+        self.assertEquals(2, len(pg_templates))
+        
+        for pgt in pg_templates:
+            self.assertEquals(0, pgt["maxNumber"])
+            
     def test_mt_name(self):
         provider_config = util.ProviderConfig({}, {})
         a4bucket = {"maxCount": 2, "definition": {"machineType": "Basic_A4"}, "virtualMachine": MACHINE_TYPES["A4"]}
