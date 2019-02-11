@@ -17,5 +17,30 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Send jobs to remove cluster(s)
 RC_HOSTS = all
+RES_REQ = select[!azureccmpi && !azurecclowprio]
+#RC_DEMAND_POLICY = 0
+End Queue
+
+Begin Queue
+QUEUE_NAME   = cloudmpi
+PRIORITY     = 30
+INTERACTIVE  = NO
+#RCVJOBS_FROM = cluster
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = Send jobs to remove cluster(s)
+RC_HOSTS = all
+RES_REQ = select[azureccmpi && !azurecclowprio] same[placementgroup]
+#RC_DEMAND_POLICY = 0
+End Queue
+
+Begin Queue
+QUEUE_NAME   = cloudlowprio
+PRIORITY     = 30
+INTERACTIVE  = NO
+#RCVJOBS_FROM = cluster
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = Send jobs to remove cluster(s)
+RC_HOSTS = all
+RES_REQ = select[!azureccmpi && azurecclowprio]
 #RC_DEMAND_POLICY = 0
 End Queue
