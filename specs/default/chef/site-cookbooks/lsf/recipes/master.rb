@@ -86,6 +86,11 @@ template "#{node['lsf']['local_etc']}/lsb.hosts" do
   }}
 end
 
+directory node['lsf']['lsf_logdir'] do
+  owner node['lsf']['admin']['username']
+  not_if { ::File.directory?(node['lsf']['lsf_logdir']) }
+end
+
 defer_block "Defer starting lsf until end of the converge" do
   execute 'lsadmin limstartup' do 
     command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
