@@ -44,17 +44,3 @@ execute "run_lsfinstall" do
     not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
     not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
-
-directory node['lsf']['local_etc']
-
-link "#{lsf_top}/conf/lsf.conf" do
-  to "#{node['lsf']['local_etc']}/lsf.conf"
-end
-
-link "#{lsf_top}/conf/lsf.cluster.#{clustername}" do
-  to "#{node['lsf']['local_etc']}/lsf.cluster.#{clustername}"
-end
-
-link "#{lsf_top}/conf/lsbatch/#{clustername}/configdir/lsb.hosts" do
-  to "#{node['lsf']['local_etc']}/lsb.hosts"
-end

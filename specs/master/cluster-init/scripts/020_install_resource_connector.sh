@@ -5,6 +5,7 @@ lsf_top=$(jetpack config lsf.lsf_top)
 set +e
 source $lsf_top/conf/profile.lsf
 set -e
+export PRO_LSF_LOGDIR=$(jetpack config lsf.lsf_logdir)
 
 if [ "$LSF_ENVDIR" == "" ]; then
 	echo please define LSF_ENVDIR

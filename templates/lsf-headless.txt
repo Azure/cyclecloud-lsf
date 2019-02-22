@@ -18,6 +18,7 @@
         cyclecloud.selinux.policy = permissive
         lsf.lsf_top = $LSF_TOP
         lsf.local_etc = $LSF_ENVDIR
+        lsf.headless = true
 
     [[nodearray execute]]
 

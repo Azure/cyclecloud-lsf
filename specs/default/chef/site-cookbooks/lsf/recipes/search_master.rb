@@ -1,5 +1,5 @@
 
-if node[:lsf][:master][:hostname].nil?
+if node['lsf']['master']['hostnames'].nil?
     cluster_UID = node[:lsf][:master][:clusterUID]
     if cluster_UID.nil?
       cluster_UID = node[:cyclecloud][:cluster][:id]

@@ -36,8 +36,8 @@ end
 
 execute 'create_auth_keys' do
   command "cp #{node['lsf']['admin']['home']}/.ssh/id_rsa.pub #{node['lsf']['admin']['home']}/.ssh/authorized_keys"
-  user 'lsfadmin'
-  group 'lsfadmin'
+  user node['lsf']['admin']['username']
+  group node['lsf']['admin']['username']
   creates "#{node['lsf']['admin']['home']}/.ssh/authorized_keys"
   not_if { File.exist?("#{node['lsf']['admin']['home']}/.ssh/authorized_keys") }
 end
@@ -47,8 +47,8 @@ file "#{node['lsf']['admin']['home']}/.ssh/config" do
 Host *
     StrictHostKeyChecking no
   EOH
-  owner 'lsfadmin'
-  group 'lsfadmin'
+  owner node['lsf']['admin']['username']
+  group node['lsf']['admin']['username']
   mode '0600'
 end
 
@@ -59,10 +59,9 @@ source #{node['lsf']['lsf_envdir']}/profile.lsf
   mode '644'
 end
 
-var = "lsfadmin"
 file '/etc/lsf.sudoers' do
   content "
-LSF_STARTUP_USERS=\"#{var}\"
+LSF_STARTUP_USERS=\"#{node['lsf']['admin']['username']}\"
 LSF_STARTUP_PATH=\"#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc\"
 "
   mode '0600'

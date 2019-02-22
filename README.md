@@ -5,6 +5,8 @@ CycleCloud project for Spectrum LSF.
 
 ## Prerequisites
 
+This project requires running Azure CycleCloud version 7.7.1 or later.
+
 Users must provide LSF binaries:
 
 * lsf10.1_linux2.6-glibc2.3-x86_64.tar.Z
@@ -120,9 +122,13 @@ And also add the following resources to the Resource section of _${LSF_TOP}/conf
 
 ```txt
    azurecchost  Boolean  ()       ()       (instances from Azure CycleCloud)
-   nodearray    String   ()       ()       (nodearray from AzureCC)
-   zone         String   ()       ()       (zone from AzureCC)
-   machinetype  String   ()       ()       (machinetype from AzureCC)
+   azureccmpi  Boolean   ()       ()       (instances that support MPI placement)
+   azurecclowprio  Boolean ()     ()       (instances that low priority / interruptible from Azure CycleCloud)
+   ngpus      Numeric    ()       Y       (number of GPUs)
+   nodearray  String     ()       ()       (nodearray from AzureCC)
+   machinetype String    ()       ()       (Azure machine type name for AzureCC)
+   zone       String     ()       ()       (zone/region for AzureCC)
+   placementgroup String ()       ()       (id used to note locality of machines)
 ```
 
 
@@ -140,18 +146,19 @@ Any host factory attributes can be provided in this file as an override.
 {
   "templates" : [
     {
-      "templateId" : "execute",
+      "templateId" : "ondemand",
       "attributes" : { 
         "ncores": ["Numeric", "2"],
         "ncpus": ["Numeric", "2"]
       }
     },
     {
-      "templateId" : "execute-mpi",
+      "templateId" : "gpu",
       "attributes" : {
-        "ncores": ["Numeric", "16"],
-        "ncpus": ["Numeric", "8"],
-        "nodearray" : ["String" , "mpi"]
+        "ncores": ["Numeric", "8"],
+        "ncpus": ["Numeric", "4"],
+        "nodearray" : ["String" , "gpu"],
+        "ngpus" : ["Numeric", "1"]
       },
     "customScriptUri": "https://clustermanage.blob.core.windows.net/utilities/scripts/user_data.sh"
     }
@@ -179,9 +186,23 @@ Once the cluster is running you can log into one of the master nodes and submit
 jobs to the scheduler:
 
 1. `cyclecloud connect master-1 -c my-lsf-cluster`
-1. `bsub -R select[azurecchost] sleep 300`
-1. You'll see an execute node start up and prepare to run jobs.
+1. `bsub sleep 300`
+1. You'll see an ondemand node start up and prepare to run jobs.
 1. When the job queue is cleared, nodes will autoscale back down.
+
+There are a number of default queue types in the CycleCloud LSF cluster.
+
+```$ bqueues
+QUEUE_NAME      PRIO STATUS          MAX JL/U JL/P JL/H NJOBS  PEND   RUN  SUSP 
+cloud            30  Open:Active       -    -    -    -     0     0     0     0
+cloudmpi         30  Open:Active       -    -    -    -     0     0     0     0
+cloudlowprio     30  Open:Active       -    -    -    -     0     0     0     0
+manual           30  Open:Active       -    -    -    -     0     0     0     0```
+
+* cloud - a general queue (default), for pleasantly parallel jobs.
+* cloudmpi - a queue for tightly-coupled jobs.
+* cloudlowprio - a queue for pre-emptible jobs which will run on low priority machines.
+* manual - a queue which for jobs to run on manually created (non-autoscaling hosts).
 
 ## Start a "Headless" LSF Cluster
 
@@ -229,6 +250,10 @@ project are in the Advanced/Software sub menu.
 * For the custom image, provide the location of lsf.conf by setting _LSF\_ENVDIR_
 
 ![Headless cluster advanced configurations](images/headless-config.png)
+
+### LSF_LOCAL_RESOURCES in lsf.conf
+
+The worker nodes depend on access to the _LSF\_CONF_ directory. On the worker, an additional copy of the _lsf.conf_ file with be created at _LSF\_ENVDIR_.  This file will be automatically modified with *LSF_LOCAL_RESOURCES* which control job matching.
 
 ### Start the cluster and point azurecc_prov to the cluster and nodearray.
 

@@ -15,7 +15,7 @@ PRIORITY     = 30
 INTERACTIVE  = NO
 #RCVJOBS_FROM = cluster
 FAIRSHARE    = USER_SHARES[[default,1]]
-DESCRIPTION  = Send jobs to remove cluster(s)
+DESCRIPTION  = General queue
 RC_HOSTS = all
 RES_REQ = select[azurecchost && !azureccmpi && !azurecclowprio]
 #RC_DEMAND_POLICY = 0
@@ -27,7 +27,7 @@ PRIORITY     = 30
 INTERACTIVE  = NO
 #RCVJOBS_FROM = cluster
 FAIRSHARE    = USER_SHARES[[default,1]]
-DESCRIPTION  = Send jobs to remove cluster(s)
+DESCRIPTION  = Tightly coupled jobs
 RC_HOSTS = all
 RES_REQ = select[azurecchost && azureccmpi && !azurecclowprio] same[placementgroup]
 #RC_DEMAND_POLICY = 0
@@ -39,8 +39,16 @@ PRIORITY     = 30
 INTERACTIVE  = NO
 #RCVJOBS_FROM = cluster
 FAIRSHARE    = USER_SHARES[[default,1]]
-DESCRIPTION  = Send jobs to remove cluster(s)
+DESCRIPTION  = Preemptible jobs
 RC_HOSTS = all
 RES_REQ = select[azurecchost && !azureccmpi && azurecclowprio]
-#RC_DEMAND_POLICY = 0
+End Queue
+
+Begin Queue
+QUEUE_NAME   = manual
+PRIORITY     = 30
+INTERACTIVE  = NO
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = Jobs on manually added nodes
+RC_HOSTS = none
 End Queue

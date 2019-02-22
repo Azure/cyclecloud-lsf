@@ -24,7 +24,7 @@
         cyclecloud.exports.defaults.samba.enabled = false
 
         lsf.lsf_top = /usr/share/lsf
-        lsf.lsf_logdir = /tmp
+        lsf.lsf_logdir = /usr/share/lsf/log
         lsf.admin.home = /shared/home/lsfadmin
 
         cyclecloud.selinux.policy = permissive
@@ -94,7 +94,7 @@
         
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master],recipe[lsf::autoscale]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master]
         cshared.server.shared_dir = /shared
         cyclecloud.discoverable = true
         lsf.num_placement_groups = $MaxNumScalesets
@@ -140,13 +140,10 @@
         Interruptible = False
 
         MaxCoreCount = $MaxExecuteCoreCount
-        [[[cluster-init lsf:slave:$LsfProjectVersion]]]
-        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
         cyclecloud.maintenance_converge.enabled = false
-
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -173,6 +170,28 @@
         AdditionalClusterInitSpecs = $GPUClusterInitSpecs
         [[[configuration]]]
         lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
+
+    [[nodearray submit]]
+
+        MachineType = $ExecuteMachineType
+
+        MaxCoreCount = $MaxExecuteCoreCount
+
+        [[[configuration]]]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
+        cyclecloud.maintenance_converge.enabled = false
+        lsf.submit_only = true
+
+        [[[configuration cyclecloud.mounts.sched-exp]]]
+        type = nfs
+        mountpoint = /usr/share/lsf
+        export_path = /mnt/raid/lsf
+
+        [[[configuration cyclecloud.mounts.home]]]
+        type = nfs
+        mountpoint = /shared/home
+        export_path = /mnt/raid/home
+
 
 [parameters About]
 Order = 1
@@ -203,14 +222,14 @@ Order = 10
         ParameterType = Cloud.Region
 
     [[parameters Compute Configurations]]
-    Description = "Configure the execute array for the cluster.  VM sizes, autoscaling limits and priority."
+    Description = "Configure the execute array for the cluster.  VM sizes and autoscaling limits."
     Order = 20
 
         [[[parameter ExecuteMachineType]]]
         Label = Compute Type
         Description = The machine type for execute nodes
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_H16, Standard_F16
+        DefaultValue = Standard_D2s_v3 
         Config.Multiselect = true
 
         [[[parameter GPUMachineType]]]
@@ -278,6 +297,7 @@ Order = 10
 Order = 20
 
     [[parameters Azure Settings]]
+    Description = Provider Account Name
     Order = 10 
 
         [[[parameter Credentials]]]
@@ -326,7 +346,7 @@ Order = 20
         DefaultValue = 1.0.0
 
     [[parameters Master Nodes]]
-    Description = "The cluster can autoscale to the workload, adding execute hosts as jobs are queued. To enable this check the box below and choose the initial and maximum core counts for the cluster"
+    Description = "Optional master Fail-over configuration"
     Order = 30
 
         [[[parameter MasterMachineType]]]
@@ -341,28 +361,28 @@ Order = 20
         DefaultValue = 2
         Config.Plugin = pico.form.NumberTextBox
         Config.MinValue = 0
-        Config.MaxValue = 3
+        Config.MaxValue = 2
         Config.IntegerOnly = true
 
     [[parameters Advanced Networking]]
     Description = Advanced networking settings
-    Order = 30
+    Order = 35
 
 
         [[[parameter AccessSubnet]]]
         Label = Access Subnet
-        Description = Subnet Resource Path (ResourceGroup/VirtualNetwork/Subnet)
         Required = false
         ParameterType = Azure.Subnet
+        Description = Select access subnet or use default.
 
         [[[parameter ReturnProxy]]]
         Label = Return Proxy
         DefaultValue = true
         ParameterType = Boolean
-        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)F
+        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)
 
     [[parameters Advanced Machines]]
-    Description = Ancillary machine configurations
+    Description = Additional machine configurations
     Order = 40
 
         [[[parameter FSMachineType]]]

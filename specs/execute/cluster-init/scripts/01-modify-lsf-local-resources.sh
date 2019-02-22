@@ -1,5 +1,5 @@
 #!/bin/bash -e
-
+set -x 
 # To use this script without jetpack, re-implement
 # 1) local_lsf_conf  - print the path of the local lsf.conf file
 # 2) attribute_names - prints a list of attribute names
@@ -36,9 +36,15 @@ function do_modification() {
 	
 	expr="$expr\""
 	
-	echo sed -i s/LSF_LOCAL_RESOURCES=.*/"$expr"/g $(local_lsf_conf) >&2
-	cat $(local_lsf_conf) | sed 's/LSF_LOCAL_RESOURCES=.*/'"$expr"/g > lsf.conf.tmp
-	mv lsf.conf.tmp $(local_lsf_conf) 
+	if grep -q "^LSF_LOCAL_RESOURCES=" $(local_lsf_conf) ; then
+		echo sed -i s/^LSF_LOCAL_RESOURCES=.*/"$expr"/g $(local_lsf_conf) >&2
+		cat $(local_lsf_conf) | sed 's/^LSF_LOCAL_RESOURCES=.*/'"$expr"/g > lsf.conf.tmp
+		mv lsf.conf.tmp $(local_lsf_conf) 
+	else
+		cat $(local_lsf_conf) > lsf.conf.tmp
+		echo "$expr" >> lsf.conf.tmp
+		mv lsf.conf.tmp $(local_lsf_conf)
+	fi
 }
 
 

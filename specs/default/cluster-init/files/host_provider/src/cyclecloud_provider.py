@@ -132,7 +132,7 @@ class CycleCloudProvider:
                 if nodearray.get("Dynamic"):
                     continue
                 
-                if "recipe[lsf::slave]" not in nodearray.get("Configuration", {}).get("run_list", []):
+                if "recipe[lsf::worker]" not in nodearray.get("Configuration", {}).get("run_list", []):
                     continue
                 
                 for bucket in nodearray_root.get("buckets"):
