@@ -44,10 +44,7 @@ HOSTNAME  model    type        server  RESOURCES    #Keywords
 #orange   !	   SUNSOL       1     (sparc bsd)   #Example
 #prune	  !	   !            1     (convex)
 <% @master_list.each do |master| %>
-<%= master %>	!	!	1	(mg)
-<% end %>
-<% if @is_slave %>
-<%= @slave_hostname %>	!	!	<%= node['lsf']['execute']['server'] %>	(mg)
+<%= master %>    !    !    1    (mg)
 <% end %>
 End     Host
 

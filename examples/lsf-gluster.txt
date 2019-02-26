@@ -156,11 +156,10 @@
         Interruptible = $UseLowPrio
 
         MaxCoreCount = $MaxExecuteCoreCount
-        [[[cluster-init lsf:slave:$LsfProjectVersion]]]
+        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[glusterfs::client],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
-        glusterfs.recipe = "glusterfs::server_arb"
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[glusterfs::client],recipe[cganglia::client],recipe[lsf::worker],recipe[lsf::autostop]
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs

@@ -37,12 +37,10 @@ HOST_NAME MXJ   r1m     pg    ls    tmp  DISPATCH_WINDOW  AFFINITY  # Keywords
 #hostC     1    3.5/5   18    15     ()     ()            (Y)   # Example
 #hostD     !    ()      ()    ()     ()     ()            (Y)   # Example
 #hostE     4    ()      ()    ()     ()     ()            (Y)   # Example
-<% if @is_master %>
-<% @master_list.each do |master_name| %>
-<%= master_name %>      9999    ()     ()    ()    ()     ()     ()
-<% end %>
-<% end %>
-default       !   ()     ()    ()    ()     ()     ()		   # Example
+<% @master_list.each do |master| %>
+<%= master %>    0    ()     ()    ()    ()     ()     ()
+<% end %>   
+default       !   ()     ()    ()    ()     ()     ()     # Example
 End Host
 
 # Host groups can be referenced by the queue file.  Each line defines a host

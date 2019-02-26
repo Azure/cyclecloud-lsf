@@ -24,10 +24,11 @@
         cyclecloud.exports.defaults.samba.enabled = false
 
         lsf.lsf_top = /usr/share/lsf
-        lsf.lsf_logdir = /tmp
+        lsf.lsf_logdir = /usr/share/lsf/log
         lsf.admin.home = /shared/home/lsfadmin
 
         cyclecloud.selinux.policy = permissive
+
 
         [[[cluster-init lsf:default:$LsfProjectVersion]]]
 
@@ -36,31 +37,31 @@
 
         [[[volume proj0]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj1]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj2]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj3]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
         [[[volume proj4]]]
         Size = $ProjVolSize
-        Persistent = true
+        #Persistent = true
         SSD = True
         Mount = proj
 
@@ -87,15 +88,16 @@
         samba.enabled = false
 
     [[nodearray master]]
-        MachineType = Standard_D4_v3
+        MachineType = $MasterMachineType
         InitialCount = $MasterNodeCountHA
         AdditionalClusterInitSpecs = $MasterClusterInitSpecs
 
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master],recipe[lsf::autoscale]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master]
         cshared.server.shared_dir = /shared
         cyclecloud.discoverable = true
+        lsf.num_placement_groups = $MaxNumScalesets
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -106,6 +108,8 @@
         type = nfs
         mountpoint = /shared/home
         export_path = /mnt/raid/home
+
+        [[[cluster-init lsf:master:$LsfProjectVersion]]]
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -128,18 +132,18 @@
         PrivatePort = 22
         PublicPort = 22
 
-    [[nodearray execute]]
-
+    [[nodearray ondemand]]
+        Priority = 500
         Azure.MaxScalesetSize = $MaxScalesetSize
         MachineType = $ExecuteMachineType
         AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
-        Interruptible = $UseLowPrio
+        Interruptible = False
 
         MaxCoreCount = $MaxExecuteCoreCount
-        [[[cluster-init lsf:notify:$LsfProjectVersion]]]
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::slave],recipe[lsf::autostop]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
+        cyclecloud.maintenance_converge.enabled = false
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -150,6 +154,44 @@
         type = nfs
         mountpoint = /shared/home
         export_path = /mnt/raid/home
+
+        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+
+    [[nodearray lowprio]]
+        Priority = 400
+        Extends = ondemand
+        Interruptible = True
+
+    [[nodearray gpu]]
+        Priority = 300
+        Extends = ondemand
+        ImageName = $GPUImageName
+        MachineType = $GPUMachineType
+        AdditionalClusterInitSpecs = $GPUClusterInitSpecs
+        [[[configuration]]]
+        lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
+
+    [[nodearray submit]]
+
+        MachineType = $ExecuteMachineType
+
+        MaxCoreCount = $MaxExecuteCoreCount
+
+        [[[configuration]]]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
+        cyclecloud.maintenance_converge.enabled = false
+        lsf.submit_only = true
+
+        [[[configuration cyclecloud.mounts.sched-exp]]]
+        type = nfs
+        mountpoint = /usr/share/lsf
+        export_path = /mnt/raid/lsf
+
+        [[[configuration cyclecloud.mounts.home]]]
+        type = nfs
+        mountpoint = /shared/home
+        export_path = /mnt/raid/home
+
 
 [parameters About]
 Order = 1
@@ -180,14 +222,50 @@ Order = 10
         ParameterType = Cloud.Region
 
     [[parameters Compute Configurations]]
-    Description = "Configure the execute array for the cluster.  VM sizes, autoscaling limits and priority."
+    Description = "Configure the execute array for the cluster.  VM sizes and autoscaling limits."
     Order = 20
 
         [[[parameter ExecuteMachineType]]]
         Label = Compute Type
         Description = The machine type for execute nodes
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_H16, Standard_F16
+        DefaultValue = Standard_D2s_v3 
+        Config.Multiselect = true
+
+        [[[parameter GPUMachineType]]]
+        Label = GPU Type
+        Description = The machine type for GPU nodes
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_NC12
+        Config.Multiselect = false
+
+        [[[parameter num_gpus_dict]]]
+        required = True
+        label = Lookup number of GPUs based on machine type.
+        parametertype = hidden
+            [[[[record DefaultValue]]]]
+            Standard_NC6 = 1
+            Standard_NC6s_v2 = 1
+            Standard_NC6s_v3 = 1
+            Standard_ND6s = 1
+            Standard_NV6 = 1
+
+            Standard_NC12 = 2
+            Standard_NC12s_v2 = 2
+            Standard_NC12s_v3 = 2
+            Standard_ND12s = 2
+            Standard_NV12 = 2
+
+            Standard_NC24 = 4
+            Standard_NC24r = 4
+            Standard_NC24rs_v2 = 4
+            Standard_NC24rs_v3 = 4
+            Standard_NC24s_v2 = 4
+            Standard_NC24s_v3 = 4
+            Standard_ND24rs = 4
+            Standard_ND24s = 4
+            Standard_NV24 = 4
+
 
         [[[parameter Autoscale]]]
         Label = Autoscale
@@ -204,11 +282,6 @@ Order = 10
         Config.MaxValue = 5000
         Config.IntegerOnly = true
 
-        [[[parameter UseLowPrio]]]
-        Label = Low Priority
-        DefaultValue = false
-        Widget.Plugin = pico.form.BooleanCheckBox
-        Widget.Label = Use low priority instances for execute hosts
 
     [[parameters Networking]]
     Description = Networking settings
@@ -224,6 +297,7 @@ Order = 10
 Order = 20
 
     [[parameters Azure Settings]]
+    Description = Provider Account Name
     Order = 10 
 
         [[[parameter Credentials]]]
@@ -241,6 +315,13 @@ Order = 20
         DefaultValue = cycle.image.centos7
         Config.Filter := Package in {"cycle.image.centos7"}
 
+        [[[parameter GPUImageName]]]
+        Label = GPU Base OS
+        ParameterType = Cloud.Image
+        Config.OS = linux
+        DefaultValue = cycle.image.centos7
+        Config.Filter := Package in {"cycle.image.centos7"}
+
         [[[parameter MasterClusterInitSpecs]]]
         Label = Master Cluster-Init
         DefaultValue = =undefined
@@ -250,7 +331,13 @@ Order = 20
         [[[parameter ExecuteClusterInitSpecs]]]
         Label = Execute Cluster-Init
         DefaultValue = =undefined
-        Description = Cluster init specs to apply to execute nodes
+        Description = Cluster init specs to apply to non-GPU execute nodes
+        ParameterType = Cloud.ClusterInitSpecs
+
+        [[[parameter GPUClusterInitSpecs]]]
+        Label = GPU Cluster-Init
+        DefaultValue = =undefined
+        Description = Cluster init specs to apply to GPU nodes only
         ParameterType = Cloud.ClusterInitSpecs
 
         [[[parameter LsfProjectVersion]]]
@@ -259,7 +346,7 @@ Order = 20
         DefaultValue = 2.0.0
 
     [[parameters Master Nodes]]
-    Description = "The cluster can autoscale to the workload, adding execute hosts as jobs are queued. To enable this check the box below and choose the initial and maximum core counts for the cluster"
+    Description = "Optional master Fail-over configuration"
     Order = 30
 
         [[[parameter MasterMachineType]]]
@@ -274,28 +361,28 @@ Order = 20
         DefaultValue = 2
         Config.Plugin = pico.form.NumberTextBox
         Config.MinValue = 0
-        Config.MaxValue = 3
+        Config.MaxValue = 2
         Config.IntegerOnly = true
 
     [[parameters Advanced Networking]]
     Description = Advanced networking settings
-    Order = 30
+    Order = 35
 
 
         [[[parameter AccessSubnet]]]
         Label = Access Subnet
-        Description = Subnet Resource Path (ResourceGroup/VirtualNetwork/Subnet)
         Required = false
         ParameterType = Azure.Subnet
+        Description = Select access subnet or use default.
 
         [[[parameter ReturnProxy]]]
         Label = Return Proxy
         DefaultValue = true
         ParameterType = Boolean
-        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)F
+        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)
 
     [[parameters Advanced Machines]]
-    Description = Ancillary machine configurations
+    Description = Additional machine configurations
     Order = 40
 
         [[[parameter FSMachineType]]]
@@ -326,4 +413,13 @@ Order = 20
         Config.Plugin = pico.form.NumberTextBox
         Config.MinValue = 20
         Config.MaxValue = 1000
+        Config.IntegerOnly = true
+
+        [[[parameter MaxNumScalesets]]]
+        Label = Max VMSS count
+        Description = Max number of VMSS that the RC can allocate.
+        DefaultValue = 1
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 0
+        Config.MaxValue = 500
         Config.IntegerOnly = true

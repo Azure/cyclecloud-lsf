@@ -1,0 +1,157 @@
+# $Revision$Date$
+#
+# After editing this file, run "lsadmin reconfig" and 
+# "badmin mbdrestart" to apply your changes.
+#
+# ----------------------------------------------------------------------
+# T H I S   F I L E:  Is shared by all clusters in the LSF system.
+#
+# This file contains all definitions referenced by individual 
+# lsf.cluster.<clustername> files. The definitions in this file can be
+# a superset, i.e., not all definitions in this file need to be used in
+# other files. 
+#
+# See lsf.cluster(5) and "LSF User's and Administrator's Guide".
+# ----------------------------------------------------------------------
+
+Begin Cluster
+ClusterName			# Keyword
+#white				# Example
+<%= node['lsf']['clustername'] %>
+End Cluster
+
+Begin HostType
+TYPENAME                        # Keyword
+DEFAULT                         # used by lsfsetup
+X86_64
+LINUXPPC64
+LINUXPPC64LE
+LINUX_ARM
+LINUX_ARM64
+IBMAIX64
+HPPA
+HPUXIA64
+MACOSX
+SOL64
+SOLX8664
+NTX64
+CRAYX1
+DigitalUNIX
+ALPHA5
+ALPHASC
+IBMAIX532
+IBMAIX564
+LINUX
+LINUX2
+LINUXAXP
+LINUX86
+LINUXPPC
+LINUX64
+DLINUX
+DLINUX64
+DLINUXAXP
+SLINUX
+SLINUX64
+NECSX6
+NECSX8
+NTX86
+NTIA64
+SGI6
+SGI658
+SUNSOL
+SOL732
+SGI64
+SGI65
+SOLX86
+HPPA11
+SX86_64
+IA64
+DIA64
+SIA64
+End HostType
+
+#
+# The CPU factor values are derived from SPECfp95 given by hardware vendors
+# or SpecBench (unless indicated otherwise)
+# See http://www.specbench.org for more information on CPU benchmarking
+# To find out an architecture string for a new model, run 'lim -t'
+#
+Begin HostModel
+MODELNAME  CPUFACTOR   ARCHITECTURE # keyword
+# x86 (Solaris, NT, Linux): approximate values, based on SpecBench results
+# for Intel processors (Sparc/NT) and BogoMIPS results (Linux).
+Intel_E5        12.5   (x6_4389_IntelRXeonRCPUE52699v4220GHz)
+Intel_Platinum  15.0   (x6_5405_IntelRXeonRPlatinum8168CPU270GHz)
+POWER8          25.0   (POWER8architectedaltivecsupported)
+POWER9          25.0   (POWER9rawaltivecsupported)
+ARM7l           6.0    (ARMv7Processorrev0v7l_709)
+ARM8l           6.0    (AArch64Processorrev0aarch64 CaviumThunderX)
+# For compatibility with old host models
+DEFAULT         1.0          ()   # used by lsfsetup
+End HostModel
+
+Begin Resource
+RESOURCENAME  TYPE    INTERVAL INCREASING  DESCRIPTION 	      # Keywords
+   sparc      Boolean ()       ()          (SPARC)
+   hpux       Boolean ()       ()          (HP-UX UNIX)
+   aix        Boolean ()       ()          (AIX UNIX)
+   cpuset     Boolean ()       ()          (CPUSET)
+   fs         Boolean ()       ()          (File server)
+   cs         Boolean ()       ()          (Compute server)
+   bigmem     Boolean ()       ()          (Hosts with very big memory)
+   diskless   Boolean ()       ()          (Diskless hosts)
+   linux      Boolean ()       ()          (LINUX UNIX)
+   nt         Boolean ()       ()          (Windows NT)
+   mvapich    Boolean ()       ()          (Infiniband MPI)
+   intelmpi   Boolean ()       ()          (Intel MPI)
+   mg         Boolean ()       ()          (Management hosts)
+   openmpi     Boolean ()       ()         (OPENMPI)
+   define_ncpus_procs   Boolean () ()      (ncpus := procs)
+   define_ncpus_cores   Boolean () ()      (ncpus := cores)
+   define_ncpus_threads Boolean () ()      (ncpus := threads)
+   vnode      Boolean ()       ()          (Simulation node used by integrations for example Cray Linux)
+   craylinux  Boolean ()       ()          (Cray Linux Environment: CRAY XT/XE login nodes and compute nodes)
+#  availcpufreqs  String 15      ()        (available CPU frequency)
+#  currcpufreqs   String 15      ()        (current CPU frequency)
+#  ostkhost   Boolean    ()       ()       (instances from OpenStack)
+#  egohost    Boolean    ()       ()       (instances from EGO)
+#  awshost    Boolean    ()       ()       (instances from AWS)
+#  softlayerhost Boolean ()       ()       (instances from SoftLayer)
+   azurecchost  Boolean  ()       ()       (instances from Azure CycleCloud)
+   azureccmpi  Boolean   ()       ()       (instances that support MPI placement)
+   azurecclowprio  Boolean ()     ()       (instances that low priority / interruptible from Azure CycleCloud)
+   ngpus      Numeric    ()       Y       (number of GPUs)
+   nodearray  String     ()       ()       (nodearray from AzureCC)
+   machinetype String    ()       ()       (Azure machine type name for AzureCC)
+   zone       String     ()       ()       (zone/region for AzureCC)
+   placementgroup String ()       ()       (id used to note locality of machines)
+#  googlehost Boolean    ()       ()       (instances from Google Cloud)
+   rc_account String     ()       ()       (account name for the external hosts)
+#  LN         Boolean ()       ()          (CSM launch nodes)
+#  CN         Boolean ()       ()          (CSM compute nodes)
+#  gpus       Numeric ()       Y           (number of gpus on csm cn)
+#  vg_total_size  Numeric ()   Y           (total ssd on csm cn)
+#  vg_available_size        Numeric 15       N           (available ssd on csm cn)
+#  ssd0_wear   Numeric 15      Y           (ssd wear on csm cn)
+   mips       Boolean ()       ()	   (MIPS architecture)
+   irix       Boolean ()       ()          (IRIX UNIX)         
+   rms        Boolean ()       ()          (RMS)         
+   pset       Boolean ()       ()          (PSET)         
+   dist       Boolean ()       ()          (DIST)         
+   slurm      Boolean ()       ()          (SLURM)         
+   solaris    Boolean ()       ()          (SUN SOLARIS)       
+   frame      Boolean ()       ()          (Hosts with FrameMaker licence)
+   alpha      Boolean ()       ()          (DEC alpha)	
+   mpich_gm   Boolean ()       ()          (MPICH GM MPI)
+   lammpi     Boolean ()       ()          (LAM MPI)
+   mpichp4    Boolean ()       ()          (MPICH P4 MPI)
+   sca_mpimon Boolean ()       ()          (SCALI MPI)
+   ibmmpi     Boolean ()       ()          (IBM POE MPI)
+   hpmpi      Boolean ()       ()          (HP MPI)
+   sgimpi     Boolean ()       ()          (SGI MPI)
+   crayxt3    Boolean ()       ()          (Cray XT3 MPI)
+   crayx1     Boolean ()       ()          (Cray X1 MPI)
+   mpich_mx   Boolean ()       ()          (MPICH MX MPI)
+mpichsharemem Boolean ()       ()          (MPICH Shared Memory)
+   bluegene   Boolean ()       ()          (BLUEGENE)
+End Resource
