@@ -91,7 +91,7 @@
         MachineType = $MasterMachineType
         InitialCount = $MasterNodeCountHA
         AdditionalClusterInitSpecs = $MasterClusterInitSpecs
-        
+
 
         [[[configuration]]]
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master]
@@ -343,7 +343,7 @@ Order = 20
         [[[parameter LsfProjectVersion]]]
         Label = Project Version
         Description = CycleCloud LSF project version found in project.ini
-        DefaultValue = 1.0.0
+        DefaultValue = 2.0.0
 
     [[parameters Master Nodes]]
     Description = "Optional master Fail-over configuration"

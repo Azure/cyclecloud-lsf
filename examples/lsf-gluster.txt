@@ -19,6 +19,8 @@
         cyclecloud.mounts.shared.disabled = true
         cshared.server.legacy_links_disabled = true
         cuser.base_home_dir = /shared/home
+        glusterfs.default_mount.recipe = "glusterfs::server_arb"
+        io.install_dir = /tools/
 
         cyclecloud.exports.shared.samba.enabled = false
         cyclecloud.exports.defaults.samba.enabled = false
@@ -87,6 +89,12 @@
         options = no_root_squash
         samba.enabled = false
 
+        [[[configuration cyclecloud.exports.tools]]]
+        type = nfs
+        export_path = /mnt/raid/tools
+        options = no_root_squash
+        samba.enabled = false
+
     [[nodearray master]]
         MachineType = Standard_D4_v3
         InitialCount = $MasterNodeCountHA
@@ -97,6 +105,7 @@
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[glusterfs::client],recipe[lsf::install],recipe[lsf::master],recipe[lsf::autoscale],recipe[cganglia::client]
         cshared.server.shared_dir = /shared
         cyclecloud.discoverable = true
+        glusterfs.recipe = "glusterfs::server_arb"
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -108,9 +117,15 @@
         mountpoint = /shared/home
         export_path = /mnt/raid/home
 
+        [[[configuration cyclecloud.mounts.tools]]]
+        type = nfs
+        mountpoint = /tools/
+        export_path = /mnt/raid/tools
+
         [[[configuration glusterfs.mounts.example]]]
             mount_point = /mnt/glusterfs
             clusterUID = $GlusterCluster
+            recipe = "glusterfs::server_arb"
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -156,9 +171,15 @@
         mountpoint = /shared/home
         export_path = /mnt/raid/home
 
-        [[[configuration gluster.fs.mounts.example]]]
+        [[[configuration cyclecloud.mounts.tools]]]
+        type = nfs
+        mountpoint = /tools/
+        export_path = /mnt/raid/tools
+
+        [[[configuration glusterfs.mounts.example]]]
             mount_point = /mnt/glusterfs
             clusterUID = $GlusterCluster
+            recipe = "glusterfs::server_arb"
 
 [parameters About]
 Order = 1
