@@ -499,7 +499,7 @@ class Test(unittest.TestCase):
         resp = provider.create_machines(self._make_request("executea4pg0", 1))
         self.assertEquals(resp["status"], "running")
         self.assertEquals(True, provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["azureccmpi"])
-        self.assertEquals("pg0", provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["placementgroup"])
+        self.assertEquals("executea4pg0", provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["placementgroup"])
         
         for nodearray in provider.cluster._nodearrays["nodearrays"]:
             nodearray["nodearray"]["Interruptible"] = True

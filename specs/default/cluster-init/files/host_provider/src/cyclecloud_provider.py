@@ -153,7 +153,8 @@ class CycleCloudProvider:
                     is_low_prio = nodearray.get("Interruptible", False)
                     ngpus = 0
                     try:
-                        ngpus = int(nodearray.get("Configuration", {}).get("lsf", {}).get("ngpus", 0))
+                        # if the user picks a non-gpu machine ngpus will actually be defined as None.
+                        ngpus = int(nodearray.get("Configuration", {}).get("lsf", {}).get("ngpus") or 0)
                     except ValueError:
                         logger.exception("Ignoring lsf.ngpus for nodearray %s" % nodearray_name)
                     
@@ -201,6 +202,8 @@ class CycleCloudProvider:
                     
                     for n, placement_group in enumerate(_placement_groups(self.config)):
                         template_id = record["templateId"] + placement_group
+                        # placement groups can't be the same across templates. Might as well make them the same as the templateid
+                        namespaced_placement_group = template_id
                         if is_low_prio:
                             # not going to create mpi templates for interruptible nodearrays.
                             # if the person updated the template, set maxNumber to 0 on any existing ones
@@ -211,8 +214,8 @@ class CycleCloudProvider:
                                 break
                         
                         record_mpi = deepcopy(record)
-                        record_mpi["attributes"]["placementgroup"] = ["String", placement_group]
-                        record_mpi["UserData"]["lsf"]["attributes"]["placementgroup"] = placement_group
+                        record_mpi["attributes"]["placementgroup"] = ["String", namespaced_placement_group]
+                        record_mpi["UserData"]["lsf"]["attributes"]["placementgroup"] = namespaced_placement_group
                         record_mpi["attributes"]["azureccmpi"] = ["Boolean", "1"]
                         record_mpi["UserData"]["lsf"]["attributes"]["azureccmpi"] = True
                         # regenerate names, as we have added placementgroup

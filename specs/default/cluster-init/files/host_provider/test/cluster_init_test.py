@@ -105,7 +105,7 @@ fi""")
                                                             "custom2": "custom_value2"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('"[resource canary]"')
         
     def test_modify_lsf_local_resources_skip_because_uri(self):
@@ -115,7 +115,7 @@ fi""")
                                                             "custom2": "custom_value2"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('"[resource canary]"')
         
     def test_modify_lsf_local_resources(self):
@@ -124,7 +124,7 @@ fi""")
                                              "attributes": {"custom1": "custom_value1"},
                                              "attribute_names": "custom1"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('" [resourcemap custom_value1*custom1]"')
         
     def test_modify_lsf_local_resources2(self):
@@ -134,7 +134,7 @@ fi""")
                                                             "custom2": "custom_value2"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('" [resourcemap custom_value1*custom1] [resourcemap custom_value2*custom2]"')
         
     def test_modify_lsf_local_resources_booleans(self):
@@ -143,7 +143,7 @@ fi""")
                                              "attributes": {"custom1": "True", "custom2": "falsE"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('" [resource custom1]"')
         
     def test_run_custom_script_uri(self):
@@ -158,7 +158,7 @@ fi""")
                                              "custom_env": {"name1": "value1",
                                                            "name2": "value2"}}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('"[resource canary]"')
         self._call("02-run-custom-script-uri.sh")
         self._assert_local_resources_equals('value1 and value2')
