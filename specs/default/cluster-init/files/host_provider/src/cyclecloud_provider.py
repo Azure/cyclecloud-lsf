@@ -167,7 +167,6 @@ class CycleCloudProvider:
                             "mem": ["Numeric", memory],
                             "ncpus": ["Numeric", machine_type.get("vcpuCount")],
                             "ncores": ["Numeric", machine_type.get("vcpuCount")],
-                            "ngpus": ["Numeric", ngpus],
                             "azurecchost": ["Boolean", "1"],
                             "type": ["String", "X86_64"],
                             "machinetypefull": ["String", machine_type_name],
@@ -177,6 +176,9 @@ class CycleCloudProvider:
                             "azurecclowprio": ["Boolean", "1" if is_low_prio else "0"]
                         }
                     }
+                    
+                    if ngpus:
+                        record["attributes"]["ngpus"] = ["Numeric", ngpus]
                     
                     # deepcopy so we can pop attributes
                     

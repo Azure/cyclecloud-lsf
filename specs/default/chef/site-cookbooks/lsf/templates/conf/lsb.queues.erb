@@ -17,7 +17,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = General queue
 RC_HOSTS = all
-RES_REQ = select[azurecchost && !azureccmpi && !azurecclowprio]
+RES_REQ = select[azurecchost && !azureccmpi && !azurecclowprio && !defined(ngpus)]
 #RC_DEMAND_POLICY = 0
 End Queue
 
@@ -29,7 +29,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Tightly coupled jobs
 RC_HOSTS = all
-RES_REQ = select[azurecchost && azureccmpi && !azurecclowprio] same[placementgroup]
+RES_REQ = select[azurecchost && azureccmpi && !azurecclowprio && !defined(ngpus)] same[placementgroup]
 #RC_DEMAND_POLICY = 0
 End Queue
 
@@ -41,7 +41,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Preemptible jobs
 RC_HOSTS = all
-RES_REQ = select[azurecchost && !azureccmpi && azurecclowprio]
+RES_REQ = select[azurecchost && !azureccmpi && azurecclowprio && !defined(ngpus)]
 End Queue
 
 Begin Queue
