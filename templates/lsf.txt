@@ -156,6 +156,10 @@
         export_path = /mnt/raid/home
 
         [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+        
+    [[nodearray ondemandmpi]]
+    	Priority = 450
+    	Extends = ondemand
 
     [[nodearray lowprio]]
         Priority = 400
@@ -170,6 +174,10 @@
         AdditionalClusterInitSpecs = $GPUClusterInitSpecs
         [[[configuration]]]
         lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
+        
+    [[nodearray gpumpi]]
+    	Extends = gpu
+    	Priority = 250
 
     [[nodearray submit]]
 
