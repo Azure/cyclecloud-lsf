@@ -253,7 +253,7 @@ class Test(unittest.TestCase):
                 }
             }
         
-    def test_terminate(self):
+    def test_deprecated_terminate(self):
         provider = self._new_provider()
         term_requests = provider.terminate_json
         term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
@@ -271,6 +271,22 @@ class Test(unittest.TestCase):
         
         status_response = provider.status({"requests": [{"requestId": "delete-missing"}]})
         self.assertEquals({'status': 'running', 'requests': [{'status': 'running', "message": "Unknown termination request id.", 'requestId': 'delete-missing', 'machines': []}]}, status_response)
+        
+    def test_terminate_status(self):
+        provider = self._new_provider()
+        term_requests = provider.terminate_json
+        term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
+        
+        self.assertEquals(term_response["status"], "complete")
+        self.assertTrue(term_response["requestId"] in term_requests.requests)
+        self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_response["requestId"]]["machines"])
+        
+        status_response = provider.terminate_status({"machines": [{"machineId": "id-123", "name": "host-123"}]})
+        self.assertEquals(1, len(status_response["requests"]))
+        self.assertEquals(1, len(status_response["requests"][0]["machines"]))
+        
+        status_response = provider.terminate_status({"machines": [{"machineId": "missing", "name": "missing-123"}]})
+        self.assertEquals({'requests': [], 'status': 'complete'}, status_response)
         
     def test_terminate_error(self):
         provider = self._new_provider()
@@ -375,6 +391,15 @@ class Test(unittest.TestCase):
         
         # just over 2 hours, it will be gone.
         provider.clock.now = (1970, 1, 1, 2.01, 0, 0)
+        with provider.terminate_json as requests:
+            for _, request in requests.iteritems():
+                request["terminated"] = False
+        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
+        self.assertIn(expired_request, provider.terminate_json.read())
+        
+        with provider.terminate_json as requests:
+            for _, request in requests.iteritems():
+                request["terminated"] = True
         stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertNotIn(expired_request, provider.terminate_json.read())
         
