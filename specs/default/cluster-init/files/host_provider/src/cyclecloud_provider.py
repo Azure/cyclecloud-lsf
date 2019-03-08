@@ -522,7 +522,7 @@ class CycleCloudProvider:
         return self.json_writer(response)
         
     @failureresponse({"requests": [], "status": RequestStates.running})
-    def _terminate_status(self, input_json):
+    def _deperecated_terminate_status(self, input_json):
         # can transition from complete -> executing or complete -> complete_with_error -> executing
         # executing is a terminal state.
         request_status = RequestStates.complete
@@ -531,7 +531,7 @@ class CycleCloudProvider:
         # needs to be a [] when we return
         with self.terminate_json as terminate_requests:
             
-            self._cleanup_expired_requests(terminate_requests, self.termination_timeout)
+            self._cleanup_expired_requests(terminate_requests, self.termination_timeout, "terminated")
             
             termination_ids = [r["requestId"] for r in input_json["requests"] if r["requestId"]]
             try:
@@ -591,8 +591,36 @@ class CycleCloudProvider:
         response["status"] = request_status
         
         return self.json_writer(response)
+    
+    @failureresponse({"status": RequestStates.running})
+    def terminate_status(self, input_json):
+        ids_to_hostname = {}
+    
+        for machine in input_json["machines"]:
+            ids_to_hostname[machine["machineId"]] = machine["name"]
         
-    def _cleanup_expired_requests(self, requests, retirement):
+        with self.terminate_json as term_requests:
+            requests = {}
+            for node_id, hostname in ids_to_hostname.iteritems():
+                machine_record = {"machineId": node_id, "name": hostname}
+                found_a_request = False
+                for request_id, request in term_requests.iteritems():
+                    if node_id in request["machines"]:
+                        
+                        found_a_request = True
+                        
+                        if request_id not in requests:
+                            requests[request_id] = {"machines": []}
+                        
+                        requests[request_id]["machines"].append(machine_record)
+                
+                if not found_a_request:
+                    logger.warn("No termination request found for machine %s", machine_record)
+            
+            deprecated_json = {"requests": [{"requestId": request_id, "machines": requests[request_id]["machines"]} for request_id in requests]}
+            return self._deperecated_terminate_status(deprecated_json)
+        
+    def _cleanup_expired_requests(self, requests, retirement, completed_key):
         now = calendar.timegm(self.clock())
         for req_id in list(requests.keys()):
             try:
@@ -602,6 +630,11 @@ class CycleCloudProvider:
                 if request_time < 0:
                     logger.info("Request has no requestTime")
                     request["requestTime"] = request_time = now
+                
+                if not request.get(completed_key):
+                    logger.info("Request has not completed, ignoring expiration: %s", request)
+                    continue
+                
                 # in case someone puts in a string manuall
                 request_time = float(request_time)
                     
@@ -678,7 +711,7 @@ class CycleCloudProvider:
             create_response = self._create_status({"requests": creates})
             assert "status" in create_response
         if deletes:
-            delete_response = self._terminate_status({"requests": deletes})
+            delete_response = self._deperecated_terminate_status({"requests": deletes})
             assert "status" in delete_response
         
         create_status = create_response.get("status", RequestStates.complete)
@@ -756,7 +789,15 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         elif cmd == "create_machines":
             provider.create_machines(input_json)
         elif cmd in ["status", "create_status", "terminate_status"]:
-            provider.status(input_json)
+            if "requests" in input_json:
+                # provider.status handles both create_status and deprecated terminate_status calls.
+                provider.status(input_json)
+            elif cmd == "terminate_status":
+                # doesn't pass in a requestId but just a list of machines.
+                provider.terminate_status(input_json)
+            else:
+                # should be impossible
+                raise RuntimeError("Unexpected input json for cmd %s" % (input_json, cmd))
         elif cmd == "terminate_machines":
             provider.terminate_machines(input_json)
             
