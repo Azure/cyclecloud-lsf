@@ -197,7 +197,8 @@ QUEUE_NAME      PRIO STATUS          MAX JL/U JL/P JL/H NJOBS  PEND   RUN  SUSP
 cloud            30  Open:Active       -    -    -    -     0     0     0     0
 cloudmpi         30  Open:Active       -    -    -    -     0     0     0     0
 cloudlowprio     30  Open:Active       -    -    -    -     0     0     0     0
-manual           30  Open:Active       -    -    -    -     0     0     0     0```
+manual           30  Open:Active       -    -    -    -     0     0     0     0
+```
 
 * cloud - a general queue (default), for pleasantly parallel jobs.
 * cloudmpi - a queue for tightly-coupled jobs.
