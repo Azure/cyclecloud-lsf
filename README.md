@@ -32,11 +32,9 @@ This project extends the RC for LSF for an Azure CycleCloud provider: azurecc.
 
 ### Upgrading CycleCloud
 
-A customer RC-compatible API is needed to run the resource connector. At the time
-of writing this API is not distributed with GA CycleCloud but can be downloaded from this [link](https://aka.ms/cyclecloud-RC)
-
-To upgrade CycleCloud to this version, run:
-`/opt/cycle_server/util/upgrade.sh cyclecloud-7.6.0-*-linux64.tar.gz`
+A customer RC-compatible API is needed to run the resource connector which is available
+in CycleCloud version >= 7.7.1. 
+CycleCloud can be downloaded from this [link](https://aka.ms/cyclecloud-RC)
 
 The Resource Connector will be configured automatically when running the cluster from the _lsf.txt_ template.  
 
@@ -50,9 +48,9 @@ For now, it's necessary to install the provider plugin.
 1. Copy the project files into the RC library and conf directories on lsf.
 
 ```bash
-wget https://github.com/Azure/cyclecloud-lsf/archive/feature/rc.zip
-unzip rc.zip
-rc_source_dir="cyclecloud-lsf-feature-rc/specs/default/cluster-init/files/host_provider"
+wget https://github.com/Azure/cyclecloud-lsf/archive/master.zip
+unzip master.zip
+rc_source_dir="cyclecloud-lsf-master/specs/default/cluster-init/files/host_provider"
 
 rc_scripts_dir=$LSF_SERVERDIR/../../resource_connector/azurecc/scripts
 mkdir -p $rc_scripts_dir
