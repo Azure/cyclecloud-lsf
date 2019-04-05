@@ -132,7 +132,10 @@ class CycleCloudProvider:
                 if nodearray.get("Dynamic"):
                     continue
                 
-                if "recipe[lsf::worker]" not in nodearray.get("Configuration", {}).get("run_list", []):
+                # backward compatability
+                has_worker_recipe = "recipe[lsf::worker]" in nodearray.get("Configuration", {}).get("run_list", [])
+                is_autoscale = nodearray.get("Configuration", {}).get("lsf", {}).get("autoscale", False)
+                if not has_worker_recipe and not is_autoscale:
                     continue
                 
                 for bucket in nodearray_root.get("buckets"):

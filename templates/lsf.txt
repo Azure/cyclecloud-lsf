@@ -144,6 +144,7 @@
         [[[configuration]]]
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
         cyclecloud.maintenance_converge.enabled = false
+        lsf.autoscale = true
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -178,6 +179,7 @@
     [[nodearray gpumpi]]
     	Extends = gpu
     	Priority = 250
+        lsf.autoscale = true
 
     [[nodearray submit]]
 
@@ -189,6 +191,7 @@
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
         cyclecloud.maintenance_converge.enabled = false
         lsf.submit_only = true
+        lsf.autoscale = true
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs

@@ -38,8 +38,6 @@ class MockHostnamer:
 class MockCluster:
     def __init__(self, nodearrays):
         self._nodearrays = nodearrays
-        self._nodearrays["nodearrays"].append({"name": "execute",
-                                               "nodearray": {"Configuration": {"run_list": ["recipe[lsf::master]"]}}})
         # template -> requestI
         self._nodes = {}
         self.raise_during_termination = False
@@ -239,7 +237,7 @@ class Test(unittest.TestCase):
         a8bucket = {"maxCoreCount": 24, "definition": {"machineType": "A8"}, "virtualMachine": MACHINE_TYPES["A8"]}
         cluster = MockCluster({"nodearrays": [{"name": "execute",
                                                "UserData": UserData,
-                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"run_list": ["recipe[lsf::worker]"]}},
+                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"lsf": {"autoscale": True}}},
                                                "buckets": [a4bucket, a8bucket]}]})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
@@ -543,7 +541,7 @@ class Test(unittest.TestCase):
         a4bucket = {"maxCount": 2, "definition": {"machineType": "Basic_A4"}, "virtualMachine": MACHINE_TYPES["A4"]}
         a8bucket = {"maxCoreCount": 24, "definition": {"machineType": "Standard_A8"}, "virtualMachine": MACHINE_TYPES["A8"]}
         cluster = MockCluster({"nodearrays": [{"name": "execute",
-                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"run_list": ["recipe[lsf::worker]"]}},
+                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"lsf": {"autoscale": True}}},
                                                "buckets": [a4bucket, a8bucket]}]})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()

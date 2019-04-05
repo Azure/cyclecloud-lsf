@@ -6,6 +6,8 @@ from subprocess import check_call
 import tempfile
 import threading
 import unittest
+import errno
+import socket
 
 
 class ClusterInitTest(unittest.TestCase):
@@ -14,8 +16,15 @@ class ClusterInitTest(unittest.TestCase):
     def setUpClass(clz):
         clz.jetpack = tempfile.mkdtemp("jetpack")
         os.chdir(clz.jetpack)
-        clz.http_server = SocketServer.TCPServer(("", 8183), SimpleHTTPServer.SimpleHTTPRequestHandler)
-
+        for port in range(8180, 8280):
+            try:
+                clz.http_server = SocketServer.TCPServer(("", port), SimpleHTTPServer.SimpleHTTPRequestHandler)
+                clz.port = port
+                break
+            except socket.error as e:
+                if e.errno != errno.EADDRINUSE:
+                    raise
+        
         def run_server():
             try:
                 clz.http_server.serve_forever(.1)
@@ -27,7 +36,7 @@ class ClusterInitTest(unittest.TestCase):
         # mock jetpack
         with open("jetpack", "w") as fw:
             fw.write("""#/bin/bash -e
-curl http://localhost:8183/$(echo $2 | sed s/\\\\./\\\\//g) > response 2>/dev/null
+curl http://localhost:%s/$(echo $2 | sed s/\\\\./\\\\//g) > response 2>/dev/null
 grep '\<body\>' response 1>&2 > /dev/null
 
 if [ $? == 0 ]; then
@@ -39,7 +48,7 @@ if [ $? == 0 ]; then
     fi
 else
     cat response
-fi""")
+fi""" % clz.port)
         
         os.system("chmod +x jetpack")
 
@@ -67,6 +76,7 @@ fi""")
     @classmethod
     def tearDownClass(clz):
         clz.http_server.server_close()
+        clz.http_server.shutdown()
         shutil.rmtree(clz.jetpack)
         
     def _create_jetpack_config(self, data, cwd=None):
