@@ -142,7 +142,7 @@
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::default]
         cyclecloud.maintenance_converge.enabled = false
         lsf.autoscale = true
 
@@ -188,7 +188,7 @@
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::default]
         cyclecloud.maintenance_converge.enabled = false
         lsf.submit_only = true
         lsf.autoscale = true
@@ -422,7 +422,7 @@ Order = 20
         Description = Max number of VMs in a VMSS
         DefaultValue = 40
         Config.Plugin = pico.form.NumberTextBox
-        Config.MinValue = 20
+        Config.MinValue = 1
         Config.MaxValue = 1000
         Config.IntegerOnly = true
 

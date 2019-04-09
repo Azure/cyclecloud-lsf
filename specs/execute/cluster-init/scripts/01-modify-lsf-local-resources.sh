@@ -49,7 +49,7 @@ function do_modification() {
 
 
 function local_lsf_conf() {
-	echo $(jetpack config lsf.local_etc .)/lsf.conf
+	echo $(jetpack config lsf.local_etc /etc/lsf)/lsf.conf
 }
 
 
