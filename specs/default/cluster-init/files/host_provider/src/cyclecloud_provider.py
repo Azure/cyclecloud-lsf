@@ -490,6 +490,7 @@ class CycleCloudProvider:
                         logger.warn("No ip address found for ready node %s", node.get("Name"))
                         machine_result = MachineResults.executing
                         machine_status = MachineStates.building
+                        request_status = RequestStates.running
                     else:
                         hostname = self.hostnamer.hostname(private_ip_address)
                 else:
