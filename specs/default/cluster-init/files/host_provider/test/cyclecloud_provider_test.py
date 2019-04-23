@@ -96,8 +96,6 @@ class MockCluster:
         Just yield each node that matches the attrs specified. If the value is a 
         list or set, use 'in' instead of ==
         '''
-        ret = {}
-        
         def _yield_nodes(**attrs):
             for nodes_for_template in self._nodes.itervalues():
                 for node in nodes_for_template:
@@ -108,18 +106,18 @@ class MockCluster:
                         else:
                             all_match = all_match and node[key] == value
                     if all_match:
-                        ret[key] = node
                         yield node
         return list(_yield_nodes(**attrs))
     
-    def terminate(self, node_ids, unused):
+    def terminate(self, machines, unused):
         if self.raise_during_termination:
             raise RuntimeError("raise_during_termination")
         
-        for node in self.nodes():
-            if node.get("NodeId") in node_ids:
-                node["Status"] = "TerminationPreparation"
-                node["TargetState"] = "Terminated"
+        for node in self.inodes():
+            for machine in machines:
+                if node.get("NodeId") == machine["machineId"]:
+                    node["Status"] = "TerminationPreparation"
+                    node["TargetState"] = "Terminated"
                 
                 
 class RequestsStoreInMem:
@@ -210,6 +208,10 @@ class Test(unittest.TestCase):
                 self.assertEquals(expected_machine_status, m["status"])
                 self.assertEquals(expected_machine_result, m["result"])
             
+            if node_status == "Failed":
+                mutable_node = provider.cluster.inodes(Name="execute-1")
+                self.assertEquals(mutable_node[0].get("TargetState"), "Terminated")
+            
         # no instanceid == no machines
         run_test(instance=None, expected_machines=0)
 
@@ -218,9 +220,9 @@ class Test(unittest.TestCase):
         
         # has an instance, but Failed
         run_test(expected_machines=1, node_status="Failed", node_status_message="fail for tests",
-                 expected_request_status=RequestStates.complete_with_error,
-                 expected_machine_status=MachineStates.error,
-                 expected_machine_result=MachineResults.failed)
+                 expected_request_status=RequestStates.running,
+                 expected_machine_status=MachineStates.building,
+                 expected_machine_result=MachineResults.executing)
         
         # node is ready to go
         run_test(node_status="Started", expected_machine_result=MachineResults.succeed, 

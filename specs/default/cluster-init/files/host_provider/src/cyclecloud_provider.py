@@ -455,6 +455,13 @@ class CycleCloudProvider:
             
             response["requests"].append(request)
             
+            report_failure_states = ["Unavailable", "Failed"]
+            terminate_states = []
+            
+            if self.config.get("lsf.terminate_failed_nodes", False):
+                report_failure_states = ["Unavailable"]
+                terminate_states = ["Failed"]
+            
             for node in requested_nodes["nodes"]:
                 # for new nodes, completion is Ready. For "released" nodes, as long as
                 # the node has begun terminated etc, we can just say success.
@@ -470,16 +477,36 @@ class CycleCloudProvider:
                     unknown_state_count = unknown_state_count + 1
                     continue
                 
-                elif node_status in ["Unavailable", "Failed"]:
+                elif node_status in report_failure_states:
                     machine_result = MachineResults.failed
                     machine_status = MachineStates.error
                     if request_status != RequestStates.running:
                         message = node.get("StatusMessage", "Unknown error.")
                         request_status = RequestStates.complete_with_error
+                        
+                elif node_status in terminate_states:
+                    # just terminate the node and next iteration the node will be gone. This allows retries of the shutdown to happen, as 
+                    # we will report that the node is still booting.
+                    unknown_state_count = unknown_state_count + 1
+                    machine_result = MachineResults.executing
+                    machine_status = MachineStates.building
+                    request_status = RequestStates.running
+                    
+                    hostname = None
+                    if node.get("PrivateIp"):
+                        try:
+                            hostname = self.hostnamer.hostname(node.get("PrivateIp"))
+                        except Exception:
+                            logger.exception("Could not convert ip to hostname - %s" % node.get("PrivateIp"))
+                    try:
+                        self.cluster.terminate([{"machineId": node.get("NodeId"), "name": hostname}], self.hostnamer)
+                    except Exception:
+                        logger.exception("Could not terminate node with id %s" % node.get("NodeId"))
         
                 elif not node.get("InstanceId"):
                     requesting_count = requesting_count + 1
                     request_status = RequestStates.running
+                    machine_result = MachineResults.executing
                     continue
                 
                 elif node_status == "Started":
