@@ -23,6 +23,7 @@ default['lsf']['lsb_rc_query_interval'] = 30
 default['lsf']['ebrokerd_host_clean_delay'] = 60
 # The LSF default is 60 minutes, which goes against CycleCloud's typical timeout of 5 minutes.
 default['lsf']['lsb_rc_external_host_idle_time'] = 5
+default['lsf']['reaper_interval'] = 15
 
 # assume lsf is already installed
 default['lsf']['skip_install'] = false

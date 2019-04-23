@@ -20,7 +20,7 @@ except ImportError:
 _logging_init = False
 
 
-def init_logging(loglevel=logging.INFO, logfile=None):
+def init_logging(loglevel=logging.INFO, logfile=None, stderr_loglevel=logging.DEBUG):
     global _logging_init
     if logfile is None:
         logfile = "azurecc_prov.log"
@@ -53,7 +53,7 @@ def init_logging(loglevel=logging.INFO, logfile=None):
     logger.addHandler(logfile_handler)
     
     stderr_handler = logging.StreamHandler(stream=sys.stderr)
-    stderr_handler.setLevel(logging.DEBUG)
+    stderr_handler.setLevel(stderr_loglevel)
     stderr_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
     
     logger.addHandler(stderr_handler)
