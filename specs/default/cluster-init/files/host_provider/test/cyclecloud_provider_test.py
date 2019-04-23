@@ -109,7 +109,7 @@ class MockCluster:
                         yield node
         return list(_yield_nodes(**attrs))
     
-    def terminate(self, machines, unused):
+    def shutdown(self, machines, unused):
         if self.raise_during_termination:
             raise RuntimeError("raise_during_termination")
         
@@ -272,7 +272,7 @@ class Test(unittest.TestCase):
         status_response = provider.status({"requests": [{"requestId": "delete-missing"}]})
         self.assertEquals({'status': 'running', 'requests': [{'status': 'running', "message": "Unknown termination request id.", 'requestId': 'delete-missing', 'machines': []}]}, status_response)
         
-    def test_terminate_status(self):
+    def test_shutdown_status(self):
         provider = self._new_provider()
         term_requests = provider.terminate_json
         term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
@@ -281,11 +281,11 @@ class Test(unittest.TestCase):
         self.assertTrue(term_response["requestId"] in term_requests.requests)
         self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_response["requestId"]]["machines"])
         
-        status_response = provider.terminate_status({"machines": [{"machineId": "id-123", "name": "host-123"}]})
+        status_response = provider.shutdown_status({"machines": [{"machineId": "id-123", "name": "host-123"}]})
         self.assertEquals(1, len(status_response["requests"]))
         self.assertEquals(1, len(status_response["requests"][0]["machines"]))
         
-        status_response = provider.terminate_status({"machines": [{"machineId": "missing", "name": "missing-123"}]})
+        status_response = provider.shutdown_status({"machines": [{"machineId": "missing", "name": "missing-123"}]})
         self.assertEquals({'requests': [], 'status': 'complete'}, status_response)
         
     def test_terminate_error(self):
@@ -363,6 +363,14 @@ class Test(unittest.TestCase):
         provider.cluster.raise_during_termination = True
         term_response = provider.terminate_machines({"machines": [{"machineId": "mach123", "name": "n-1-123"}]})
         self.assertEquals(RequestStates.running, term_response["status"])
+        
+    def test_failed_getent(self):
+        provider = self._new_provider()
+        provider.hostnamer.hostname = lambda x: None
+        provider.hostnamer.private_ip_address = lambda x: None
+        
+        
+    
                                                      
     def test_missing_template_in_request(self):
         provider = self._new_provider()
