@@ -144,6 +144,8 @@
         [[[configuration]]]
         run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::default]
         cyclecloud.maintenance_converge.enabled = false
+        lsf.attribute_names = nodearray
+        lsf.attributes.nodearray = ondemand
         lsf.autoscale = true
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
@@ -161,11 +163,23 @@
     [[nodearray ondemandmpi]]
     	Priority = 450
     	Extends = ondemand
+        PlacementGroupId = ondemandmpi-manual 
+
+        [[[configuration]]]
+        lsf.attribute_names = nodearray azureccmpi placementgroup
+        lsf.attributes.nodearray = ondemandmpi
+        lsf.attributes.azureccmpi = true
+        lsf.attributes.placementgroup = ondemandmpi-manual
 
     [[nodearray lowprio]]
         Priority = 400
         Extends = ondemand
         Interruptible = True
+
+        [[[configuration]]]
+        lsf.attribute_names = nodearray azurecclowprio
+        lsf.attributes.nodearray = lowprio
+        lsf.attributes.azurecclowprio = true
 
     [[nodearray gpu]]
         Priority = 300
@@ -175,34 +189,19 @@
         AdditionalClusterInitSpecs = $GPUClusterInitSpecs
         [[[configuration]]]
         lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
-        
+        lsf.attribute_names = nodearray
+        lsf.attributes.nodearray = gpu
+
     [[nodearray gpumpi]]
     	Extends = gpu
     	Priority = 250
-        lsf.autoscale = true
-
-    [[nodearray submit]]
-
-        MachineType = $ExecuteMachineType
-
-        MaxCoreCount = $MaxExecuteCoreCount
+        PlacementGroupId = gpumpi-manual 
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::default]
-        cyclecloud.maintenance_converge.enabled = false
-        lsf.submit_only = true
-        lsf.autoscale = true
-
-        [[[configuration cyclecloud.mounts.sched-exp]]]
-        type = nfs
-        mountpoint = /usr/share/lsf
-        export_path = /mnt/raid/lsf
-
-        [[[configuration cyclecloud.mounts.home]]]
-        type = nfs
-        mountpoint = /shared/home
-        export_path = /mnt/raid/home
-
+        lsf.attribute_names = nodearray azureccmpi placementgroup
+        lsf.attributes.nodearray = gpu
+        lsf.attributes.azureccmpi = true
+        lsf.attributes.placementgroup = gpumpi-manual
 
 [parameters About]
 Order = 1

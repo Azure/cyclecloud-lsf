@@ -42,7 +42,7 @@ function do_modification() {
 		mv lsf.conf.tmp $(local_lsf_conf) 
 	else
 		cat $(local_lsf_conf) > lsf.conf.tmp
-		echo "$expr" >> lsf.conf.tmp
+		printf "%s" "$expr" >> lsf.conf.tmp
 		mv lsf.conf.tmp $(local_lsf_conf)
 	fi
 }
