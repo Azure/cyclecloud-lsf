@@ -80,8 +80,8 @@ class JsonStore:
     
     def _lock(self):
         try:
-            self.lockfp = os.open(self.lockpath, os.O_EXCL)
-            fcntl.flock(self.lockfp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.lockfp = open(self.lockpath, 'w')
+            fcntl.lockf(self.lockfp, fcntl.LOCK_EX | fcntl.LOCK_NB)
             return True
         except IOError:
             self.logger.exception("Could not acquire lock - %s" % self.lockpath)
@@ -89,7 +89,7 @@ class JsonStore:
             
     def _unlock(self):
         try:
-            os.close(self.lockfp)
+            self.lockfp.close()
         except IOError:
             self.logger.exception("Error closing lock - %s" % self.lockpath)
             

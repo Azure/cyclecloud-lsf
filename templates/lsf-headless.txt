@@ -31,6 +31,8 @@
 
         [[[configuration]]]
         cyclecloud.maintenance_converge.enabled = false
+        lsf.autoscale = true
+        lsf.num_placement_groups = $MaxNumScalesets
 
 
 [parameters About]
@@ -136,3 +138,22 @@ Order = 20
         label = LSF_ENVDIR Variable
         Description = LSF environment variable equivalent to LSF_ENVDIR, specifies location of local lsf.conf
         DefaultValue = /usr/share/lsf/conf
+
+        [[[parameter MaxScalesetSize]]]
+        Label = Max VMs in VMSS
+        Description = Max number of VMs in a VMSS
+        DefaultValue = 40
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 20
+        Config.MaxValue = 1000
+        Config.IntegerOnly = true
+
+        [[[parameter MaxNumScalesets]]]
+        Label = Max VMSS count
+        Description = Max number of VMSS that the RC can allocate.
+        DefaultValue = 1
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 0
+        Config.MaxValue = 500
+        Config.IntegerOnly = true
+

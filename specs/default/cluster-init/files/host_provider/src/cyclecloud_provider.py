@@ -132,7 +132,10 @@ class CycleCloudProvider:
                 if nodearray.get("Dynamic"):
                     continue
                 
-                if "recipe[lsf::worker]" not in nodearray.get("Configuration", {}).get("run_list", []):
+                # backward compatability
+                has_worker_recipe = "recipe[lsf::worker]" in nodearray.get("Configuration", {}).get("run_list", [])
+                is_autoscale = nodearray.get("Configuration", {}).get("lsf", {}).get("autoscale", False)
+                if not has_worker_recipe and not is_autoscale:
                     continue
                 
                 for bucket in nodearray_root.get("buckets"):
@@ -153,7 +156,8 @@ class CycleCloudProvider:
                     is_low_prio = nodearray.get("Interruptible", False)
                     ngpus = 0
                     try:
-                        ngpus = int(nodearray.get("Configuration", {}).get("lsf", {}).get("ngpus", 0))
+                        # if the user picks a non-gpu machine ngpus will actually be defined as None.
+                        ngpus = int(nodearray.get("Configuration", {}).get("lsf", {}).get("ngpus") or 0)
                     except ValueError:
                         logger.exception("Ignoring lsf.ngpus for nodearray %s" % nodearray_name)
                     
@@ -166,7 +170,6 @@ class CycleCloudProvider:
                             "mem": ["Numeric", memory],
                             "ncpus": ["Numeric", machine_type.get("vcpuCount")],
                             "ncores": ["Numeric", machine_type.get("vcpuCount")],
-                            "ngpus": ["Numeric", ngpus],
                             "azurecchost": ["Boolean", "1"],
                             "type": ["String", "X86_64"],
                             "machinetypefull": ["String", machine_type_name],
@@ -176,6 +179,9 @@ class CycleCloudProvider:
                             "azurecclowprio": ["Boolean", "1" if is_low_prio else "0"]
                         }
                     }
+                    
+                    if ngpus:
+                        record["attributes"]["ngpus"] = ["Numeric", ngpus]
                     
                     # deepcopy so we can pop attributes
                     
@@ -201,6 +207,8 @@ class CycleCloudProvider:
                     
                     for n, placement_group in enumerate(_placement_groups(self.config)):
                         template_id = record["templateId"] + placement_group
+                        # placement groups can't be the same across templates. Might as well make them the same as the templateid
+                        namespaced_placement_group = template_id
                         if is_low_prio:
                             # not going to create mpi templates for interruptible nodearrays.
                             # if the person updated the template, set maxNumber to 0 on any existing ones
@@ -211,8 +219,8 @@ class CycleCloudProvider:
                                 break
                         
                         record_mpi = deepcopy(record)
-                        record_mpi["attributes"]["placementgroup"] = ["String", placement_group]
-                        record_mpi["UserData"]["lsf"]["attributes"]["placementgroup"] = placement_group
+                        record_mpi["attributes"]["placementgroup"] = ["String", namespaced_placement_group]
+                        record_mpi["UserData"]["lsf"]["attributes"]["placementgroup"] = namespaced_placement_group
                         record_mpi["attributes"]["azureccmpi"] = ["Boolean", "1"]
                         record_mpi["UserData"]["lsf"]["attributes"]["azureccmpi"] = True
                         # regenerate names, as we have added placementgroup
@@ -447,6 +455,13 @@ class CycleCloudProvider:
             
             response["requests"].append(request)
             
+            report_failure_states = ["Unavailable", "Failed"]
+            terminate_states = []
+            
+            if self.config.get("lsf.terminate_failed_nodes", False):
+                report_failure_states = ["Unavailable"]
+                terminate_states = ["Failed"]
+            
             for node in requested_nodes["nodes"]:
                 # for new nodes, completion is Ready. For "released" nodes, as long as
                 # the node has begun terminated etc, we can just say success.
@@ -462,16 +477,36 @@ class CycleCloudProvider:
                     unknown_state_count = unknown_state_count + 1
                     continue
                 
-                elif node_status in ["Unavailable", "Failed"]:
+                elif node_status in report_failure_states:
                     machine_result = MachineResults.failed
                     machine_status = MachineStates.error
                     if request_status != RequestStates.running:
                         message = node.get("StatusMessage", "Unknown error.")
                         request_status = RequestStates.complete_with_error
+                        
+                elif node_status in terminate_states:
+                    # just terminate the node and next iteration the node will be gone. This allows retries of the shutdown to happen, as 
+                    # we will report that the node is still booting.
+                    unknown_state_count = unknown_state_count + 1
+                    machine_result = MachineResults.executing
+                    machine_status = MachineStates.building
+                    request_status = RequestStates.running
+                    
+                    hostname = None
+                    if node.get("PrivateIp"):
+                        try:
+                            hostname = self.hostnamer.hostname(node.get("PrivateIp"))
+                        except Exception:
+                            logger.exception("Could not convert ip to hostname - %s" % node.get("PrivateIp"))
+                    try:
+                        self.cluster.terminate([{"machineId": node.get("NodeId"), "name": hostname}], self.hostnamer)
+                    except Exception:
+                        logger.exception("Could not terminate node with id %s" % node.get("NodeId"))
         
                 elif not node.get("InstanceId"):
                     requesting_count = requesting_count + 1
                     request_status = RequestStates.running
+                    machine_result = MachineResults.executing
                     continue
                 
                 elif node_status == "Started":
@@ -482,6 +517,7 @@ class CycleCloudProvider:
                         logger.warn("No ip address found for ready node %s", node.get("Name"))
                         machine_result = MachineResults.executing
                         machine_status = MachineStates.building
+                        request_status = RequestStates.running
                     else:
                         hostname = self.hostnamer.hostname(private_ip_address)
                 else:
@@ -522,7 +558,7 @@ class CycleCloudProvider:
         return self.json_writer(response)
         
     @failureresponse({"requests": [], "status": RequestStates.running})
-    def _terminate_status(self, input_json):
+    def _deperecated_terminate_status(self, input_json):
         # can transition from complete -> executing or complete -> complete_with_error -> executing
         # executing is a terminal state.
         request_status = RequestStates.complete
@@ -531,7 +567,7 @@ class CycleCloudProvider:
         # needs to be a [] when we return
         with self.terminate_json as terminate_requests:
             
-            self._cleanup_expired_requests(terminate_requests, self.termination_timeout)
+            self._cleanup_expired_requests(terminate_requests, self.termination_timeout, "terminated")
             
             termination_ids = [r["requestId"] for r in input_json["requests"] if r["requestId"]]
             try:
@@ -591,8 +627,36 @@ class CycleCloudProvider:
         response["status"] = request_status
         
         return self.json_writer(response)
+    
+    @failureresponse({"status": RequestStates.running})
+    def terminate_status(self, input_json):
+        ids_to_hostname = {}
+    
+        for machine in input_json["machines"]:
+            ids_to_hostname[machine["machineId"]] = machine["name"]
         
-    def _cleanup_expired_requests(self, requests, retirement):
+        with self.terminate_json as term_requests:
+            requests = {}
+            for node_id, hostname in ids_to_hostname.iteritems():
+                machine_record = {"machineId": node_id, "name": hostname}
+                found_a_request = False
+                for request_id, request in term_requests.iteritems():
+                    if node_id in request["machines"]:
+                        
+                        found_a_request = True
+                        
+                        if request_id not in requests:
+                            requests[request_id] = {"machines": []}
+                        
+                        requests[request_id]["machines"].append(machine_record)
+                
+                if not found_a_request:
+                    logger.warn("No termination request found for machine %s", machine_record)
+            
+            deprecated_json = {"requests": [{"requestId": request_id, "machines": requests[request_id]["machines"]} for request_id in requests]}
+            return self._deperecated_terminate_status(deprecated_json)
+        
+    def _cleanup_expired_requests(self, requests, retirement, completed_key):
         now = calendar.timegm(self.clock())
         for req_id in list(requests.keys()):
             try:
@@ -602,6 +666,11 @@ class CycleCloudProvider:
                 if request_time < 0:
                     logger.info("Request has no requestTime")
                     request["requestTime"] = request_time = now
+                
+                if not request.get(completed_key):
+                    logger.info("Request has not completed, ignoring expiration: %s", request)
+                    continue
+                
                 # in case someone puts in a string manuall
                 request_time = float(request_time)
                     
@@ -678,7 +747,7 @@ class CycleCloudProvider:
             create_response = self._create_status({"requests": creates})
             assert "status" in create_response
         if deletes:
-            delete_response = self._terminate_status({"requests": deletes})
+            delete_response = self._deperecated_terminate_status({"requests": deletes})
             assert "status" in delete_response
         
         create_status = create_response.get("status", RequestStates.complete)
@@ -756,7 +825,15 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         elif cmd == "create_machines":
             provider.create_machines(input_json)
         elif cmd in ["status", "create_status", "terminate_status"]:
-            provider.status(input_json)
+            if "requests" in input_json:
+                # provider.status handles both create_status and deprecated terminate_status calls.
+                provider.status(input_json)
+            elif cmd == "terminate_status":
+                # doesn't pass in a requestId but just a list of machines.
+                provider.terminate_status(input_json)
+            else:
+                # should be impossible
+                raise RuntimeError("Unexpected input json for cmd %s" % (input_json, cmd))
         elif cmd == "terminate_machines":
             provider.terminate_machines(input_json)
             

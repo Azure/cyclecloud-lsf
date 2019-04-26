@@ -10,38 +10,61 @@
 #End Queue
 
 Begin Queue
-QUEUE_NAME   = cloud
+QUEUE_NAME   = ondemand
 PRIORITY     = 30
 INTERACTIVE  = NO
 #RCVJOBS_FROM = cluster
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = General queue
 RC_HOSTS = all
-RES_REQ = select[azurecchost && !azureccmpi && !azurecclowprio]
+RES_REQ = select[nodearray=='ondemand' && !azureccmpi]
 #RC_DEMAND_POLICY = 0
 End Queue
 
 Begin Queue
-QUEUE_NAME   = cloudmpi
+QUEUE_NAME   = ondemandmpi
 PRIORITY     = 30
 INTERACTIVE  = NO
 #RCVJOBS_FROM = cluster
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Tightly coupled jobs
 RC_HOSTS = all
-RES_REQ = select[azurecchost && azureccmpi && !azurecclowprio] same[placementgroup]
+RES_REQ = select[nodearray=='ondemandmpi' && azureccmpi] same[placementgroup]
 #RC_DEMAND_POLICY = 0
 End Queue
 
 Begin Queue
-QUEUE_NAME   = cloudlowprio
+QUEUE_NAME   = lowprio
 PRIORITY     = 30
 INTERACTIVE  = NO
 #RCVJOBS_FROM = cluster
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Preemptible jobs
 RC_HOSTS = all
-RES_REQ = select[azurecchost && !azureccmpi && azurecclowprio]
+RES_REQ = select[nodearray=='lowprio' && !azureccmpi]
+End Queue
+
+Begin Queue
+QUEUE_NAME   = gpu
+PRIORITY     = 30
+INTERACTIVE  = NO
+#RCVJOBS_FROM = cluster
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = Preemptible jobs
+RC_HOSTS = all
+RES_REQ = select[nodearray=='gpu' && !azureccmpi]
+End Queue
+
+Begin Queue
+QUEUE_NAME   = gpumpi
+PRIORITY     = 30
+INTERACTIVE  = NO
+#RCVJOBS_FROM = cluster
+FAIRSHARE    = USER_SHARES[[default,1]]
+DESCRIPTION  = Tightly coupled jobs
+RC_HOSTS = all
+RES_REQ = select[nodearray=='gpumpi' && azureccmpi] same[placementgroup]
+#RC_DEMAND_POLICY = 0
 End Queue
 
 Begin Queue

@@ -97,9 +97,7 @@ This user should be assigned the _cyclecloud_access_ role.
             "username": "cycle-api-user",
             "password": "cycl34P1P4ss0rd",
             "web_server": "https://cyclecloud.contoso.com"
-        },
-        "termination_retirement": 120,
-        "machine_request_retirement": 120
+        }
     }
 }
 ```

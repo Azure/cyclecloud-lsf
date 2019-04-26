@@ -6,6 +6,8 @@ from subprocess import check_call
 import tempfile
 import threading
 import unittest
+import errno
+import socket
 
 
 class ClusterInitTest(unittest.TestCase):
@@ -14,8 +16,15 @@ class ClusterInitTest(unittest.TestCase):
     def setUpClass(clz):
         clz.jetpack = tempfile.mkdtemp("jetpack")
         os.chdir(clz.jetpack)
-        clz.http_server = SocketServer.TCPServer(("", 8183), SimpleHTTPServer.SimpleHTTPRequestHandler)
-
+        for port in range(8180, 8280):
+            try:
+                clz.http_server = SocketServer.TCPServer(("", port), SimpleHTTPServer.SimpleHTTPRequestHandler)
+                clz.port = port
+                break
+            except socket.error as e:
+                if e.errno != errno.EADDRINUSE:
+                    raise
+        
         def run_server():
             try:
                 clz.http_server.serve_forever(.1)
@@ -27,7 +36,7 @@ class ClusterInitTest(unittest.TestCase):
         # mock jetpack
         with open("jetpack", "w") as fw:
             fw.write("""#/bin/bash -e
-curl http://localhost:8183/$(echo $2 | sed s/\\\\./\\\\//g) > response 2>/dev/null
+curl http://localhost:%s/$(echo $2 | sed s/\\\\./\\\\//g) > response 2>/dev/null
 grep '\<body\>' response 1>&2 > /dev/null
 
 if [ $? == 0 ]; then
@@ -39,7 +48,7 @@ if [ $? == 0 ]; then
     fi
 else
     cat response
-fi""")
+fi""" % clz.port)
         
         os.system("chmod +x jetpack")
 
@@ -67,6 +76,7 @@ fi""")
     @classmethod
     def tearDownClass(clz):
         clz.http_server.server_close()
+        clz.http_server.shutdown()
         shutil.rmtree(clz.jetpack)
         
     def _create_jetpack_config(self, data, cwd=None):
@@ -105,7 +115,7 @@ fi""")
                                                             "custom2": "custom_value2"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('"[resource canary]"')
         
     def test_modify_lsf_local_resources_skip_because_uri(self):
@@ -115,7 +125,7 @@ fi""")
                                                             "custom2": "custom_value2"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('"[resource canary]"')
         
     def test_modify_lsf_local_resources(self):
@@ -124,7 +134,7 @@ fi""")
                                              "attributes": {"custom1": "custom_value1"},
                                              "attribute_names": "custom1"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('" [resourcemap custom_value1*custom1]"')
         
     def test_modify_lsf_local_resources2(self):
@@ -134,7 +144,7 @@ fi""")
                                                             "custom2": "custom_value2"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('" [resourcemap custom_value1*custom1] [resourcemap custom_value2*custom2]"')
         
     def test_modify_lsf_local_resources_booleans(self):
@@ -143,7 +153,7 @@ fi""")
                                              "attributes": {"custom1": "True", "custom2": "falsE"},
                                              "attribute_names": "custom1 custom2"}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('" [resource custom1]"')
         
     def test_run_custom_script_uri(self):
@@ -158,7 +168,7 @@ fi""")
                                              "custom_env": {"name1": "value1",
                                                            "name2": "value2"}}})
         self._call("00-create-azurecc-profile.sh")
-        self._call("../../../default/chef/site-cookbooks/lsf/templates/modify-lsf-local-resources.sh")
+        self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('"[resource canary]"')
         self._call("02-run-custom-script-uri.sh")
         self._assert_local_resources_equals('value1 and value2')

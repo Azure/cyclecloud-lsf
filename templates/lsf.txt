@@ -142,8 +142,11 @@
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::default]
         cyclecloud.maintenance_converge.enabled = false
+        lsf.attribute_names = nodearray
+        lsf.attributes.nodearray = ondemand
+        lsf.autoscale = true
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -156,11 +159,27 @@
         export_path = /mnt/raid/home
 
         [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+        
+    [[nodearray ondemandmpi]]
+    	Priority = 450
+    	Extends = ondemand
+        PlacementGroupId = ondemandmpi-manual 
+
+        [[[configuration]]]
+        lsf.attribute_names = nodearray azureccmpi placementgroup
+        lsf.attributes.nodearray = ondemandmpi
+        lsf.attributes.azureccmpi = true
+        lsf.attributes.placementgroup = ondemandmpi-manual
 
     [[nodearray lowprio]]
         Priority = 400
         Extends = ondemand
         Interruptible = True
+
+        [[[configuration]]]
+        lsf.attribute_names = nodearray azurecclowprio
+        lsf.attributes.nodearray = lowprio
+        lsf.attributes.azurecclowprio = true
 
     [[nodearray gpu]]
         Priority = 300
@@ -170,28 +189,19 @@
         AdditionalClusterInitSpecs = $GPUClusterInitSpecs
         [[[configuration]]]
         lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
+        lsf.attribute_names = nodearray
+        lsf.attributes.nodearray = gpu
 
-    [[nodearray submit]]
-
-        MachineType = $ExecuteMachineType
-
-        MaxCoreCount = $MaxExecuteCoreCount
+    [[nodearray gpumpi]]
+    	Extends = gpu
+    	Priority = 250
+        PlacementGroupId = gpumpi-manual 
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
-        cyclecloud.maintenance_converge.enabled = false
-        lsf.submit_only = true
-
-        [[[configuration cyclecloud.mounts.sched-exp]]]
-        type = nfs
-        mountpoint = /usr/share/lsf
-        export_path = /mnt/raid/lsf
-
-        [[[configuration cyclecloud.mounts.home]]]
-        type = nfs
-        mountpoint = /shared/home
-        export_path = /mnt/raid/home
-
+        lsf.attribute_names = nodearray azureccmpi placementgroup
+        lsf.attributes.nodearray = gpu
+        lsf.attributes.azureccmpi = true
+        lsf.attributes.placementgroup = gpumpi-manual
 
 [parameters About]
 Order = 1
@@ -411,7 +421,7 @@ Order = 20
         Description = Max number of VMs in a VMSS
         DefaultValue = 40
         Config.Plugin = pico.form.NumberTextBox
-        Config.MinValue = 20
+        Config.MinValue = 1
         Config.MaxValue = 1000
         Config.IntegerOnly = true
 

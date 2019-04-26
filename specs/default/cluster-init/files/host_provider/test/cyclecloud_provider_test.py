@@ -38,8 +38,6 @@ class MockHostnamer:
 class MockCluster:
     def __init__(self, nodearrays):
         self._nodearrays = nodearrays
-        self._nodearrays["nodearrays"].append({"name": "execute",
-                                               "nodearray": {"Configuration": {"run_list": ["recipe[lsf::master]"]}}})
         # template -> requestI
         self._nodes = {}
         self.raise_during_termination = False
@@ -98,8 +96,6 @@ class MockCluster:
         Just yield each node that matches the attrs specified. If the value is a 
         list or set, use 'in' instead of ==
         '''
-        ret = {}
-        
         def _yield_nodes(**attrs):
             for nodes_for_template in self._nodes.itervalues():
                 for node in nodes_for_template:
@@ -110,18 +106,18 @@ class MockCluster:
                         else:
                             all_match = all_match and node[key] == value
                     if all_match:
-                        ret[key] = node
                         yield node
         return list(_yield_nodes(**attrs))
     
-    def terminate(self, node_ids, unused):
+    def terminate(self, machines, unused):
         if self.raise_during_termination:
             raise RuntimeError("raise_during_termination")
         
-        for node in self.nodes():
-            if node.get("NodeId") in node_ids:
-                node["Status"] = "TerminationPreparation"
-                node["TargetState"] = "Terminated"
+        for node in self.inodes():
+            for machine in machines:
+                if node.get("NodeId") == machine["machineId"]:
+                    node["Status"] = "TerminationPreparation"
+                    node["TargetState"] = "Terminated"
                 
                 
 class RequestsStoreInMem:
@@ -212,6 +208,10 @@ class Test(unittest.TestCase):
                 self.assertEquals(expected_machine_status, m["status"])
                 self.assertEquals(expected_machine_result, m["result"])
             
+            if node_status == "Failed":
+                mutable_node = provider.cluster.inodes(Name="execute-1")
+                self.assertEquals(mutable_node[0].get("TargetState"), "Terminated")
+            
         # no instanceid == no machines
         run_test(instance=None, expected_machines=0)
 
@@ -220,9 +220,9 @@ class Test(unittest.TestCase):
         
         # has an instance, but Failed
         run_test(expected_machines=1, node_status="Failed", node_status_message="fail for tests",
-                 expected_request_status=RequestStates.complete_with_error,
-                 expected_machine_status=MachineStates.error,
-                 expected_machine_result=MachineResults.failed)
+                 expected_request_status=RequestStates.running,
+                 expected_machine_status=MachineStates.building,
+                 expected_machine_result=MachineResults.executing)
         
         # node is ready to go
         run_test(node_status="Started", expected_machine_result=MachineResults.succeed, 
@@ -239,7 +239,7 @@ class Test(unittest.TestCase):
         a8bucket = {"maxCoreCount": 24, "definition": {"machineType": "A8"}, "virtualMachine": MACHINE_TYPES["A8"]}
         cluster = MockCluster({"nodearrays": [{"name": "execute",
                                                "UserData": UserData,
-                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"run_list": ["recipe[lsf::worker]"]}},
+                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"lsf": {"autoscale": True}}},
                                                "buckets": [a4bucket, a8bucket]}]})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
@@ -253,7 +253,7 @@ class Test(unittest.TestCase):
                 }
             }
         
-    def test_terminate(self):
+    def test_deprecated_terminate(self):
         provider = self._new_provider()
         term_requests = provider.terminate_json
         term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
@@ -271,6 +271,22 @@ class Test(unittest.TestCase):
         
         status_response = provider.status({"requests": [{"requestId": "delete-missing"}]})
         self.assertEquals({'status': 'running', 'requests': [{'status': 'running', "message": "Unknown termination request id.", 'requestId': 'delete-missing', 'machines': []}]}, status_response)
+        
+    def test_terminate_status(self):
+        provider = self._new_provider()
+        term_requests = provider.terminate_json
+        term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
+        
+        self.assertEquals(term_response["status"], "complete")
+        self.assertTrue(term_response["requestId"] in term_requests.requests)
+        self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_response["requestId"]]["machines"])
+        
+        status_response = provider.terminate_status({"machines": [{"machineId": "id-123", "name": "host-123"}]})
+        self.assertEquals(1, len(status_response["requests"]))
+        self.assertEquals(1, len(status_response["requests"][0]["machines"]))
+        
+        status_response = provider.terminate_status({"machines": [{"machineId": "missing", "name": "missing-123"}]})
+        self.assertEquals({'requests': [], 'status': 'complete'}, status_response)
         
     def test_terminate_error(self):
         provider = self._new_provider()
@@ -375,6 +391,15 @@ class Test(unittest.TestCase):
         
         # just over 2 hours, it will be gone.
         provider.clock.now = (1970, 1, 1, 2.01, 0, 0)
+        with provider.terminate_json as requests:
+            for _, request in requests.iteritems():
+                request["terminated"] = False
+        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
+        self.assertIn(expired_request, provider.terminate_json.read())
+        
+        with provider.terminate_json as requests:
+            for _, request in requests.iteritems():
+                request["terminated"] = True
         stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
         self.assertNotIn(expired_request, provider.terminate_json.read())
         
@@ -499,7 +524,7 @@ class Test(unittest.TestCase):
         resp = provider.create_machines(self._make_request("executea4pg0", 1))
         self.assertEquals(resp["status"], "running")
         self.assertEquals(True, provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["azureccmpi"])
-        self.assertEquals("pg0", provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["placementgroup"])
+        self.assertEquals("executea4pg0", provider.cluster._nodes["execute"][0]["Configuration"]["lsf"]["attributes"]["placementgroup"])
         
         for nodearray in provider.cluster._nodearrays["nodearrays"]:
             nodearray["nodearray"]["Interruptible"] = True
@@ -518,7 +543,7 @@ class Test(unittest.TestCase):
         a4bucket = {"maxCount": 2, "definition": {"machineType": "Basic_A4"}, "virtualMachine": MACHINE_TYPES["A4"]}
         a8bucket = {"maxCoreCount": 24, "definition": {"machineType": "Standard_A8"}, "virtualMachine": MACHINE_TYPES["A8"]}
         cluster = MockCluster({"nodearrays": [{"name": "execute",
-                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"run_list": ["recipe[lsf::worker]"]}},
+                                               "nodearray": {"machineType": ["a4", "a8"], "Configuration": {"lsf": {"autoscale": True}}},
                                                "buckets": [a4bucket, a8bucket]}]})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
