@@ -44,7 +44,6 @@ class CycleCloudProvider:
         self.exit_code = 0
         self.clock = clock
         self.termination_timeout = float(self.config.get("cyclecloud.termination_request_retirement", 120) * 60)
-        self.node_request_timeouts = float(self.config.get("cyclecloud.machine_request_retirement", 120) * 60)
         self.fine = False
 
     def _escape_id(self, name):
