@@ -14,6 +14,7 @@ from util import JsonStore, failureresponse
 import util
 import lsf
 from cyclecliwrapper import UserError
+import logging
 
 
 logger = None
@@ -100,7 +101,11 @@ class CycleCloudProvider:
                 'priority': 0,
                 'templateId': 'execute1'}]}
         """
-        
+        try:
+            self._retry_termination_requests()
+        except:
+            logging.exception("Could not retry termination")
+            
         prior_templates = self.templates_json.read()
         prior_templates_str = json.dumps(prior_templates, indent=2)
         
@@ -455,11 +460,11 @@ class CycleCloudProvider:
             response["requests"].append(request)
             
             report_failure_states = ["Unavailable", "Failed"]
-            terminate_states = []
+            shutdown_states = []
             
             if self.config.get("lsf.terminate_failed_nodes", False):
                 report_failure_states = ["Unavailable"]
-                terminate_states = ["Failed"]
+                shutdown_states = ["Failed"]
             
             for node in requested_nodes["nodes"]:
                 # for new nodes, completion is Ready. For "released" nodes, as long as
@@ -483,7 +488,7 @@ class CycleCloudProvider:
                         message = node.get("StatusMessage", "Unknown error.")
                         request_status = RequestStates.complete_with_error
                         
-                elif node_status in terminate_states:
+                elif node_status in shutdown_states:
                     # just terminate the node and next iteration the node will be gone. This allows retries of the shutdown to happen, as 
                     # we will report that the node is still booting.
                     unknown_state_count = unknown_state_count + 1
@@ -498,7 +503,7 @@ class CycleCloudProvider:
                         except Exception:
                             logger.exception("Could not convert ip to hostname - %s" % node.get("PrivateIp"))
                     try:
-                        self.cluster.terminate([{"machineId": node.get("NodeId"), "name": hostname}], self.hostnamer)
+                        self.cluster.shutdown([{"machineId": node.get("NodeId"), "name": hostname}], self.hostnamer)
                     except Exception:
                         logger.exception("Could not terminate node with id %s" % node.get("NodeId"))
         
@@ -519,6 +524,12 @@ class CycleCloudProvider:
                         request_status = RequestStates.running
                     else:
                         hostname = self.hostnamer.hostname(private_ip_address)
+                        if not hostname:
+                            logger.warn("Could not find hostname for ip address for ready node %s", node.get("Name"))
+                            machine_result = MachineResults.executing
+                            machine_status = MachineStates.building
+                            request_status = RequestStates.running
+                            
                 else:
                     machine_result = MachineResults.executing
                     machine_status = MachineStates.building
@@ -555,41 +566,39 @@ class CycleCloudProvider:
         response["status"] = lsf.RequestStates.complete
         
         return self.json_writer(response)
-        
-    @failureresponse({"requests": [], "status": RequestStates.running})
-    def _deperecated_terminate_status(self, input_json):
-        # can transition from complete -> executing or complete -> complete_with_error -> executing
-        # executing is a terminal state.
-        request_status = RequestStates.complete
-        
-        response = {"requests": []}
-        # needs to be a [] when we return
+    
+    def _retry_termination_requests(self):
         with self.terminate_json as terminate_requests:
             
             self._cleanup_expired_requests(terminate_requests, self.termination_timeout, "terminated")
             
-            termination_ids = [r["requestId"] for r in input_json["requests"] if r["requestId"]]
             try:
                 machines_to_terminate = []
-                for termination_id in termination_ids:
-                    if termination_id in terminate_requests:
-                        termination = terminate_requests[termination_id]
-                        if not termination.get("terminated"):
-                            for machine_id, name in termination["machines"].iteritems():
-                                machines_to_terminate.append({"machineId": machine_id, "name": name})
+                for termination_id in terminate_requests:
+                    termination = terminate_requests[termination_id]
+                    if not termination.get("terminated"):
+                        for machine_id, name in termination["machines"].iteritems():
+                            machines_to_terminate.append({"machineId": machine_id, "name": name})
                 
                 if machines_to_terminate:
                     logger.warn("Re-attempting termination of nodes %s", machines_to_terminate)
-                    self.cluster.terminate(machines_to_terminate, self.hostnamer)
+                    self.cluster.shutdown(machines_to_terminate, self.hostnamer)
                     
-                for termination_id in termination_ids:
-                    if termination_id in terminate_requests:
-                        termination = terminate_requests[termination_id]
-                        termination["terminated"] = True
+                for termination_id in terminate_requests:
+                    termination = terminate_requests[termination_id]
+                    termination["terminated"] = True
                         
             except Exception:
-                request_status = RequestStates.running
                 logger.exception("Could not terminate nodes with ids %s. Will retry", machines_to_terminate)
+        
+    @failureresponse({"requests": [], "status": RequestStates.complete_with_error})
+    def _deperecated_shutdown_status(self, input_json):
+        # can transition from complete -> executing or complete -> complete_with_error -> executing
+        # executing is a terminal state.
+        response = {"requests": []}
+        # needs to be a [] when we return
+        with self.terminate_json as terminate_requests:
+            termination_ids = [r["requestId"] for r in input_json["requests"] if r["requestId"]]
             
             for termination_id in termination_ids:
                 response_machines = []
@@ -606,7 +615,6 @@ class CycleCloudProvider:
                         logger.info("Terminating machines: %s", [hostname for hostname in machines.itervalues()])
                     else:
                         logger.warn("No machines found for termination request %s. Will retry.", termination_id)
-                        request_status = RequestStates.running
                     
                     for machine_id, hostname in machines.iteritems():
                         response_machines.append({"name": hostname,
@@ -618,17 +626,16 @@ class CycleCloudProvider:
                     logger.warn("Unknown termination request %s. You may intervene manually by updating terminate_nodes.json" + 
                                  " to contain the relevant NodeIds. %s ", termination_id, terminate_requests)
                     # set to running so lsf will keep retrying, hopefully, until someone intervenes.
-                    request_status = RequestStates.running
                     request["message"] = "Unknown termination request id."
                
-                request["status"] = request_status
+                request["status"] = RequestStates.complete
         
-        response["status"] = request_status
+        response["status"] = RequestStates.complete
         
         return self.json_writer(response)
     
-    @failureresponse({"status": RequestStates.running})
-    def terminate_status(self, input_json):
+    @failureresponse({"status": RequestStates.complete_with_error})
+    def shutdown_status(self, input_json):
         ids_to_hostname = {}
     
         for machine in input_json["machines"]:
@@ -653,7 +660,7 @@ class CycleCloudProvider:
                     logger.warn("No termination request found for machine %s", machine_record)
             
             deprecated_json = {"requests": [{"requestId": request_id, "machines": requests[request_id]["machines"]} for request_id in requests]}
-            return self._deperecated_terminate_status(deprecated_json)
+            return self._deperecated_shutdown_status(deprecated_json)
         
     def _cleanup_expired_requests(self, requests, retirement, completed_key):
         now = calendar.timegm(self.clock())
@@ -710,7 +717,7 @@ class CycleCloudProvider:
             message = "CycleCloud is terminating the VM(s)",
 
             try:
-                self.cluster.terminate(input_json["machines"], self.hostnamer)
+                self.cluster.shutdown(input_json["machines"], self.hostnamer)
                 with self.terminate_json as terminations:
                     terminations[request_id]["terminated"] = True
             except Exception:
@@ -728,7 +735,7 @@ class CycleCloudProvider:
         except Exception as e:
             logger.exception(unicode(e))
             if request_id_persisted:
-                return self.json_writer({"status": RequestStates.running, "requestId": request_id})
+                return self.json_writer({"status": RequestStates.complete, "requestId": request_id})
             return self.json_writer({"status": RequestStates.complete_with_error, "requestId": request_id, "message": unicode(e)})
         
     def status(self, input_json):
@@ -746,7 +753,7 @@ class CycleCloudProvider:
             create_response = self._create_status({"requests": creates})
             assert "status" in create_response
         if deletes:
-            delete_response = self._deperecated_terminate_status({"requests": deletes})
+            delete_response = self._deperecated_shutdown_status({"requests": deletes})
             assert "status" in delete_response
         
         create_status = create_response.get("status", RequestStates.complete)
@@ -823,13 +830,13 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
             provider.templates()
         elif cmd == "create_machines":
             provider.create_machines(input_json)
-        elif cmd in ["status", "create_status", "terminate_status"]:
+        elif cmd in ["status", "create_status", "shutdown_status"]:
             if "requests" in input_json:
-                # provider.status handles both create_status and deprecated terminate_status calls.
+                # provider.status handles both create_status and deprecated shutdown_status calls.
                 provider.status(input_json)
-            elif cmd == "terminate_status":
+            elif cmd == "shutdown_status":
                 # doesn't pass in a requestId but just a list of machines.
-                provider.terminate_status(input_json)
+                provider.shutdown_status(input_json)
             else:
                 # should be impossible
                 raise RuntimeError("Unexpected input json for cmd %s" % (input_json, cmd))
