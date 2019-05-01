@@ -308,17 +308,25 @@ class Hostnamer:
         self.use_fqdn = use_fqdn
     
     def hostname(self, private_ip_address):
-        toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", private_ip_address]).split()]
-        if self.use_fqdn:
-            if len(toks) >= 2:
-                return toks[1]
-            return toks[0]
-        else:
-            return toks[-1]
+        try:
+            toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", private_ip_address]).split()]
+            if self.use_fqdn:
+                if len(toks) >= 2:
+                    return toks[1]
+                return toks[0]
+            else:
+                return toks[-1]
+        except Exception as e:
+            logging.error(str(e))
+            return None
         
     def private_ip_address(self, hostname):
-        toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", hostname]).split()]
-        return toks[0]
+        try:
+            toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", hostname]).split()]
+            return toks[0]
+        except Exception as e:
+            logging.error(str(e))
+            return None
     
         
 def load_json(path):

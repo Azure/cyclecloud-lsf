@@ -30,12 +30,12 @@ class Cluster:
             responses[request_id] = self.get("/clusters/%s/nodes" % self.cluster_name, request_id=request_id)
         return responses
     
-    def terminate(self, machines, hostnamer):
+    def shutdown(self, machines, hostnamer):
         id_to_ip = {}
         for machine in machines:
             id_to_ip[machine["machineId"]] = hostnamer.private_ip_address(machine["name"])
         
-        response_raw = self.post("/clusters/%s/nodes/terminate" % self.cluster_name, json={"ids": id_to_ip.keys()})
+        response_raw = self.post("/clusters/%s/nodes/shutdown" % self.cluster_name, json={"ids": id_to_ip.keys()})
         response = json.loads(response_raw)
         for node in response["nodes"]:
             id_to_ip.pop(node["id"])
