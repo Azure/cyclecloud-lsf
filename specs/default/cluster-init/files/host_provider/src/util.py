@@ -306,6 +306,7 @@ class Hostnamer:
     
     def __init__(self, use_fqdn=True):
         self.use_fqdn = use_fqdn
+        self._bhost_cache = {}
     
     def hostname(self, private_ip_address):
         try:
@@ -319,8 +320,32 @@ class Hostnamer:
         except Exception as e:
             logging.error(str(e))
             return None
-        
+    
     def private_ip_address(self, hostname):
+        '''
+        Tries to look up the private ip based on the existing bhosts -rconly -w private ip listed. If that fails, 
+        it uses getent.
+        '''
+        try:
+            if not self._bhost_cache:
+                for line in subprocess.check_output(["bhosts", "-rconly", "-w"]).splitlines():
+                    toks = line.split()
+                    
+                    if len(toks) != 8:
+                        continue
+                    
+                    if toks[0] == "PUB_DNS_NAME":
+                        continue
+                    
+                    self._bhost_cache[toks[2].lower()] = toks[3]
+            
+            if hostname.lower() in self._bhost_cache:
+                return self._bhost_cache[hostname.lower()]
+            
+            logging.warn("Could not find %s in bhosts -rconly -w. Trying getent", hostname)    
+        except Exception:
+            logging.exception("Could not execute bhosts -rconly -w.")
+        
         try:
             toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", hostname]).split()]
             return toks[0]
