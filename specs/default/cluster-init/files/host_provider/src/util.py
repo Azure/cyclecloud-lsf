@@ -68,7 +68,6 @@ def init_logging(loglevel=logging.INFO, logfile=None, stderr_loglevel=logging.DE
 class JsonStore:
     
     def __init__(self, name, directory, formatted=False):
-        assert name not in ['hosts.json', 'requests.json'], "Illegal json name."
         self.path = os.path.join(directory, name)
         self.lockpath = self.path + ".lock"
         if not os.path.exists(self.lockpath):
