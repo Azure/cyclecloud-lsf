@@ -46,6 +46,7 @@ class CycleCloudProvider:
         self.exit_code = 0
         self.clock = clock
         self.termination_timeout = float(self.config.get("cyclecloud.termination_request_retirement", 120) * 60)
+        self.creation_request_ttl = int(self.config.get("lsf.creation_request_ttl", 4500))
         self.fine = False
 
     def _escape_id(self, name):
@@ -693,8 +694,8 @@ class CycleCloudProvider:
                 created_timestamp = request["requestTime"]
                 now = calendar.timegm(self.clock())
                 delta = now - created_timestamp
-                if delta > 4500:
-                    
+                
+                if delta > self.creation_request_ttl:
                     completed_node_ids = [x["nodeid"] for x in request["completedNodes"]]
                     to_shutdown.extend(set(request["allNodes"]) - set(completed_node_ids))
                     to_mark_complete.append(request)
