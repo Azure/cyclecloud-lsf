@@ -77,6 +77,14 @@ class CycleCloudProvider:
     # return at least one machine.
     @failureresponse({"templates": [PLACEHOLDER_TEMPLATE], "status": RequestStates.complete_with_error})
     def templates(self):
+        try:
+            return self._templates()
+        except Exception:
+            # just use the last valid templates instead
+            prior_templates = self.templates_json.read()
+            return self.json_writer({"templates": list(prior_templates.values())}, debug_output=False)
+    
+    def _templates(self):
         """
         input (ignored):
         []
@@ -446,7 +454,7 @@ class CycleCloudProvider:
                                      "message": "Azure CycleCloud experienced an error, though it may have succeeded: %s" % unicode(e)})
             
     @failureresponse({"requests": [], "status": RequestStates.running})
-    def create_status(self, input_json):
+    def create_status(self, input_json, json_writer):
         """
         input:
         {'requests': [{'requestId': 'req-123'}, {'requestId': 'req-234'}]}
@@ -468,30 +476,43 @@ class CycleCloudProvider:
          'status': 'complete'}
 
         """
+        response = {"requests": []}
+        
         request_status = RequestStates.complete
         
         request_ids = [r["requestId"] for r in input_json["requests"]]
         
-        try:
-            nodes_by_request_id = self.cluster.nodes(request_ids=request_ids)
-        except UserError as e:
-            logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
-            return self.json_writer({"status": RequestStates.running,
-                                    "requests": [{"requestId": request_id, "status": RequestStates.running} for request_id in request_ids] ,
-                                     "message": "Azure CycleCloud experienced an error: %s" % unicode(e)})
-        except ValueError as e:
-            logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
-            return self.json_writer({"requestId": request_id, "status": RequestStates.running,
-                                     "message": "Azure CycleCloud experienced an error: %s" % unicode(e)})
+        nodes_by_request_id = {}
+        failed_request_ids = set()
+        
+        for request_id in request_ids:
+            try:
+                failed_request_ids.add(request_id)
+                nodes_by_request_id.update(self.cluster.nodes(request_ids=request_ids))
+                failed_request_ids.remove(request_id)
+            except UserError as e:
+                logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
+                if e.code == 404:
+                    response["requests"].append({"requestId": request_id,
+                                                 "status": RequestStates.complete_with_error,
+                                                 "_recoverable_": False})
+                else:
+                    response["requests"].append({"requestId": request_id,
+                                                 "status": RequestStates.running})
+            except ValueError as e:
+                logger.exception("Azure CycleCloud experienced an error and the node creation request failed. %s", e)
+                response["requests"].append({"requestId": request_id,
+                                             "status": RequestStates.running})
         
         message = ""
-        
-        response = {"requests": []}
         
         unknown_state_count = 0
         requesting_count = 0
         
         for request_id, requested_nodes in nodes_by_request_id.iteritems():
+            if request_id in failed_request_ids:
+                continue
+            
             if not requested_nodes:
                 # nothing to do.
                 logger.warn("No nodes found for request id %s.", request_id)
@@ -619,7 +640,7 @@ class CycleCloudProvider:
         
         response["status"] = lsf.RequestStates.complete
         
-        return self.json_writer(response)
+        return json_writer(response)
     
     def _terminate_expired_requests(self):
         
@@ -633,7 +654,7 @@ class CycleCloudProvider:
                 
         if never_queried_requests:
             try:
-                self.create_status({"requests": [{"requestId": r} for r in never_queried_requests]})
+                response = self.create_status({"requests": [{"requestId": r} for r in never_queried_requests]}, lambda input_json, **ignore: input_json)
             except Exception:
                 logger.exception("Could not request status of creation quests.")
         
@@ -680,7 +701,7 @@ class CycleCloudProvider:
                             machines_to_terminate.append({"machineId": machine_id, "name": name})
                 
                 if machines_to_terminate:
-                    logger.warn("Re-attempting termination of nodes %s", machines_to_terminate)
+                    logger.info("Attempting termination of nodes %s", machines_to_terminate)
                     self.cluster.shutdown(machines_to_terminate, self.hostnamer)
                     
                 for termination_id in terminate_requests:
@@ -751,6 +772,8 @@ class CycleCloudProvider:
             "status": "complete"
         }
         """
+        logger.info("Requesting termination of %s", input_json)
+        
         request_id = "delete-%s" % str(uuid.uuid4())
         request_id_persisted = False
         try:
@@ -841,7 +864,7 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         elif cmd == "create_machines":
             provider.create_machines(input_json)
         elif cmd in ["status", "create_status"]:
-            provider.create_status(input_json)
+            provider.create_status(input_json, provider.json_writer)
         elif cmd in ["terminate_status"]:
                 # doesn't pass in a requestId but just a list of machines.
                 provider.terminate_status(input_json)
