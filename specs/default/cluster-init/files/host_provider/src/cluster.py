@@ -32,9 +32,14 @@ class Cluster:
         return responses
     
     def nodes_by_operation_id(self, operation_id):
-        return self.get("/clusters/%s/nodes" % self.cluster_name, operation_id=operation_id)
+        if not operation_id:
+            raise RuntimeError("You must specify operation id!")
+        return self.get("/clusters/%s/nodes?operation=%s" % (self.cluster_name, operation_id))
     
     def shutdown(self, machines, hostnamer):
+        if not machines:
+            return
+        
         id_to_ip = {}
         for machine in machines:
             id_to_ip[machine["machineId"]] = hostnamer.private_ip_address(machine["name"])
