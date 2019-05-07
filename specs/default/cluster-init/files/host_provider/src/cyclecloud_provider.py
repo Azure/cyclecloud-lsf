@@ -158,6 +158,18 @@ class CycleCloudProvider:
             
             currently_available_templates = set()
             
+            # currently the REST api doesn't tell us which bucket is active, so we will manually figure that out by inspecting
+            # the MachineType field on the nodearray
+            active_machine_types_by_nodearray = {}
+            for nodearray_root in nodearrays:
+                nodearray = nodearray_root.get("nodearray")
+                machine_types = nodearray.get("MachineType")
+                if isinstance(machine_types, basestring):
+                    machine_types = [m.strip().lower() for m in machine_types.split(",")]
+                    
+                active_machine_types_by_nodearray[nodearray_root["name"]] = set(machine_types)
+                                     
+            
             default_priority = len(nodearrays) * 10
             
             for nodearray_root in nodearrays:
@@ -175,6 +187,9 @@ class CycleCloudProvider:
                 
                 for bucket in nodearray_root.get("buckets"):
                     machine_type_name = bucket["definition"]["machineType"]
+                    if machine_type_name.lower() not in active_machine_types_by_nodearray[nodearray_root["name"]]:
+                        continue
+                    
                     machine_type_short = machine_type_name.lower().replace("standard_", "").replace("basic_", "").replace("_", "")
                     machine_type = bucket["virtualMachine"]
                     
@@ -276,6 +291,7 @@ class CycleCloudProvider:
                     if self.fine:
                         logger.debug("Ignoring old template %s vs %s", lsf_template["templateId"], currently_available_templates)
                     lsf_template["maxNumber"] = 0
+                    templates_store[lsf_template["templateId"]]["maxNumber"] = 0
            
         new_templates = self.templates_json.read()
         
