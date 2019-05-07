@@ -89,14 +89,6 @@ directory node['lsf']['lsf_logdir'] do
   not_if { ::File.directory?(node['lsf']['lsf_logdir']) }
 end
 
-reaper_interval = node[:lsf][:reaper_interval].to_i
-
-cron "lsf_reaper" do
-  minute "*/#{reaper_interval}"
-  command "#{node[:cyclecloud][:bootstrap]}/cron_wrapper.sh #{lsf_top}/conf/resource_connector/azurecc/scripts/reaper.sh > /dev/null 2>&1"
-  only_if { node[:cyclecloud][:cluster][:autoscale][:stop_enabled] }
-end
-
 defer_block "Defer starting lsf until end of the converge" do
   execute 'lsadmin limstartup' do 
     command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
