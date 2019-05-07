@@ -12,6 +12,7 @@ from lsf import RequestStates, MachineStates, MachineResults
 import test_json_source_helper
 from util import JsonStore
 import util
+import uuid
 
 
 MACHINE_TYPES = {
@@ -42,6 +43,7 @@ class MockCluster:
         self._nodes = {}
         self.raise_during_termination = False
         self.raise_during_add_nodes = False
+        self.raise_during_nodes_query = False
 
     def status(self):
         return self._nodearrays
@@ -68,7 +70,9 @@ class MockCluster:
             self._nodes[nodearray] = []
             
         node_list = self._nodes[nodearray]
-
+        
+        response = {"operationId": str(uuid.uuid4())}
+        
         for i in range(count):
             node_index = len(node_list) + i + 1
             node = {"Name": "%s-%d" % (nodearray, node_index),
@@ -76,12 +80,18 @@ class MockCluster:
                     "RequestId": request_id,
                     "machineType": MACHINE_TYPES[machine_type],
                     "Status": "Allocating",
-                    "TargetState": "Started"
+                    "TargetState": "Started",
+                    "OperationId": response["operationId"]
             }
             node.update(node_attrs)
             node_list.append(node)
             
+        return response
+        
     def nodes(self, request_ids=[]):
+        if self.raise_during_nodes_query:
+            raise RuntimeError("raise_during_nodes_query")
+        
         ret = {}
         
         for request_id in request_ids:
@@ -89,7 +99,13 @@ class MockCluster:
             
         for node in self.inodes(RequestId=request_ids):
             ret[node["RequestId"]]["nodes"].append(node)
+            
         return ret
+    
+    def nodes_by_operation_id(self, operation_id):
+        if self.raise_during_nodes_query:
+            raise RuntimeError("raise_during_nodes_query")
+        return {"nodes": self.inodes(OperationId=operation_id)}
             
     def inodes(self, **attrs):
         '''
@@ -188,9 +204,12 @@ class Test(unittest.TestCase):
             mutable_node[0]["PrivateIp"] = (instance or {}).get("PrivateIp")
             
             if status_type == "create":
-                statuses = provider.status({"requests": [{"requestId": request["requestId"]}]})
+                statuses = provider.create_status({"requests": [{"requestId": request["requestId"]}]})
             else:
-                statuses = provider.status({"requests": [{"requestId": request["requestId"]}]})
+                hostname = provider.hostnamer.hostname(mutable_node[0]["PrivateIp"])
+                machine_id = mutable_node["NodeId"]
+                statuses = provider.terminate_status({"machines": [{"machineId": machine_id,
+                                                                   "name": hostname}]})
                 
             request_status_obj = statuses["requests"][0]
             self.assertEquals(expected_request_status, request_status_obj["status"])
@@ -208,7 +227,7 @@ class Test(unittest.TestCase):
                 self.assertEquals(expected_machine_status, m["status"])
                 self.assertEquals(expected_machine_result, m["result"])
             
-            if node_status == "Failed":
+            if node_status == "Failed" and provider.config.get("lsf.terminate_failed_nodes"):
                 mutable_node = provider.cluster.inodes(Name="execute-1")
                 self.assertEquals(mutable_node[0].get("TargetState"), "Terminated")
             
@@ -219,6 +238,13 @@ class Test(unittest.TestCase):
         run_test(expected_machines=1)
         
         # has an instance, but Failed
+        run_test(expected_machines=1, node_status="Failed", node_status_message="fail for tests",
+                 expected_request_status=RequestStates.complete_with_error,
+                 expected_machine_status=MachineStates.error,
+                 expected_machine_result=MachineResults.failed)
+        
+        provider.config.set("lsf.terminate_failed_nodes", True)
+        # has an instance, but Failed, but we just go ahead and terminate it
         run_test(expected_machines=1, node_status="Failed", node_status_message="fail for tests",
                  expected_request_status=RequestStates.running,
                  expected_machine_status=MachineStates.building,
@@ -243,7 +269,8 @@ class Test(unittest.TestCase):
                                                "buckets": [a4bucket, a8bucket]}]})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
-        return cyclecloud_provider.CycleCloudProvider(provider_config, cluster, hostnamer, json_writer, RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
+        return cyclecloud_provider.CycleCloudProvider(provider_config, cluster, hostnamer, json_writer, 
+                                                      RequestsStoreInMem(), RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
     
     def _make_request(self, template_id, machine_count, rc_account="default", user_data={}):
         return {"user_data": user_data,
@@ -253,40 +280,27 @@ class Test(unittest.TestCase):
                 }
             }
         
-    def test_deprecated_terminate(self):
+    def test_terminate_status(self):
         provider = self._new_provider()
         term_requests = provider.terminate_json
         term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
         
         self.assertEquals(term_response["status"], "complete")
-        self.assertTrue(term_response["requestId"] in term_requests.requests)
-        self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_response["requestId"]]["machines"])
+        self.assertNotIn("requestId", term_response)
+        self.assertEquals(1, len(term_requests.read().keys()))
+        term_req_id = term_requests.read().keys()[0]
+        self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_req_id]["machines"])
         
-        status_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
-        self.assertEquals(1, len(status_response["requests"]))
-        self.assertEquals(1, len(status_response["requests"][0]["machines"]))
+        status_response = provider.terminate_status({"machines": [{"machineId": "id-123", "name": "host-123"}]})
+        self.assertEquals(1, len(status_response["machines"]))
         
-        status_response = provider.status({"requests": [{"requestId": "missing"}]})
-        self.assertEquals({'status': 'complete', 'requests': [{'status': 'complete', 'message': '', 'requestId': 'missing', 'machines': []}]}, status_response)
-        
-        status_response = provider.status({"requests": [{"requestId": "delete-missing"}]})
-        self.assertEquals({'status': 'running', 'requests': [{'status': 'running', "message": "Unknown termination request id.", 'requestId': 'delete-missing', 'machines': []}]}, status_response)
-        
-    def test_shutdown_status(self):
-        provider = self._new_provider()
-        term_requests = provider.terminate_json
-        term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
-        
-        self.assertEquals(term_response["status"], "complete")
-        self.assertTrue(term_response["requestId"] in term_requests.requests)
-        self.assertEquals({"id-123": "host-123"}, term_requests.requests[term_response["requestId"]]["machines"])
-        
-        status_response = provider.shutdown_status({"machines": [{"machineId": "id-123", "name": "host-123"}]})
-        self.assertEquals(1, len(status_response["requests"]))
-        self.assertEquals(1, len(status_response["requests"][0]["machines"]))
-        
-        status_response = provider.shutdown_status({"machines": [{"machineId": "missing", "name": "missing-123"}]})
-        self.assertEquals({'requests': [], 'status': 'complete'}, status_response)
+        # even for non-existent machines, just say it was deleted. Otherwise the hostname (missing-123) can become a black hole.
+        status_response = provider.terminate_status({"machines": [{"machineId": "missing", "name": "missing-123"}]})
+        self.assertEquals({'machines': [{'machineId': 'missing',
+                                        'name': 'missing-123',
+                                        'result': 'succeed',
+                                        'status': 'deleted'}],
+                                        'status': 'complete'}, status_response)
         
     def test_terminate_error(self):
         provider = self._new_provider()
@@ -295,19 +309,73 @@ class Test(unittest.TestCase):
         
         # if it raises an exception, don't mark the request id as successful.
         provider.cluster.raise_during_termination = True
-        term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
-        self.assertEquals(RequestStates.running, term_response["status"])
-        failed_request_id = term_response["requestId"]
-        self.assertNotEquals(True, provider.terminate_json.read()[term_response["requestId"]].get("terminated"))
+        failed_term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
+        self.assertEquals(RequestStates.complete, failed_term_response["status"])
+        self.assertEquals(2, len(provider.terminate_json.read().keys()))
         
-        # if it raises an exception, don't mark the request id as successful.
+        failed_request_id = None
+        for r_id, r in provider.terminate_json.read().iteritems():
+            if not r.get("terminated"):
+                failed_request_id = r_id
+                break
+        assert failed_request_id
+        
+        self.assertNotEquals(True, provider.terminate_json.read()[failed_request_id].get("terminated"))
+        
+        # now it won't raise an exception
         provider.cluster.raise_during_termination = False
         term_response = provider.terminate_machines({"machines": [{"name": "host-123", "machineId": "id-123"}]})
         self.assertEquals(RequestStates.complete, term_response["status"])
-        self.assertEquals(True, provider.terminate_json.read()[term_response["requestId"]].get("terminated"))
-        
-        provider.status({"requests": [{"requestId": failed_request_id}]})
         self.assertEquals(True, provider.terminate_json.read()[failed_request_id].get("terminated"))
+        
+    def test_expired_creation_requests(self):
+        
+        for invoke_status_before_templates in [True, False]:
+            for should_nodes_query_fail in [True, False]:
+                provider = self._new_provider()
+                
+                t0 = (1970, 1, 1, 0, 0, 0)
+                # > 75 minutes so that creation request times out
+                t1 = (1970, 1, 1, 1, 16, 0)
+                # > 120 minutes so that requests expire
+                t2 = (1970, 1, 3, 1, 17, 0)
+                
+                provider.clock.now = t0
+                provider.templates()
+                
+                provider.cluster.raise_during_nodes_query = should_nodes_query_fail
+                
+                response = provider.create_machines(self._make_request("executea4", 1))
+                self.assertEquals(RequestStates.running, response["status"])
+                
+                provider.cluster.raise_during_nodes_query = False
+                
+                self.assertEquals(1, len(provider.cluster._nodes["execute"]))
+                self.assertEquals("Allocating", provider.cluster._nodes["execute"][0]["Status"])
+                provider.clock.now = t1
+                
+                # even if status is never called, templates should be able to shutdown old nodes
+                if invoke_status_before_templates:
+                    provider.create_status({"requests": [{"requestId": response["requestId"]}]})
+                
+                # we have a creation request and no terminations
+                self.assertEquals(1, len(provider.creation_json.read()))
+                self.assertEquals(0, len(provider.terminate_json.read()))
+                
+                provider.templates()
+                
+                self.assertEquals(1, len(provider.cluster._nodes["execute"]))
+                self.assertEquals("TerminationPreparation", provider.cluster._nodes["execute"][0]["Status"])
+                
+                # The creation request timed out and we created a termination request in response
+                self.assertEquals(1, len(provider.creation_json.read()))
+                self.assertEquals(1, len(provider.terminate_json.read()))
+                
+                provider.clock.now = t2
+                provider.templates()
+                # Both requests completed and expired, so we can delete them.
+                self.assertEquals(0, len(provider.creation_json.read()))
+                self.assertEquals(0, len(provider.terminate_json.read()))
         
     def test_json_store_lock(self):
         json_store = JsonStore("test.json", "/tmp")
@@ -360,18 +428,17 @@ class Test(unittest.TestCase):
         self.assertEquals(RequestStates.running, response["status"])
         self.assertNotEquals(None, response.get("requestId"))
         
+        # always, always, always return complete / successful termination. We will handle retries. LSF RC can 'blackhole' hostnames
+        # by leaving them in a failed termination state (you'll see Deallaction_Sent / active in bhosts -rconly)
         provider.cluster.raise_during_termination = True
         term_response = provider.terminate_machines({"machines": [{"machineId": "mach123", "name": "n-1-123"}]})
-        self.assertEquals(RequestStates.running, term_response["status"])
+        self.assertEquals(RequestStates.complete, term_response["status"])
         
     def test_failed_getent(self):
         provider = self._new_provider()
         provider.hostnamer.hostname = lambda x: None
         provider.hostnamer.private_ip_address = lambda x: None
         
-        
-    
-                                                     
     def test_missing_template_in_request(self):
         provider = self._new_provider()
         provider.templates_json.requests.clear()
@@ -380,35 +447,49 @@ class Test(unittest.TestCase):
         
     def test_expired_terminations(self):
         provider = self._new_provider()
-        term_response = provider.terminate_machines({"machines": [{"machineId": "id-123", "name": "e-1-123"},
-                                                                  {"machineId": "id-124", "name": "e-2-234"}]})
+        machines = {"machines": [{"machineId": "id-123", "name": "e-1-123"},
+                                 {"machineId": "id-124", "name": "e-2-234"}]}
+        term_response = provider.terminate_machines(machines)
         self.assertEquals(RequestStates.complete, term_response["status"])
-        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
-        self.assertEquals(RequestStates.complete, stat_response["requests"][0]["status"])
-        self.assertIn(term_response["requestId"], provider.terminate_json.read())
+        self.assertNotIn("requestId", term_response)
+        
+        stat_response = provider.terminate_status(machines)
+        self.assertEquals(2, len(stat_response["machines"]))
+        self.assertEquals(RequestStates.complete, stat_response["status"])
         
         # expires after 2 hours, so this is just shy of 2 hours
         provider.clock.now = (1970, 1, 1, 1.99, 0, 0)
         
-        expired_request = term_response["requestId"]
+        expired_request = provider.terminate_json.read().keys()[0]
         
         term_response = provider.terminate_machines({"machines": [{"machineId": "id-234", "name": "n-1-123"}]})
-        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
-        self.assertEquals(RequestStates.complete, stat_response["requests"][0]["status"])
+        stat_response = provider.terminate_status({"machines": [{"machineId": "id-234", "name": "n-1-123"}]})
+        self.assertEquals(1, len(stat_response["machines"]))
+        self.assertEquals(RequestStates.complete, stat_response["status"])
+        self.assertEquals(MachineStates.deleted, stat_response["machines"][0]["status"])
+        self.assertEquals("n-1-123", stat_response["machines"][0]["name"])
+        self.assertEquals("id-234", stat_response["machines"][0]["machineId"])
+        
         self.assertIn(expired_request, provider.terminate_json.read())
         
-        # just over 2 hours, it will be gone.
+        # just over 2 hours, it qualifies for retirement, though terminated is false.
+        # also setting raise_during_termination, so that we don't terminate then immediately retire the request
         provider.clock.now = (1970, 1, 1, 2.01, 0, 0)
+        provider.cluster.raise_during_termination = True
         with provider.terminate_json as requests:
             for _, request in requests.iteritems():
                 request["terminated"] = False
-        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
+                
+        self.assertIn(expired_request, provider.terminate_json.read())
+        provider.templates()
         self.assertIn(expired_request, provider.terminate_json.read())
         
+        # set to terminated=true, the request will get retired
         with provider.terminate_json as requests:
             for _, request in requests.iteritems():
                 request["terminated"] = True
-        stat_response = provider.status({"requests": [{"requestId": term_response["requestId"]}]})
+        provider.templates()
+        
         self.assertNotIn(expired_request, provider.terminate_json.read())
         
     def test_disable_but_do_not_delete_missing_buckets(self):
@@ -555,7 +636,8 @@ class Test(unittest.TestCase):
                                                "buckets": [a4bucket, a8bucket]}]})
         epoch_clock = MockClock((1970, 1, 1, 0, 0, 0))
         hostnamer = MockHostnamer()
-        provider = cyclecloud_provider.CycleCloudProvider(provider_config, cluster, hostnamer, json_writer, RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
+        provider = cyclecloud_provider.CycleCloudProvider(provider_config, cluster, hostnamer, json_writer,
+                                                          RequestsStoreInMem(), RequestsStoreInMem(), RequestsStoreInMem(), epoch_clock)
             
         templates = provider.templates()
         for template in templates["templates"]:

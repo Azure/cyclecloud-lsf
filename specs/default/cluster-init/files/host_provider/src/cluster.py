@@ -22,13 +22,16 @@ class Cluster:
         return self.get("/clusters/%s/status" % self.cluster_name)
 
     def add_nodes(self, request):
-        return self.post("/clusters/%s/nodes/create" % self.cluster_name, json=request)
+        return json.loads(self.post("/clusters/%s/nodes/create" % self.cluster_name, json=request))
     
     def nodes(self, request_ids):
         responses = {}
         for request_id in request_ids:
             responses[request_id] = self.get("/clusters/%s/nodes" % self.cluster_name, request_id=request_id)
         return responses
+    
+    def nodes_by_operation_id(self, operation_id):
+        return self.get("/clusters/%s/nodes" % self.cluster_name, operation_id=operation_id)
     
     def shutdown(self, machines, hostnamer):
         id_to_ip = {}
