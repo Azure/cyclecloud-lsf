@@ -763,9 +763,9 @@ class CycleCloudProvider:
         
     def _cleanup_expired_requests(self, requests, retirement, completed_key):
         now = calendar.timegm(self.clock())
-        for req_id in list(requests.keys()):
+        for request_id in list(requests.keys()):
             try:
-                request = requests[req_id]
+                request = requests[request_id]
                 request_time = request.get("requestTime", -1)
                 
                 if request_time < 0:
@@ -779,11 +779,11 @@ class CycleCloudProvider:
                 request_time = float(request_time)
                     
                 if (now - request_time) > retirement:
-                    logger.warn("Found retired request %s", request)
-                    requests.pop(req_id)
+                    logger.warn("Found retired request requestId=%s request=%s", request_id, request)
+                    requests.pop(request_id)
                 
             except Exception:
-                logger.exception("Could not remove stale request %s", req_id)
+                logger.exception("Could not remove stale request %s", request_id)
                 
     @failureresponse({"status": RequestStates.complete_with_error})
     def terminate_machines(self, input_json):
