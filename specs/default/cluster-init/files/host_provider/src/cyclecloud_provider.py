@@ -648,7 +648,18 @@ class CycleCloudProvider:
                 
         if never_queried_requests:
             try:
+                unrecoverable_request_ids = []
                 response = self.create_status({"requests": [{"requestId": r} for r in never_queried_requests]}, lambda input_json, **ignore: input_json)
+                
+                for request in response["requests"]:
+                    if request["status"] == RequestStates.complete_with_error and not request.get("_recoverable_", True):
+                        unrecoverable_request_ids.append(request["requestId"])
+                
+                # if we got a 404 on the request_id (a failed nodes/create call), set allNodes to an empty list so that we don't retry indefinitely. 
+                with self.creation_json as creation_requests:
+                    for request_id in unrecoverable_request_ids:
+                        creation_requests[request_id]["allNodes"] = []
+                         
             except Exception:
                 logger.exception("Could not request status of creation quests.")
         
@@ -675,10 +686,11 @@ class CycleCloudProvider:
                     
                     logger.warn("Expired creation request found - %s. %d out of %d completed.", request_id, len(completed_node_ids), len(request["allNodes"]))
                     
-            if not to_shutdown:
+            if not to_mark_complete:
                 return
             
-            self.terminate_machines({"machines": [{"machineId": x, "name": x} for x in to_shutdown]})
+            if to_shutdown:
+                self.terminate_machines({"machines": [{"machineId": x, "name": x} for x in to_shutdown]})
             
             for request in to_mark_complete:
                 request["completed"] = True
