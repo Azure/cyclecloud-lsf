@@ -629,6 +629,10 @@ class CycleCloudProvider:
                 machines.append(machine)
                 
             with self.creation_json as requests_store:
+                if request_id not in requests_store:
+                    logging.warn("Unknown request_id %s. Creating a new entry and resetting requestTime", request_id)
+                    requests_store[request_id] = {"requestTime": calendar.timegm(self.clock())}
+                    
                 requests_store[request_id]["completedNodes"] = completed_nodes
                 if requests_store[request_id].get("allNodes") is None:
                     requests_store[request_id]["allNodes"] = all_nodes
