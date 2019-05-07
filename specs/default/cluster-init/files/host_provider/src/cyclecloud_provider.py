@@ -15,9 +15,6 @@ import util
 import lsf
 from cyclecliwrapper import UserError
 import logging
-import time
-from datetime import datetime
-from itertools import chain
 
 
 logger = None
@@ -169,7 +166,6 @@ class CycleCloudProvider:
                     
                 active_machine_types_by_nodearray[nodearray_root["name"]] = set(machine_types)
                                      
-            
             default_priority = len(nodearrays) * 10
             
             for nodearray_root in nodearrays:
@@ -601,6 +597,9 @@ class CycleCloudProvider:
                     machine_result = MachineResults.succeed
                     machine_status = MachineStates.active
                     private_ip_address = node.get("PrivateIp")
+                    if util.is_chaos_mode():
+                        private_ip_address = None
+                        
                     if not private_ip_address:
                         logger.warn("No ip address found for ready node %s", node.get("Name"))
                         machine_result = MachineResults.executing

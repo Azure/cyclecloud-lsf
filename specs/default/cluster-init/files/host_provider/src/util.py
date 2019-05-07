@@ -9,6 +9,8 @@ import shutil
 import subprocess
 import sys
 import traceback
+import random
+from cyclecliwrapper import UserError
 
 
 try:
@@ -302,12 +304,38 @@ def provider_config_from_environment(pro_conf_dir=os.getenv('PRO_CONF_DIR', os.g
     return ProviderConfig(config), logger, fine
 
 
+def custom_chaos_mode(action):
+    def wrapped(func):
+        return chaos_mode(func, action)
+    return wrapped
+
+
+def chaos_mode(func, action=None):
+    def default_action():
+        raise random.choice([RuntimeError, ValueError, UserError])("Random failure")
+    
+    action = action or default_action
+    
+    def wrapped(*args, **kwargs):
+        if is_chaos_mode():
+            return action()
+            
+        return func(*args, **kwargs)
+    
+    return wrapped
+
+
+def is_chaos_mode():
+    return random.random() < float(os.getenv("AZURECC_CHAOS_MODE", 0))
+
+
 class Hostnamer:
     
     def __init__(self, use_fqdn=True):
         self.use_fqdn = use_fqdn
         self._bhost_cache = {}
     
+    @custom_chaos_mode(lambda: None)
     def hostname(self, private_ip_address):
         try:
             toks = [x.strip() for x in subprocess.check_output(["getent", "hosts", private_ip_address]).split()]
@@ -321,6 +349,7 @@ class Hostnamer:
             logging.error(str(e))
             return None
     
+    @custom_chaos_mode(lambda: None)
     def private_ip_address(self, hostname):
         '''
         Tries to look up the private ip based on the existing bhosts -rconly -w private ip listed. If that fails, 

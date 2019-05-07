@@ -2,6 +2,7 @@ import json
 
 import logging
 from urllib import urlencode
+from util import chaos_mode
 
 
 try:
@@ -78,6 +79,7 @@ class Cluster:
             raise cyclecli.ConfigError("Please define key %s in the provider config." % key)
         return value
     
+    @chaos_mode
     def post(self, url, data=None, json=None, **kwargs):
         root_url = self._get_or_raise("cyclecloud.config.web_server")
         self.logger.debug("POST %s with data %s json %s kwargs %s", root_url + url, data, json, kwargs)
@@ -86,7 +88,8 @@ class Cluster:
         if response.status_code < 200 or response.status_code > 299:
             raise ValueError(response.content)
         return response.content
-        
+    
+    @chaos_mode
     def get(self, url, **params):
         root_url = self._get_or_raise("cyclecloud.config.web_server")
         self.logger.debug("GET %s with params %s", root_url + url, params)
