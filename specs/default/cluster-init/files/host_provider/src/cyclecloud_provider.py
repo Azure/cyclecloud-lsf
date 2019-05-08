@@ -78,9 +78,15 @@ class CycleCloudProvider:
         try:
             return self._templates()
         except Exception:
+            logger.exception("Could not fetch templates, attempting to use cached version.")
             # just use the last valid templates instead
             prior_templates = self.templates_json.read()
+            if not prior_templates:
+                logging.warn("No templates found on disk. Returning a placeholder template.")
+                return self.json_writer({"templates": [PLACEHOLDER_TEMPLATE], "status": RequestStates.complete_with_error})
             return self.json_writer({"templates": list(prior_templates.values())}, debug_output=False)
+        except:
+            logger.exception("Could not fetch templates, attempting to use cached version.")
     
     def _templates(self):
         """
@@ -163,7 +169,9 @@ class CycleCloudProvider:
                 nodearray = nodearray_root.get("nodearray")
                 machine_types = nodearray.get("MachineType")
                 if isinstance(machine_types, basestring):
-                    machine_types = [m.strip().lower() for m in machine_types.split(",")]
+                    machine_types = [m.strip() for m in machine_types.split(",")]
+                    
+                machine_types = [m.lower() for m in machine_types]
                     
                 active_machine_types_by_nodearray[nodearray_root["name"]] = set(machine_types)
                                      
@@ -305,6 +313,7 @@ class CycleCloudProvider:
 
         # Note: we aren't going to store this, so it will naturally appear as an error during allocation.
         if not at_least_one_available_bucket:
+            logging.warn("No available templates found! Returning placeholder.")
             lsf_templates.insert(0, PLACEHOLDER_TEMPLATE)
         
         return self.json_writer({"templates": lsf_templates}, debug_output=False)
@@ -467,7 +476,7 @@ class CycleCloudProvider:
                                      "message": "Azure CycleCloud experienced an error, though it may have succeeded: %s" % unicode(e)})
             
     @failureresponse({"requests": [], "status": RequestStates.running})
-    def create_status(self, input_json, json_writer):
+    def create_status(self, input_json, json_writer=None):
         """
         input:
         {'requests': [{'requestId': 'req-123'}, {'requestId': 'req-234'}]}
@@ -489,6 +498,8 @@ class CycleCloudProvider:
          'status': 'complete'}
 
         """
+        json_writer = json_writer or self.json_writer
+        
         response = {"requests": []}
         
         request_status = RequestStates.complete
@@ -499,6 +510,20 @@ class CycleCloudProvider:
         failed_request_ids = set()
         
         for request_id in request_ids:
+            # immediately mark delete- as successfully deleted. Seems to only happen in versions <= 10.1.0.6,
+            # otherwise shutdown status is invoked
+            if request_id.startswith("delete-"):
+                with self.terminate_json as terminate_requests:
+                    term_request = terminate_requests.get(request_id, {"machines": {}})
+                    term_machines = []
+                    for name, machine_id in term_request.get("machines", {}).iteritems():
+                        term_machines.append({"name": name, "machineId": machine_id, "result": MachineResults.succeed, "status": MachineStates.deleted})
+                    term_response = {"requestId": request_id,
+                                     "machines": term_machines,
+                                     "status": RequestStates.complete}
+                    response["requests"].append(term_response)
+                    continue
+                
             try:
                 failed_request_ids.add(request_id)
                 nodes_by_request_id.update(self.cluster.nodes(request_ids=request_ids))
@@ -523,6 +548,7 @@ class CycleCloudProvider:
         requesting_count = 0
         
         for request_id, requested_nodes in nodes_by_request_id.iteritems():
+                
             if request_id in failed_request_ids:
                 continue
             
@@ -828,15 +854,16 @@ class CycleCloudProvider:
             else:
                 message = "CycleCloud failed to shutdown the VM(s), but will retry."
             
-            return self.json_writer({"message": message,
+            return self.json_writer({"requestId": request_id,
+                                     "message": message,
                                      "status": RequestStates.complete
                                      })
         except Exception as e:
             logger.exception(unicode(e))
             if request_id_persisted:
                 # only fail this if we could not persist the termination request to retry again later.
-                return self.json_writer({"status": RequestStates.complete, "message": unicode(e)})
-            return self.json_writer({"status": RequestStates.complete_with_error, "message": unicode(e)})
+                return self.json_writer({"requestId": request_id, "status": RequestStates.complete, "message": unicode(e)})
+            return self.json_writer({"requestId": request_id, "status": RequestStates.complete_with_error, "message": unicode(e)})
         
 
 def _placement_groups(config):
