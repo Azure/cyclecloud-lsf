@@ -888,8 +888,7 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
 
         input_json = util.load_json(input_json_path)
         
-        if provider.fine:
-            logger.debug("Arguments - %s %s %s", cmd, ignore, json.dumps(input_json))
+        logger.debug("Arguments - %s %s %s", cmd, ignore, json.dumps(input_json))
                 
         if cmd == "templates":
             provider.templates()
@@ -898,8 +897,8 @@ def main(argv=sys.argv, json_writer=simple_json_writer):  # pragma: no cover
         elif cmd in ["status", "create_status"]:
             provider.create_status(input_json, provider.json_writer)
         elif cmd in ["terminate_status"]:
-                # doesn't pass in a requestId but just a list of machines.
-                provider.terminate_status(input_json)
+            # doesn't pass in a requestId but just a list of machines.
+            provider.terminate_status(input_json)
         elif cmd == "terminate_machines":
             provider.terminate_machines(input_json)
         else:
