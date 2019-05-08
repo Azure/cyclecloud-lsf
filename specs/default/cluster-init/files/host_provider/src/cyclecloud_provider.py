@@ -10,7 +10,7 @@ import uuid
 
 from lsf import RequestStates, MachineStates, MachineResults
 import cluster
-from util import JsonStore, failureresponse
+from util import JsonStore, failureresponse, is_chaos_mode
 import util
 import lsf
 from cyclecliwrapper import UserError
@@ -547,6 +547,9 @@ class CycleCloudProvider:
         unknown_state_count = 0
         requesting_count = 0
         
+        # only used for chaos mode testing
+        set_ip_to_none = is_chaos_mode()
+        
         for request_id, requested_nodes in nodes_by_request_id.iteritems():
                 
             if request_id in failed_request_ids:
@@ -624,7 +627,7 @@ class CycleCloudProvider:
                     machine_result = MachineResults.succeed
                     machine_status = MachineStates.active
                     private_ip_address = node.get("PrivateIp")
-                    if util.is_chaos_mode():
+                    if set_ip_to_none:
                         private_ip_address = None
                         
                     if not private_ip_address:
@@ -684,7 +687,7 @@ class CycleCloudProvider:
                 logger.warn("Request %s completed with error: %s.", request_id, message)
             request["message"] = message
         
-        response["status"] = lsf.RequestStates.complete
+        response["status"] = request_status
         
         return json_writer(response)
     
