@@ -52,9 +52,10 @@ def fix_blackholes(dry_run):
     with hosts_json as hosts:
         for host in hosts["hosts"]:
             if host["state"] == "Deallocated_Sent" and host["machineState"] == "active":
+                hostname = host.get("name", "no_hostname")
                 at_least_one = True
-                print ">>>", host["name"], "state=Deallocated_Sent -> Done"
-                print ">>>", host["name"], "machineState=active -> deleted"
+                print ">>>", hostname, "state=Deallocated_Sent -> Done"
+                print ">>>", hostname, "machineState=active -> deleted"
                 if not dry_run:
                     host["state"] = "Done"
                     host["machineState"] = "deleted"
