@@ -117,16 +117,17 @@ fi""" % clz.port)
         self._call("00-create-azurecc-profile.sh")
         self._call("01-modify-lsf-local-resources.sh")
         self._assert_local_resources_equals('"[resource canary]"')
-        
-    def test_modify_lsf_local_resources_skip_because_uri(self):
+    
+    # we used to disable modify_local_resources if custom_script_uri was specified. 
+    def test_modify_lsf_local_resources_not_skip_because_uri(self):
         self._create_jetpack_config({"lsf": {"lsf_top": self.lsf_top,
-                                             "custom_script_uri": "anything",
-                                             "attributes": {"custom1": "custom_value1",
-                                                            "custom2": "custom_value2"},
-                                             "attribute_names": "custom1 custom2"}})
+                                             "local_etc": self.lsf_top + "/conf",
+                                             "custom_script_uri": "echo hello world",
+                                             "attributes": {"custom1": "custom_value1"},
+                                             "attribute_names": "custom1"}})
         self._call("00-create-azurecc-profile.sh")
         self._call("01-modify-lsf-local-resources.sh")
-        self._assert_local_resources_equals('"[resource canary]"')
+        self._assert_local_resources_equals('" [resourcemap custom_value1*custom1]"')
         
     def test_modify_lsf_local_resources(self):
         self._create_jetpack_config({"lsf": {"lsf_top": self.lsf_top,
@@ -159,17 +160,20 @@ fi""" % clz.port)
     def test_run_custom_script_uri(self):
         with open("custom_script.sh", "w") as fw:
             fw.write("#!/bin/bash -e\n")
-            fw.write('echo LSF_LOCAL_RESOURCES=$name1 and $name2 > %s/conf/lsf.conf' % self.lsf_top)
+            fw.write('echo LSF_LOCAL_RESOURCES=$name1 and $name2 > %s/conf/lsf.conf\n' % self.lsf_top)
         os.system("chmod +x custom_script.sh")
         # so we will skip step 01 and just 
         self._create_jetpack_config({"lsf": {"lsf_top": self.lsf_top,
+                                             "local_etc": self.lsf_top + "/conf",
                                              "custom_script_uri": "file://%s" % os.path.abspath("custom_script.sh"),
                                              "custom_env_names": "name1 name2",
+                                             "attributes": {"custom1": "True", "custom2": "falsE"},
+                                             "attribute_names": "custom1 custom2",
                                              "custom_env": {"name1": "value1",
                                                            "name2": "value2"}}})
         self._call("00-create-azurecc-profile.sh")
         self._call("01-modify-lsf-local-resources.sh")
-        self._assert_local_resources_equals('"[resource canary]"')
+        self._assert_local_resources_equals('" [resource custom1]"')
         self._call("02-run-custom-script-uri.sh")
         self._assert_local_resources_equals('value1 and value2')
         

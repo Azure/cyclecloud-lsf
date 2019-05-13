@@ -67,16 +67,11 @@ function should_skip_script() {
 			return
 		fi
 		skip_modify_local_resources=$(jetpack config lsf.skip_modify_local_resources 0)
-		custom_script_uri=$(jetpack config lsf.custom_script_uri 0)
 		if [ $skip_modify_local_resources != 0 ]; then
 			echo skipping $0 because lsf.skip_modify_local_resources is set to $skip_modify_local_resources >&2
 			echo 1
-		# Note: disable this check if you want to run both scripts.
-		elif [ $custom_script_uri == 0 ]; then
-			echo 0
 		else
-			echo skipping $0 because lsf.custom_script_uri is set to $custom_script_uri. >&2
-			echo 1
+		    echo 0
 		fi
 	else
 		echo no jetpack installed, continuing >&2
@@ -88,7 +83,7 @@ function should_skip_script() {
 function is_blacklisted() {
 	# attributes we want exposed to allocate VMs but that we don't want to
 	# override as a local resource
-	blacklisted_attributes=("mem" "ncpus" "type" "ncores", "machinetypefull")
+	blacklisted_attributes=("mem" "ncpus" "type" "ncores", "machinetypefull", "custom_script_uri")
 	
     # ex: is_blacklisted "mem"
     if [[ "${blacklisted_attributes[@]}" =~ "$1" ]]; then

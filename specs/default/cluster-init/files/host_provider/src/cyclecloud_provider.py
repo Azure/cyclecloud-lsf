@@ -196,6 +196,9 @@ class CycleCloudProvider:
                     custom_env = self._parse_UserData(record.pop("UserData", "") or "")
                     record["UserData"] = {"lsf": {}}
                     
+                    if record.get("customScriptUri"):
+                        record["UserData"]["lsf"]["custom_script_uri"] = record.get("customScriptUri")
+                        
                     if custom_env:
                         record["UserData"]["lsf"] = {"custom_env": custom_env,
                                                      "custom_env_names": " ".join(sorted(custom_env.iterkeys()))}
@@ -270,9 +273,6 @@ class CycleCloudProvider:
             else:
                 ret[key] = value_array[1]
         
-        if template.get("customScriptUri"):
-            ret["custom_script_uri"] = template.get("customScriptUri")
-            
         return ret
         
     def _parse_UserData(self, user_data):
