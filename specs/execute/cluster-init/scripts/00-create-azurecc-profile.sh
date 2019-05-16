@@ -3,7 +3,7 @@
 set -e
 
 lsf_top=$(jetpack config lsf.lsf_top)
-azurecc_profile=${lsf_top}/conf/azurecc.profile
+azurecc_profile=$(jetpack config lsf.local_etc /etc/lsf)/azurecc.profile
 
 env_names=$(jetpack config lsf.custom_env_names 0) 2> /dev/null
 

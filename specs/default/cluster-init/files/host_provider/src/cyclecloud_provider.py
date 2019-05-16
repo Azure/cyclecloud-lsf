@@ -355,15 +355,21 @@ class CycleCloudProvider:
             
             user_data = template.get("UserData")
 
-            if rc_account != "default":
-                if "lsf" not in user_data:
-                    user_data["lsf"] = {}
+            if "lsf" not in user_data:
+                user_data["lsf"] = {}
+            
+            if "custom_env" not in user_data["lsf"]:
+                user_data["lsf"]["custom_env"] = {}
                 
-                if "custom_env" not in user_data["lsf"]:
-                    user_data["lsf"]["custom_env"] = {}
-                    
-                user_data["lsf"]["custom_env"]["rc_account"] = rc_account
-                user_data["lsf"]["custom_env_names"] = " ".join(sorted(user_data["lsf"]["custom_env"].keys()))
+            if not template["attributes"]:
+                template["attributes"] = {}
+            
+            template["attributes"]["rc_account"] = ("String", rc_account)
+            if "rc_account" not in template.get("attribute_names", "").split():
+                template["attribute_names"] = template.get("attribute_names", "") + " rc_account"
+                
+            user_data["lsf"]["custom_env"]["rc_account"] = rc_account
+            user_data["lsf"]["custom_env_names"] = " ".join(sorted(user_data["lsf"]["custom_env"].keys()))
             
             nodearray = _get("nodearray")
             
