@@ -53,7 +53,9 @@ fi""" % clz.port)
         os.system("chmod +x jetpack")
 
     def setUp(self):
-        
+        if os.path.exists("/tmp/azurecc.profile"):
+            os.remove("/tmp/azurecc.profile")
+            
         self.lsf_top = tempfile.mkdtemp("lsf_top")
         os.makedirs(os.path.join(self.lsf_top, "conf"))
         with open(os.path.join(self.lsf_top, "conf", "lsf.conf"), "w") as fw:
@@ -97,6 +99,7 @@ fi""" % clz.port)
                     
     def test_execute_create_azurecc_profile(self):
         self._create_jetpack_config({"lsf": {"lsf_top": self.lsf_top,
+                                             "local_etc": "/tmp",
                                             "custom_env_names": "name1 name2",
                                             "custom_env": {"name1": "value1",
                                                            "name2": "value2"}}})
@@ -104,12 +107,15 @@ fi""" % clz.port)
         self._assert_profile_equals({"export name1": "value1", "export name2": "value2"})
         
     def test_execute_create_azurecc_profile_empty(self):
-        self._create_jetpack_config({"lsf": {"lsf_top": self.lsf_top}})
+        assert not os.path.exists("/tmp/azurecc.profile")
+        self._create_jetpack_config({"lsf": {"lsf_top": self.lsf_top,
+                                             "local_etc": "/tmp"}})
         self._call("00-create-azurecc-profile.sh")
         self._assert_profile_equals({})
         
     def test_modify_lsf_local_resources_disable(self):
         self._create_jetpack_config({"lsf": {"lsf_top": self.lsf_top,
+                                             "local_etc": "/tmp",
                                              "skip_modify_local_resources": 1,
                                              "attributes": {"custom1": "custom_value1",
                                                             "custom2": "custom_value2"},
@@ -202,7 +208,7 @@ fi""" % clz.port)
         return key_vals 
     
     def _assert_profile_equals(self, expected):
-        profile_vars = self._parse(os.path.join(self.lsf_top, "conf", "azurecc.profile"))
+        profile_vars = self._parse("/tmp/azurecc.profile")
         self.assertEquals(expected, profile_vars)
         
     def _assert_local_resources_equals(self, expected):
