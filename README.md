@@ -5,14 +5,19 @@ CycleCloud project for Spectrum LSF.
 
 ## Prerequisites
 
-This project requires running Azure CycleCloud version 7.7.1 or later.
+This project requires running Azure CycleCloud version 7.7.4 or later.
 
-Users must provide LSF binaries:
+Users must provide as a minimum the following LSF binaries:
 
 * lsf10.1_linux2.6-glibc2.3-x86_64.tar.Z
 * lsf10.1_lsfinstall_linux_x86_64.tar.Z
 
 which belong in the lsf project `blobs/` directory.
+
+To use a licensed version (i.s.o. trail version), the followng file is required:
+
+* lsf_std_entitlement.dat
+
 
 ## Start a LSF Cluster
 
