@@ -18,6 +18,10 @@ To use a licensed version (i.s.o. trail version), the followng file is required:
 
 * lsf_std_entitlement.dat
 
+Also please provide Fix Pack 7 to the blobs directory, so the latest fixes can be applied:
+
+* lsf10.1_linux2.6-glibc2.3-x86_64-509238.tar.Z
+
 
 ## Start a LSF Cluster
 
