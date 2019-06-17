@@ -57,3 +57,10 @@ execute "run_lsfinstall" do
     not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
     not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
+
+execute "run_lsfinstall_sp7" do
+    command "tar zxvf #{tar_dir}/#{lsf_product_sp7}.tar.Z"
+    cwd "#{lsf_top}/#{lsf_version}"
+    not_if  'grep Pack_7 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
+    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+end
