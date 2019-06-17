@@ -10,6 +10,7 @@ lsf_arch = node['lsf']['arch']
 clustername = node['lsf']['clustername']
 
 lsf_product = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}"
+lsf_product_sp7 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-509238"
 lsf_install = "lsf#{lsf_version}_lsfinstall_linux_#{lsf_arch}"
 
 jetpack_download "#{lsf_install}.tar.Z" do
@@ -22,6 +23,18 @@ jetpack_download "#{lsf_product}.tar.Z" do
     project "lsf"
     dest tar_dir
     not_if { ::File.exist?("#{tar_dir}/#{lsf_product}.tar.Z") }
+end
+
+jetpack_download "#{lsf_product_sp7}.tar.Z" do
+    project "lsf"
+    dest tar_dir
+    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_sp7}.tar.Z") }
+end
+
+jetpack_download "lsf_std_entitlement.dat" do
+    project "lsf"
+    dest tar_dir
+    not_if { ::File.exist?("#{tar_dir}/lsf_std_entitlement.dat") }
 end
 
 execute "untar_installers" do 
