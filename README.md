@@ -14,7 +14,7 @@ Users must provide as a minimum the following LSF binaries:
 
 which belong in the lsf project `blobs/` directory.
 
-To use a licensed version (i.s.o. trail version), the followng file is required:
+To use a licensed version (i.s.o. trial version), the following file is required:
 
 * lsf_std_entitlement.dat
 
@@ -42,8 +42,8 @@ This project extends the RC for LSF for an Azure CycleCloud provider: azurecc.
 ### Upgrading CycleCloud
 
 A customer RC-compatible API is needed to run the resource connector which is available
-in CycleCloud version >= 7.7.1. 
-CycleCloud can be downloaded from this [link](https://aka.ms/cyclecloud-RC)
+in CycleCloud version >= 7.7.4. 
+CycleCloud can be downloaded from this [link](https://download.microsoft.com/download/D/4/7/D470EBC3-6756-4621-B1CD-AB16E96D2E8C/cyclecloud-7.7.5.x86_64.rpm)
 
 The Resource Connector will be configured automatically when running the cluster from the _lsf.txt_ template.  
 
@@ -54,10 +54,10 @@ To configure an pre-existing LSF cluster to use CycleCloud RC proceed to the nex
 The azurecc resource connector is not yet part of the LSF product release.
 For now, it's necessary to install the provider plugin.
 
-1. Copy the project files into the RC library and conf directories on lsf.
+1. Copy the project files into the RC library on lsf.
 
 ```bash
-wget https://github.com/Azure/cyclecloud-lsf/archive/master.zip
+wget https://github.com/Azure/cyclecloud-lsf/archive/feature/2.0.1-rc.zip
 unzip master.zip
 rc_source_dir="cyclecloud-lsf-master/specs/default/cluster-init/files/host_provider"
 
@@ -80,7 +80,8 @@ cp $rc_source_dir/src/*.py $rc_scripts_dir/src/
       "type": "azureProv", 
       "name": "azurecc", 
       "scriptPath": "resource_connector/azurecc", 
-      "confPath": "resource_connector/azurecc"
+      "confPath": "resource_connector/azurecc",
+      "path": "resource_connector/azurecc/provider.json"
     }
   ]
 }
@@ -108,6 +109,35 @@ This user should be assigned the _cyclecloud_access_ role.
             "web_server": "https://cyclecloud.contoso.com"
         }
     }
+}
+```
+
+Also the provider.json should be provided where the LSF actions translate to the AzureCC actions:
+
+```json
+{
+    "host_type": "azure_host",
+    "interfaces":
+    [{
+        "name": "getAvailableTemplates",
+        "action": "resource_connector/azurecc/scripts/getAvailableTemplates.sh"
+    },
+    {
+        "name": "getReturnRequests",
+        "action": "resource_connector/azurecc/scripts/getReturnRequests.sh"
+    },
+    {
+        "name": "requestMachines",
+        "action": "resource_connector/azurecc/scripts/requestMachines.sh"
+    },
+    {
+        "name": "requestReturnMachines",
+        "action": "resource_connector/azurecc/scripts/requestReturnMachines.sh"
+    },
+    {
+        "name": "getRequestStatus",
+        "action": "resource_connector/azurecc/scripts/getRequestStatus.sh"
+    }]
 }
 ```
 
