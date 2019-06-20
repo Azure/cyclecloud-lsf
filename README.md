@@ -43,7 +43,7 @@ This project extends the RC for LSF for an Azure CycleCloud provider: azurecc.
 
 A customer RC-compatible API is needed to run the resource connector which is available
 in CycleCloud version >= 7.7.4. 
-CycleCloud can be downloaded from this [link](https://download.microsoft.com/download/D/4/7/D470EBC3-6756-4621-B1CD-AB16E96D2E8C/cyclecloud-7.7.5.x86_64.rpm)
+A recent CycleCloud can be downloaded from this [link](https://download.microsoft.com/download/D/4/7/D470EBC3-6756-4621-B1CD-AB16E96D2E8C/cyclecloud-7.7.5.x86_64.rpm)
 
 The Resource Connector will be configured automatically when running the cluster from the _lsf.txt_ template.  
 
@@ -112,7 +112,7 @@ This user should be assigned the _cyclecloud_access_ role.
 }
 ```
 
-Also the provider.json should be provided where the LSF actions translate to the AzureCC actions:
+Also the _${LSF_TOP}/conf/resource_connector/azurecc/conf/provider.json_ should be provided where the LSF actions translate to the AzureCC actions:
 
 ```json
 {
