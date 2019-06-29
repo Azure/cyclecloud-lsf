@@ -8,6 +8,7 @@ lsf_version = node['lsf']['version']
 lsf_kernel = node['lsf']['kernel']
 lsf_arch = node['lsf']['arch']
 clustername = node['lsf']['clustername']
+entitled_install = node['lsf']['entitled_install']
 
 lsf_product = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}"
 lsf_product_sp7 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-509238"
@@ -28,12 +29,14 @@ end
 jetpack_download "#{lsf_product_sp7}.tar.Z" do
     project "lsf"
     dest tar_dir
+    only_if { entitled_install }
     not_if { ::File.exist?("#{tar_dir}/#{lsf_product_sp7}.tar.Z") }
 end
 
 jetpack_download "lsf_std_entitlement.dat" do
     project "lsf"
     dest tar_dir
+    only_if { entitled_install }
     not_if { ::File.exist?("#{tar_dir}/lsf_std_entitlement.dat") }
 end
 
@@ -61,6 +64,7 @@ end
 execute "run_lsfinstall_sp7" do
     command "tar zxvf #{tar_dir}/#{lsf_product_sp7}.tar.Z"
     cwd "#{lsf_top}/#{lsf_version}"
+    only_if { entitled_install }
     not_if  'grep Pack_7 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end

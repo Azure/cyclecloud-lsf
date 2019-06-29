@@ -32,4 +32,7 @@ SILENT_INSTALL="Y"
 LSF_SILENT_INSTALL_TARLIST="ALL"
 LSF_MASTER_LIST="<%= @master_list %>"
 ACCEPT_LICENSE="Y"
+<% if node[:lsf][:entitled_install]-%>
 LSF_ENTITLEMENT_FILE="/tmp/lsf_std_entitlement.dat"
+<% end -%>
+

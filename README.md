@@ -23,6 +23,21 @@ Also please provide Fix Pack 7 to the blobs directory, so the latest fixes can b
 * lsf10.1_linux2.6-glibc2.3-x86_64-509238.tar.Z
 
 
+## Launching a trial version or an entitled version.
+
+The installation files should be explicitly listed in the [project file](project.ini).
+Note that there is an alternate [entitled project file](project.ini-entitled) in this 
+repo.  
+
+To launch a trial version of LSF, copy the two trial installers to the `blobs/` directory.
+
+To launch a entitled version of LSF, copy the *three* installers and *one* entitlement
+file to the `blobs/` directory and replace _project.ini_ with _project.ini-entitled_ which 
+has the extended list of installer files.
+
+One necessary configuration change is to set `lsf.entitled_install = true` in _lsf.txt_
+indicating that the install process should download the FP7 and entitlement file.
+
 ## Start a LSF Cluster
 
 This repo contains the [cyclecloud project](https://docs.microsoft.com/en-us/azure/cyclecloud/projects).  To get started with LSF:
