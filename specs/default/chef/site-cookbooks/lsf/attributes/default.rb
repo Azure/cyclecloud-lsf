@@ -9,6 +9,7 @@ default['lsf']['local_etc'] = "/etc/lsf"
 default['lsf']['host_tokens_dir'] = "#{node['lsf']['lsf_top']}/conf/cyclecloud"
 default['lsf']['submit_only'] = false
 default['lsf']['headless'] = false
+default['lsf']['entitled_install'] = false
 
 default['lsf']['lsb_sharedir'] = "#{node['lsf']['lsf_top']}/work" 
 default['lsf']['lsf_confdir'] = "#{node['lsf']['lsf_top']}/conf" 

@@ -5,14 +5,38 @@ CycleCloud project for Spectrum LSF.
 
 ## Prerequisites
 
-This project requires running Azure CycleCloud version 7.7.1 or later.
+This project requires running Azure CycleCloud version 7.7.4 or later.
 
-Users must provide LSF binaries:
+Users must provide as a minimum the following LSF binaries:
 
 * lsf10.1_linux2.6-glibc2.3-x86_64.tar.Z
 * lsf10.1_lsfinstall_linux_x86_64.tar.Z
 
 which belong in the lsf project `blobs/` directory.
+
+To use a licensed version (i.s.o. trial version), the following file is required:
+
+* lsf_std_entitlement.dat
+
+Also please provide Fix Pack 7 to the blobs directory, so the latest fixes can be applied:
+
+* lsf10.1_linux2.6-glibc2.3-x86_64-509238.tar.Z
+
+
+## Launching a trial version or an entitled version.
+
+The installation files should be explicitly listed in the [project file](project.ini).
+Note that there is an alternate [entitled project file](project.ini-entitled) in this 
+repo.  
+
+To launch a trial version of LSF, copy the two trial installers to the `blobs/` directory.
+
+To launch a entitled version of LSF, copy the *three* installers and *one* entitlement
+file to the `blobs/` directory and replace _project.ini_ with _project.ini-entitled_ which 
+has the extended list of installer files.
+
+One necessary configuration change is to set `lsf.entitled_install = true` in _lsf.txt_
+indicating that the install process should download the FP7 and entitlement file.
 
 ## Start a LSF Cluster
 
@@ -33,8 +57,8 @@ This project extends the RC for LSF for an Azure CycleCloud provider: azurecc.
 ### Upgrading CycleCloud
 
 A customer RC-compatible API is needed to run the resource connector which is available
-in CycleCloud version >= 7.7.1. 
-CycleCloud can be downloaded from this [link](https://aka.ms/cyclecloud-RC)
+in CycleCloud version >= 7.7.4. 
+A recent CycleCloud can be downloaded from this [link](https://download.microsoft.com/download/D/4/7/D470EBC3-6756-4621-B1CD-AB16E96D2E8C/cyclecloud-7.7.5.x86_64.rpm)
 
 The Resource Connector will be configured automatically when running the cluster from the _lsf.txt_ template.  
 
@@ -45,10 +69,10 @@ To configure an pre-existing LSF cluster to use CycleCloud RC proceed to the nex
 The azurecc resource connector is not yet part of the LSF product release.
 For now, it's necessary to install the provider plugin.
 
-1. Copy the project files into the RC library and conf directories on lsf.
+1. Copy the project files into the RC library on lsf.
 
 ```bash
-wget https://github.com/Azure/cyclecloud-lsf/archive/master.zip
+wget https://github.com/Azure/cyclecloud-lsf/archive/feature/2.0.1-rc.zip
 unzip master.zip
 rc_source_dir="cyclecloud-lsf-master/specs/default/cluster-init/files/host_provider"
 
@@ -71,7 +95,8 @@ cp $rc_source_dir/src/*.py $rc_scripts_dir/src/
       "type": "azureProv", 
       "name": "azurecc", 
       "scriptPath": "resource_connector/azurecc", 
-      "confPath": "resource_connector/azurecc"
+      "confPath": "resource_connector/azurecc",
+      "path": "resource_connector/azurecc/provider.json"
     }
   ]
 }
@@ -99,6 +124,35 @@ This user should be assigned the _cyclecloud_access_ role.
             "web_server": "https://cyclecloud.contoso.com"
         }
     }
+}
+```
+
+Also the _${LSF_TOP}/conf/resource_connector/azurecc/conf/provider.json_ should be provided where the LSF actions translate to the AzureCC actions:
+
+```json
+{
+    "host_type": "azure_host",
+    "interfaces":
+    [{
+        "name": "getAvailableTemplates",
+        "action": "resource_connector/azurecc/scripts/getAvailableTemplates.sh"
+    },
+    {
+        "name": "getReturnRequests",
+        "action": "resource_connector/azurecc/scripts/getReturnRequests.sh"
+    },
+    {
+        "name": "requestMachines",
+        "action": "resource_connector/azurecc/scripts/requestMachines.sh"
+    },
+    {
+        "name": "requestReturnMachines",
+        "action": "resource_connector/azurecc/scripts/requestReturnMachines.sh"
+    },
+    {
+        "name": "getRequestStatus",
+        "action": "resource_connector/azurecc/scripts/getRequestStatus.sh"
+    }]
 }
 ```
 
