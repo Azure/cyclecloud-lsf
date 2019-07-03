@@ -745,7 +745,12 @@ class CycleCloudProvider:
                 return
             
             if to_shutdown:
-                self.terminate_machines({"machines": [{"machineId": x, "name": x} for x in to_shutdown]})
+                term_input = {"machines": [{"machineId": x, "name": x} for x in to_shutdown]}
+                # use a noop writer since we don't want to write anything to stdout, just attempt a termination.
+                try:
+                    self._terminate_machines(term_input, json_writer=noop_json_writer)
+                except Exception:
+                    logging.exception("Attempt to terminate expired creation requests failed, will reattempt next iteration.")
             
             for request in to_mark_complete:
                 request["completed"] = True
@@ -820,7 +825,10 @@ class CycleCloudProvider:
                 logger.exception("Could not remove stale request %s", request_id)
                 
     @failureresponse({"status": RequestStates.complete_with_error})
-    def terminate_machines(self, input_json):
+    def terminate_machines(self, input_json, json_writer=None):
+        self._terminate_machines(input_json, json_writer=json_writer)
+        
+    def _terminate_machines(self, input_json, json_writer=None):
         """
         input:
         {
@@ -833,6 +841,7 @@ class CycleCloudProvider:
             "status": "complete"
         }
         """
+        json_writer = json_writer or self.json_writer
         logger.info("Requesting termination of %s", input_json)
         
         request_id = "delete-%s" % str(uuid.uuid4())
@@ -886,6 +895,10 @@ def simple_json_writer(data, debug_output=True):  # pragma: no cover
         logger.debug("Response: %s", data_str)
     print data_str
     return data
+
+
+def noop_json_writer(data, debug_output=True):
+    pass
 
 
 def true_gmt_clock():  # pragma: no cover
