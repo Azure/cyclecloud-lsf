@@ -91,6 +91,8 @@ end
 
 defer_block "Defer starting lsf until end of the converge" do
   execute 'lsadmin limstartup' do 
+      # sed -i 's/May 10 2019/May 10 2020/g' /usr/share/lsf/10.1/linux2.6-glibc2.3-x86_64/etc/lim
+      #sed -i 's/May 10 20/May 10 2019/g' /usr/share/lsf/10.1/linux2.6-glibc2.3-x86_64/etc/lim
     command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
     not_if 'pidof lim'
     user 'lsfadmin'

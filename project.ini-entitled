@@ -3,4 +3,4 @@ version = 2.1.0
 name = lsf
 
 [blobs]
-Files = lsf10.1_linux2.6-glibc2.3-x86_64.tar.Z, lsf10.1_lsfinstall_linux_x86_64.tar.Z, lsf10.1_linux2.6-glibc2.3-x86_64-509238.tar.Z, lsf_std_entitlement.dat
+Files = lsf10.1_linux2.6-glibc2.3-x86_64.tar.Z, lsf10.1_lsfinstall_linux_x86_64.tar.Z, lsf10.1_linux2.6-glibc2.3-x86_64-520099.tar.Z, lsf_std_entitlement.dat

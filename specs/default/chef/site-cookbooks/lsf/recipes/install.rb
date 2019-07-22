@@ -12,6 +12,8 @@ entitled_install = node['lsf']['entitled_install']
 
 lsf_product = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}"
 lsf_product_sp7 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-509238"
+lsf_product_sp8 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-520099"
+
 lsf_install = "lsf#{lsf_version}_lsfinstall_linux_#{lsf_arch}"
 
 jetpack_download "#{lsf_install}.tar.Z" do
@@ -26,11 +28,11 @@ jetpack_download "#{lsf_product}.tar.Z" do
     not_if { ::File.exist?("#{tar_dir}/#{lsf_product}.tar.Z") }
 end
 
-jetpack_download "#{lsf_product_sp7}.tar.Z" do
+jetpack_download "#{lsf_product_sp8}.tar.Z" do
     project "lsf"
     dest tar_dir
     only_if { entitled_install }
-    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_sp7}.tar.Z") }
+    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_sp8}.tar.Z") }
 end
 
 jetpack_download "lsf_std_entitlement.dat" do
@@ -61,10 +63,12 @@ execute "run_lsfinstall" do
     not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
 
-execute "run_lsfinstall_sp7" do
-    command "tar zxvf #{tar_dir}/#{lsf_product_sp7}.tar.Z"
+execute "run_lsfinstall_sp8" do
+    command "tar zxvf #{tar_dir}/#{lsf_product_sp8}.tar.Z"
     cwd "#{lsf_top}/#{lsf_version}"
     only_if { entitled_install }
-    not_if  'grep Pack_7 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
+    not_if  'grep Pack_8 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
+
+
