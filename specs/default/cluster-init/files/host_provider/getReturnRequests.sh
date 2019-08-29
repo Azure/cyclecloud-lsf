@@ -1,4 +1,2 @@
 #!/bin/bash -e
-scriptDir=$(dirname $0)
-$scriptDir/./invoke_provider.sh terminate_status $@
-exit $?
+echo '{"message":"This interface is not supported by azurecc provider.", "requests":[]}'
