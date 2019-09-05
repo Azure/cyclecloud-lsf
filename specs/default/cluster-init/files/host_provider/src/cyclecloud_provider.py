@@ -88,7 +88,7 @@ class CycleCloudProvider:
         []
         
         output:
-        {'templates': [{'attributes': {'azurecchost': ['Boolean', '1'],
+        {'templates': [{'attributes': {'azurecchost': ['Boolean', 1],
                                'mem': ['Numeric', '2048'],
                                'ncores': ['Numeric', '4'],
                                'ncpus': ['Numeric', '4'],
@@ -196,7 +196,8 @@ class CycleCloudProvider:
                     template_id = self._escape_id(template_id)
                     currently_available_templates.add(template_id)
                     
-                    max_count = self._max_count(nodearray, machine_type.get("vcpuCount"), bucket)
+                    max_count = bucket.get("quotaCount")
+                    available_count = bucket.get("maxCount")
 
                     at_least_one_available_bucket = at_least_one_available_bucket or max_count > 0
                     memory = machine_type.get("memory") * 1024
@@ -209,6 +210,7 @@ class CycleCloudProvider:
                         logger.exception("Ignoring lsf.ngpus for nodearray %s" % nodearray_name)
                     
                     record = {
+                        "availableNumber": available_count,
                         "maxNumber": max_count,
                         "templateId": template_id,
                         "priority": nodearray.get("Priority", default_priority),
@@ -217,13 +219,13 @@ class CycleCloudProvider:
                             "mem": ["Numeric", memory],
                             "ncpus": ["Numeric", machine_type.get("vcpuCount")],
                             "ncores": ["Numeric", machine_type.get("vcpuCount")],
-                            "azurecchost": ["Boolean", "1"],
+                            "azurecchost": ["Boolean", 1],
                             "type": ["String", "X86_64"],
                             "machinetypefull": ["String", machine_type_name],
                             "machinetype": ["String", machine_type_short],
                             "nodearray": ["String", nodearray_name],
-                            "azureccmpi": ["Boolean", "0"],
-                            "azurecclowprio": ["Boolean", "1" if is_low_prio else "0"]
+                            "azureccmpi": ["Boolean", 0],
+                            "azurecclowprio": ["Boolean", 1 if is_low_prio else 0]
                         }
                     }
                     
@@ -258,9 +260,9 @@ class CycleCloudProvider:
                         namespaced_placement_group = template_id
                         if is_low_prio:
                             # not going to create mpi templates for interruptible nodearrays.
-                            # if the person updated the template, set maxNumber to 0 on any existing ones
+                            # if the person updated the template, set availableNumber to 0 on any existing ones
                             if template_id in templates_store:
-                                templates_store[template_id]["maxNumber"] = 0
+                                templates_store[template_id]["availableNumber"] = 0
                                 continue
                             else:
                                 break
@@ -268,24 +270,25 @@ class CycleCloudProvider:
                         record_mpi = deepcopy(record)
                         record_mpi["attributes"]["placementgroup"] = ["String", namespaced_placement_group]
                         record_mpi["UserData"]["lsf"]["attributes"]["placementgroup"] = namespaced_placement_group
-                        record_mpi["attributes"]["azureccmpi"] = ["Boolean", "1"]
+                        record_mpi["attributes"]["azureccmpi"] = ["Boolean", 1]
                         record_mpi["UserData"]["lsf"]["attributes"]["azureccmpi"] = True
                         # regenerate names, as we have added placementgroup
                         record_mpi["UserData"]["lsf"]["attribute_names"] = " ".join(sorted(record_mpi["attributes"].iterkeys()))
                         record_mpi["priority"] = record_mpi["priority"] - n - 1
                         record_mpi["templateId"] = template_id
                         record_mpi["maxNumber"] = min(record["maxNumber"], nodearray.get("Azure", {}).get("MaxScalesetSize", 40))
+                        record_mpi["availableNumber"] = min(record_mpi["maxNumber"], record_mpi["availableNumber"])
                         templates_store[record_mpi["templateId"]] = record_mpi
                         currently_available_templates.add(record_mpi["templateId"])
                     default_priority = default_priority - 10
             
-            # for templates that are no longer available, advertise them but set maxNumber = 0
+            # for templates that are no longer available, advertise them but set availableNumber = 0
             for lsf_template in templates_store.values():
                 if lsf_template["templateId"] not in currently_available_templates:
                     if self.fine:
                         logger.debug("Ignoring old template %s vs %s", lsf_template["templateId"], currently_available_templates)
-                    lsf_template["maxNumber"] = 0
-                    templates_store[lsf_template["templateId"]]["maxNumber"] = 0
+                    lsf_template["availableNumber"] = 0
+                    templates_store[lsf_template["templateId"]]["availableNumber"] = 0
            
         new_templates = self.templates_json.read()
         
@@ -314,7 +317,7 @@ class CycleCloudProvider:
                 logger.error("Invalid attribute %s %s", key, value_array)
                 continue
             if value_array[0].lower() == "boolean":
-                ret[key] = str(value_array[1] != "0").lower()
+                ret[key] = str(str(value_array[1]) != "0").lower()
             else:
                 ret[key] = value_array[1]
         
@@ -917,3 +920,4 @@ if __name__ == "__main__":
     main()  # pragma: no cover
 else:
     logger = util.init_logging()
+

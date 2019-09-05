@@ -2,6 +2,7 @@ import json
 
 import logging
 from urllib import urlencode
+from util import chaos_mode
 
 
 try:
@@ -22,7 +23,7 @@ class Cluster:
         return self.get("/clusters/%s/status" % self.cluster_name)
 
     def add_nodes(self, request):
-        return self.post("/clusters/%s/nodes/create" % self.cluster_name, json=request)
+        return json.loads(self.post("/clusters/%s/nodes/create" % self.cluster_name, json=request))
     
     def nodes(self, request_ids):
         responses = {}
@@ -30,12 +31,20 @@ class Cluster:
             responses[request_id] = self.get("/clusters/%s/nodes" % self.cluster_name, request_id=request_id)
         return responses
     
-    def terminate(self, machines, hostnamer):
+    def nodes_by_operation_id(self, operation_id):
+        if not operation_id:
+            raise RuntimeError("You must specify operation id!")
+        return self.get("/clusters/%s/nodes?operation=%s" % (self.cluster_name, operation_id))
+    
+    def shutdown(self, machines, hostnamer):
+        if not machines:
+            return
+        
         id_to_ip = {}
         for machine in machines:
             id_to_ip[machine["machineId"]] = hostnamer.private_ip_address(machine["name"])
         
-        response_raw = self.post("/clusters/%s/nodes/terminate" % self.cluster_name, json={"ids": id_to_ip.keys()})
+        response_raw = self.post("/clusters/%s/nodes/shutdown" % self.cluster_name, json={"ids": id_to_ip.keys()})
         response = json.loads(response_raw)
         for node in response["nodes"]:
             id_to_ip.pop(node["id"])
@@ -75,6 +84,7 @@ class Cluster:
             raise cyclecli.ConfigError("Please define key %s in the provider config." % key)
         return value
     
+    @chaos_mode
     def post(self, url, data=None, json=None, **kwargs):
         root_url = self._get_or_raise("cyclecloud.config.web_server")
         self.logger.debug("POST %s with data %s json %s kwargs %s", root_url + url, data, json, kwargs)
@@ -83,7 +93,8 @@ class Cluster:
         if response.status_code < 200 or response.status_code > 299:
             raise ValueError(response.content)
         return response.content
-        
+    
+    @chaos_mode
     def get(self, url, **params):
         root_url = self._get_or_raise("cyclecloud.config.web_server")
         self.logger.debug("GET %s with params %s", root_url + url, params)
