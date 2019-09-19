@@ -62,7 +62,7 @@ class Cluster:
                 
                 try:
                     self.post("/cloud/actions/terminate_node/%s?%s" % (self.cluster_name, f))
-                except cyclecli.UserError as e:
+                except Exception as e:
                     if "No instances were found matching your query" in unicode(e):
                         return
                     raise
