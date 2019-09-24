@@ -354,7 +354,7 @@ Order = 20
         [[[parameter LsfProjectVersion]]]
         Label = Project Version
         Description = CycleCloud LSF project version found in project.ini
-        DefaultValue = 2.1.0
+        DefaultValue = 2.1.1
 
     [[parameters Master Nodes]]
     Description = "Optional master Fail-over configuration"
