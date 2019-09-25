@@ -71,4 +71,15 @@ execute "run_lsfinstall_sp8" do
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
 
+execute "set_permissions_not_entitled" do
+    command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
+    not_if { entitled_install }
+    not_if { ::File.exist?("#{lsf_top}/conf/cyclefixperms")}
+end
 
+execute "set_permissions_entitled" do
+    command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
+    only_if { entitled_install }
+    only_if  'grep Pack_7 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
+    not_if { ::File.exist?("#{lsf_top}/conf/cyclefixperms")}
+end
