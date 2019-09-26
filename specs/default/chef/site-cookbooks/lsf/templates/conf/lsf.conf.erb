@@ -7,9 +7,9 @@
 # After editing this file, run "lsadmin reconfig" and
 # "badmin mbdrestart" to apply your changes.
 
-LSB_RC_EXTERNAL_HOST_FLAG="azurecchost"
-#LSF_LOCAL_RESOURCES="[resource azurecchost]"
-LSF_MQ_BROKER_HOSTS=<%= @master_hostname %>
+LSB_RC_EXTERNAL_HOST_FLAG="cyclecloudhost"
+#LSF_LOCAL_RESOURCES="[resource cyclecloudhost]"
+LSF_MQ_BROKER_HOSTS="<% @master_list.each do |master| %> <%= master %> <% end %>"
 
 LSB_SHAREDIR=<%= node['lsf']['lsb_sharedir'] %>
 

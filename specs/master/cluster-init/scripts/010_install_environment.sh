@@ -24,15 +24,6 @@ fi
 
 yum install -y jre
 
-cat <<EOF > /etc/init.d/mosquitto
-#!/bin/bash
-
-(ps aux | grep mosquitto | egrep -v 'init.d|grep' || $LSF_SERVERDIR/mosquitto) &
-EOF
-
 set +e
 adduser mosquitto
 set -e
-
-chmod +x /etc/init.d/mosquitto
-/etc/init.d/mosquitto

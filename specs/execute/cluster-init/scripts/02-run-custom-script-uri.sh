@@ -1,10 +1,10 @@
 #!/bin/bash -e
 
 lsf_top=$(jetpack config lsf.lsf_top)
-azurecc_profile=$(jetpack config lsf.local_etc /etc/lsf)/azurecc.profile
+cyclecloud_profile=$(jetpack config lsf.local_etc /etc/lsf)/cyclecloud.profile
 
 set +e
-source $azurecc_profile
+source $cyclecloud_profile
 set -e
 
 custom_script_uri=$(jetpack config lsf.custom_script_uri 0)

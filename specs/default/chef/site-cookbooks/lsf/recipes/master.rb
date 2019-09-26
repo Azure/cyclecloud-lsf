@@ -9,7 +9,9 @@ lsf_arch = node['lsf']['arch']
 clustername = node['lsf']['clustername']
 cycle_clustername = node['cyclecloud']['cluster']['name']
 username = node['cyclecloud']['config']['username']
+password = node['cyclecloud']['config']['password']
 web_server = node['cyclecloud']['config']['web_server']
+region = node['azure']['metadata']['compute']['location']
 
 lsb_conf_dir = "#{lsf_top}/conf/lsbatch/#{clustername}/configdir/"
 
@@ -62,16 +64,24 @@ template "#{lsf_top}/conf/resource_connector/policy_config.json" do
   source 'conf/policy_config.json.erb'
 end
 
-directory "#{lsf_top}/conf/resource_connector/azurecc/"
-template "#{lsf_top}/conf/resource_connector/azurecc/provider.json" do
-  source 'conf/cyclecloud_provider.json.erb'
+directory "#{lsf_top}/conf/resource_connector/cyclecloud" do
+    owner node['lsf']['admin']['username']
 end
 
-template "#{lsf_top}/conf/resource_connector/azurecc/azureccprov_config.json.example" do
-  source 'conf/azureccprov_config.json.erb'
+directory "#{lsf_top}/conf/resource_connector/cyclecloud/conf" do
+    owner node['lsf']['admin']['username']
+end
+
+template "#{lsf_top}/conf/resource_connector/cyclecloud/conf/cyclecloudprov_config.json" do
+  source 'conf/cyclecloudprov_config.json.erb'
+  owner 'lsfadmin'
+  group 'lsfadmin'
+  mode '0600'
   variables(
   	:cycle_clustername => cycle_clustername,
   	:username => username,
+  	:password => password,
+  	:region => region,
   	:web_server => web_server
   )
 end
@@ -89,10 +99,23 @@ directory node['lsf']['lsf_logdir'] do
   not_if { ::File.directory?(node['lsf']['lsf_logdir']) }
 end
 
+yum_package "java-1.8.0-openjdk.x86_64" do
+  action "install"
+  not_if "yum list installed java-1.8.0-openjdk.x86_64"
+end
+
+group "mosquitto" do
+  gid '6002'.to_i
+end
+
+user "mosquitto" do
+  comment 'lsf mosquitto'
+  uid '6002'.to_i
+  gid '6002'.to_i
+end
+
 defer_block "Defer starting lsf until end of the converge" do
   execute 'lsadmin limstartup' do 
-      # sed -i 's/May 10 2019/May 10 2020/g' /usr/share/lsf/10.1/linux2.6-glibc2.3-x86_64/etc/lim
-      #sed -i 's/May 10 20/May 10 2019/g' /usr/share/lsf/10.1/linux2.6-glibc2.3-x86_64/etc/lim
     command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
     not_if 'pidof lim'
     user 'lsfadmin'

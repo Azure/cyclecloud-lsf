@@ -52,7 +52,7 @@ installation failures with recovery are expected.
 
 ## Resource Connector for Azure CycleCloud
 
-This project extends the RC for LSF for an Azure CycleCloud provider: azurecc.
+This project extends the RC for LSF for an Azure CycleCloud provider: cyclecloud.
 
 ### Upgrading CycleCloud
 
@@ -64,9 +64,9 @@ The Resource Connector will be configured automatically when running the cluster
 
 To configure an pre-existing LSF cluster to use CycleCloud RC proceed to the next steps.
 
-### Installing the azurecc RC
+### Installing the cyclecloud RC
 
-The azurecc resource connector is not yet part of the LSF product release.
+The cyclecloud resource connector is not yet part of the LSF product release.
 For now, it's necessary to install the provider plugin.
 
 1. Copy the project files into the RC library on lsf.
@@ -76,7 +76,7 @@ wget https://github.com/Azure/cyclecloud-lsf/archive/feature/2.0.1-rc.zip
 unzip master.zip
 rc_source_dir="cyclecloud-lsf-master/specs/default/cluster-init/files/host_provider"
 
-rc_scripts_dir=$LSF_SERVERDIR/../../resource_connector/azurecc/scripts
+rc_scripts_dir=$LSF_SERVERDIR/../../resource_connector/cyclecloud/scripts
 mkdir -p $rc_scripts_dir
 cp $rc_source_dir/*.sh $rc_scripts_dir/
 chmod +x $rc_scripts_dir/*.sh
@@ -86,27 +86,27 @@ cp $rc_source_dir/src/*.py $rc_scripts_dir/src/
 
 ```
 
-2. Add the azurecc provider to the hostProvider file in the LSF conf directory: _$LSF_TOP/conf/resource_connector/hostProviders.json_
+2. Add the cyclecloud provider to the hostProvider file in the LSF conf directory: _$LSF_TOP/conf/resource_connector/hostProviders.json_
 
 ```json
 {
   "providers": [
     {
       "type": "azureProv", 
-      "name": "azurecc", 
-      "scriptPath": "resource_connector/azurecc", 
-      "confPath": "resource_connector/azurecc",
-      "path": "resource_connector/azurecc/provider.json"
+      "name": "cyclecloud", 
+      "scriptPath": "resource_connector/cyclecloud", 
+      "confPath": "resource_connector/cyclecloud",
+      "path": "resource_connector/cyclecloud/provider.json"
     }
   ]
 }
 ```
 
-### Configure azurecc provider
+### Configure cyclecloud provider
 
-LSF will be communicating to CC via the azurecc resource connector.
-The azurecc provider includes a CycleCloud host and cluster.
-With a CycleCloud cluster configured add a provider entry to the azurecc provider file: _${LSF_TOP}/conf/resource_connector/azurecc/conf/azureccprov_config.json_
+LSF will be communicating to CC via the cyclecloud resource connector.
+The cyclecloud provider includes a CycleCloud host and cluster.
+With a CycleCloud cluster configured add a provider entry to the cyclecloud provider file: _${LSF_TOP}/conf/resource_connector/cyclecloud/conf/cyclecloudprov_config.json_
 
 An example of the provider file with a single cluster is below. The user name and password correspond to a CycleCloud user.
 This user should be assigned the _cyclecloud_access_ role. 
@@ -127,7 +127,7 @@ This user should be assigned the _cyclecloud_access_ role.
 }
 ```
 
-Also the _${LSF_TOP}/conf/resource_connector/azurecc/conf/provider.json_ should be provided where the LSF actions translate to the AzureCC actions:
+Also the _${LSF_TOP}/conf/resource_connector/cyclecloud/conf/provider.json_ should be provided where the LSF actions translate to the AzureCC actions:
 
 ```json
 {
@@ -135,45 +135,45 @@ Also the _${LSF_TOP}/conf/resource_connector/azurecc/conf/provider.json_ should 
     "interfaces":
     [{
         "name": "getAvailableTemplates",
-        "action": "resource_connector/azurecc/scripts/getAvailableTemplates.sh"
+        "action": "resource_connector/cyclecloud/scripts/getAvailableTemplates.sh"
     },
     {
         "name": "getReturnRequests",
-        "action": "resource_connector/azurecc/scripts/getReturnRequests.sh"
+        "action": "resource_connector/cyclecloud/scripts/getReturnRequests.sh"
     },
     {
         "name": "requestMachines",
-        "action": "resource_connector/azurecc/scripts/requestMachines.sh"
+        "action": "resource_connector/cyclecloud/scripts/requestMachines.sh"
     },
     {
         "name": "requestReturnMachines",
-        "action": "resource_connector/azurecc/scripts/requestReturnMachines.sh"
+        "action": "resource_connector/cyclecloud/scripts/requestReturnMachines.sh"
     },
     {
         "name": "getRequestStatus",
-        "action": "resource_connector/azurecc/scripts/getRequestStatus.sh"
+        "action": "resource_connector/cyclecloud/scripts/getRequestStatus.sh"
     }]
 }
 ```
 
-The provider interactions will be logged to _$LSF_LOGDIR/azurecc_prov.log_.
+The provider interactions will be logged to _$LSF_LOGDIR/cyclecloud_prov.log_.
 
 
-### Edit cluster configuration for azurecc
+### Edit cluster configuration for cyclecloud
 
 There are recommended configurations for declaring resources.  Add the following lines to _${LSF_TOP}/conf/lsf.conf_:
 
 ```txt
-LSB_RC_EXTERNAL_HOST_FLAG="azurecchost"
-LSF_LOCAL_RESOURCES="[resource azurecchost]"
+LSB_RC_EXTERNAL_HOST_FLAG="cyclecloudhost"
+LSF_LOCAL_RESOURCES="[resource cyclecloudhost]"
 ```
 
 And also add the following resources to the Resource section of _${LSF_TOP}/conf/lsf.shared_:
 
 ```txt
-   azurecchost  Boolean  ()       ()       (instances from Azure CycleCloud)
-   azureccmpi  Boolean   ()       ()       (instances that support MPI placement)
-   azurecclowprio  Boolean ()     ()       (instances that low priority / interruptible from Azure CycleCloud)
+   cyclecloudhost  Boolean  ()       ()       (instances from Azure CycleCloud)
+   cyclecloudmpi  Boolean   ()       ()       (instances that support MPI placement)
+   cyclecloudlowprio  Boolean ()     ()       (instances that low priority / interruptible from Azure CycleCloud)
    ngpus      Numeric    ()       Y       (number of GPUs)
    nodearray  String     ()       ()       (nodearray from AzureCC)
    machinetype String    ()       ()       (Azure machine type name for AzureCC)
@@ -183,9 +183,9 @@ And also add the following resources to the Resource section of _${LSF_TOP}/conf
 
 
 
-### Configure the azurecc provider templates (Optional)
+### Configure the cyclecloud provider templates (Optional)
 
-_$LSF_TOP/conf/resource_connector/azurecc/conf/azureccprov_templates.json_ 
+_$LSF_TOP/conf/resource_connector/cyclecloud/conf/cyclecloudprov_templates.json_ 
 
 This file isn't required, cyclecloud will populate the default contents of
 the provider template file based on the nodearrays in the CycleCloud cluster.
@@ -306,11 +306,11 @@ project are in the Advanced/Software sub menu.
 
 The worker nodes depend on access to the _LSF\_CONF_ directory. On the worker, an additional copy of the _lsf.conf_ file with be created at _LSF\_ENVDIR_.  This file will be automatically modified with *LSF_LOCAL_RESOURCES* which control job matching.
 
-### Start the cluster and point azurecc_prov to the cluster and nodearray.
+### Start the cluster and point cyclecloud_prov to the cluster and nodearray.
 
 Now that the cluster is configure, it can be started. Start the cluster, and change
-the azurecc_prov details to reference the new clustername and the _execute_ node array. 
-The node array name should match the _templateId_ in azureccprov_templates.json.
+the cyclecloud_prov details to reference the new clustername and the _execute_ node array. 
+The node array name should match the _templateId_ in cyclecloudprov_templates.json.
 
 
 # Contributing

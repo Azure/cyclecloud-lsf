@@ -11,8 +11,8 @@ clustername = node['lsf']['clustername']
 entitled_install = node['lsf']['entitled_install']
 
 lsf_product = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}"
-lsf_product_sp7 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-509238"
 lsf_product_sp8 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-520099"
+lsf_product_rc_patch = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-527847"
 
 lsf_install = "lsf#{lsf_version}_lsfinstall_linux_#{lsf_arch}"
 
@@ -33,6 +33,13 @@ jetpack_download "#{lsf_product_sp8}.tar.Z" do
     dest tar_dir
     only_if { entitled_install }
     not_if { ::File.exist?("#{tar_dir}/#{lsf_product_sp8}.tar.Z") }
+end
+
+jetpack_download "#{lsf_product_rc_patch}.tar.Z" do
+    project "lsf"
+    dest tar_dir
+    only_if { entitled_install }
+    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_rc_patch}.tar.Z") }
 end
 
 jetpack_download "lsf_std_entitlement.dat" do
@@ -71,6 +78,15 @@ execute "run_lsfinstall_sp8" do
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
 
+execute "run_lsfinstall_rc_patch" do
+    command "tar zxvf #{tar_dir}/#{lsf_product_rc_patch}.tar.Z"
+    cwd "#{lsf_top}/#{lsf_version}"
+    only_if { entitled_install }
+    only_if  'grep Pack_8 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
+    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}/resource_connector/cyclecloud")}
+end
+
 execute "set_permissions_not_entitled" do
     command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
     not_if { entitled_install }
@@ -82,6 +98,6 @@ execute "set_permissions_entitled" do
     command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
     only_if { entitled_install }
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
-    only_if  'grep Pack_7 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
+    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}/resource_connector/cyclecloud")}
     not_if { ::File.exist?("#{lsf_top}/conf/cyclefixperms")}
 end
