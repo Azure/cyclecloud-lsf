@@ -2,7 +2,6 @@
 [cluster lsf]
     FormLayout = selectionpanel
     Category = Infrastructure
-
     Autoscale = $Autoscale
 
     [[node defaults]]
@@ -23,10 +22,10 @@
         cyclecloud.exports.shared.samba.enabled = false
         cyclecloud.exports.defaults.samba.enabled = false
 
-        lsf.lsf_top = /usr/share/lsf
-        lsf.lsf_logdir = /usr/share/lsf/log
+        lsf.lsf_top = /grid/lsf
+        lsf.lsf_logdir = /grid/lsf/log
         lsf.admin.home = /shared/home/lsfadmin
-        lsf.entitled_install = false
+        lsf.entitled_install = true 
 
         cyclecloud.selinux.policy = permissive
 
@@ -102,7 +101,7 @@
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
-        mountpoint = /usr/share/lsf
+        mountpoint = /grid/lsf
         export_path = /mnt/raid/lsf
 
         [[[configuration cyclecloud.mounts.home]]]

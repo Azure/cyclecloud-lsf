@@ -54,7 +54,6 @@ LSB_SBD_PORT=6882
 
 # Enable mbd query child
 LSB_QUERY_PORT=6891
-LSF_DYNAMIC_HOST_WAIT_TIME=60
 
 # WARNING: Please do not delete/modify next line!!
 LSF_LINK_PATH=n
@@ -109,9 +108,11 @@ LSF_LINUX_CGROUP_ACCT=Y
 LSF_ENABLE_EGO=N
 LSB_ENABLE_HPC_ALLOCATION=Y
 LSB_BJOBS_PENDREASON_LEVEL=1
+LSB_GPU_NEW_SYNTAX=extend
 LSF_MASTER_LIST="<% @master_list.each do |master| %> <%= master %> <% end %>"
 LSF_EGO_DAEMON_CONTROL=Y
 LSF_RSH="ssh -o 'PasswordAuthentication no' -o 'StrictHostKeyChecking no'"
 
 LSF_STRIP_DOMAIN=.<%= @master_domain %>
 LSF_DYNAMIC_HOST_TIMEOUT=10m
+LSF_DYNAMIC_HOST_WAIT_TIME="2"

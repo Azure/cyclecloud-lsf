@@ -1,0 +1,95 @@
+{
+    "templates": [{
+        "templateId": "ondemand",
+        "attributes": {
+            "type": ["String", "X86_64"],
+            "ncores": ["Numeric", "4"],
+            "ncpus": ["Numeric", "4"],
+            "mem": ["Numeric", "8192"],
+            "cyclecloudhost": ["Boolean", "1"],
+            "nodearray" : ["String", "ondemand"]
+        },
+        "nodeArray": "ondemand",
+        "maxNumber": 10,
+        "keyPairLocation": "~/.ssh/cyclecloud.pem",
+        "customScriptUri": "http://10.1.0.4/user_data.sh"
+    },
+    {
+      "maxNumber": 40,
+      "availableNumber": 40,
+      "nodeArray": "ondemandmpi",
+      "priority": 450,
+      "vmType": "Standard_D2s_v3",
+      "templateId": "ondemandmpistandardd2sv3",
+      "attributes": {
+        "nodearray": ["String", "ondemandmpi"],
+        "mem": [ "Numeric", 8192],
+        "ncpus": ["Numeric", 2],
+        "ncores": ["Numeric", 2], 
+        "cyclecloudhost": ["Boolean", 1],
+        "cyclecloudmpi": ["Boolean", 0],
+        "zone": ["String", "westus2"], 
+        "type": ["String", "X86_64"],
+        "cyclecloudlowprio": ["Boolean", 0]
+      }
+    },
+    {
+      "maxNumber": 40,
+      "availableNumber": 40,
+      "nodeArray": "ondemandmpi",
+      "placementGroupName": "ondemandmpipg0",
+      "priority": 449,
+      "vmType": "Standard_D2s_v3",
+      "templateId": "ondemandmpipg0",
+      "attributes": {
+        "nodearray": ["String", "ondemandmpi" ],
+        "machinetype": [ "String", "d2sv3"],
+        "zone": [  "String",  "westus2"],
+        "mem": [  "Numeric",  8192.0],
+        "ncpus": [  "Numeric",  2],
+        "cyclecloudmpi": [  "Boolean",  1],
+        "placementgroup": [  "String",  "ondemandmpipg0"],
+        "ncores": [  "Numeric",  2],
+        "cyclecloudhost": [  "Boolean",  1],
+        "type": [  "String",  "X86_64"],
+        "cyclecloudlowprio": [  "Boolean",  0]
+      }
+    },
+    {
+      "maxNumber": 40,
+      "availableNumber": 40,
+      "nodeArray": "ondemandmpi",
+      "placementGroupName": "ondemandmpipg1",
+      "priority": 448,
+      "vmType": "Standard_D2s_v3",
+      "templateId": "ondemandmpipg1",
+      "attributes": {
+        "nodearray": ["String", "ondemandmpi" ],
+        "zone": [  "String",  "westus2"],
+        "mem": [  "Numeric",  8192.0],
+        "ncpus": [  "Numeric",  2],
+        "cyclecloudmpi": [  "Boolean",  1],
+        "placementgroup": [  "String",  "ondemandmpipg1"],
+        "ncores": [  "Numeric",  2],
+        "cyclecloudhost": [  "Boolean",  1],
+        "type": [  "String",  "X86_64"],
+        "cyclecloudlowprio": [  "Boolean",  0]
+      }
+    },
+    {
+        "templateId": "lowprio",
+        "attributes": {
+            "type": ["String", "X86_64"],
+            "ncores": ["Numeric", "4"],
+            "ncpus": ["Numeric", "4"],
+            "mem": ["Numeric", "8192"],
+            "cyclecloudhost": ["Boolean", "1"],
+            "nodearray" : ["String", "lowprio"]
+        },
+        "nodeArray": "lowprio",
+        "maxNumber": 10,
+        "keyPairLocation": "~/.ssh/cyclecloud.pem",
+        "customScriptUri": "http://10.1.0.4/user_data.sh"
+    }
+]
+}

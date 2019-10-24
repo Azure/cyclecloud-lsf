@@ -86,6 +86,10 @@ template "#{lsf_top}/conf/resource_connector/cyclecloud/conf/cyclecloudprov_conf
   )
 end
 
+template "#{lsf_top}/conf/resource_connector/cyclecloud/conf/cyclecloudprov_templates.json" do
+  source 'conf/cyclecloudprov_templates.json.erb'
+end
+
 template "#{lsb_conf_dir}/lsb.hosts" do
   source 'conf/lsb.hosts.erb'
   variables lazy {{
@@ -115,33 +119,33 @@ user "mosquitto" do
 end
 
 defer_block "Defer starting lsf until end of the converge" do
-  execute 'lsadmin limstartup' do 
-    command "source #{lsf_top}/conf/profile.lsf && lsadmin limstartup -f"
+  execute 'lsf_deamons start' do 
+    command "source #{lsf_top}/conf/profile.lsf && lsf_daemons start"
     not_if 'pidof lim'
-    user 'lsfadmin'
-    group 'lsfadmin'
-    environment(
-      :PRO_LSF_LOGDIR => node['lsf']['lsf_logdir']
-    )
+    #user 'lsfadmin'
+    #group 'lsfadmin'
+    #environment(
+    #  :PRO_LSF_LOGDIR => node['lsf']['lsf_logdir']
+    #)
   end
 
-  execute 'lsadmin resstartup' do 
-    command "source #{lsf_top}/conf/profile.lsf && lsadmin resstartup -f"
-    not_if 'pidof res'
-    user 'lsfadmin'
-    group 'lsfadmin'
-    environment(
-      :PRO_LSF_LOGDIR => node['lsf']['lsf_logdir']
-    )
-  end
-
-  execute 'badmin hstartup' do 
-    command "source #{lsf_top}/conf/profile.lsf && badmin hstartup -f"
-    not_if 'pidof sbatchd'
-    user 'lsfadmin'
-    group 'lsfadmin'
-    environment(
-      :PRO_LSF_LOGDIR => node['lsf']['lsf_logdir']
-    )
-  end
+#  execute 'lsadmin resstartup' do 
+#    command "source #{lsf_top}/conf/profile.lsf && lsadmin resstartup -f"
+#    not_if 'pidof res'
+#    user 'lsfadmin'
+#    group 'lsfadmin'
+#    environment(
+#      :PRO_LSF_LOGDIR => node['lsf']['lsf_logdir']
+#    )
+#  end
+#
+#  execute 'badmin hstartup' do 
+#    command "source #{lsf_top}/conf/profile.lsf && badmin hstartup -f"
+#    not_if 'pidof sbatchd'
+#    user 'lsfadmin'
+#    group 'lsfadmin'
+#    environment(
+#      :PRO_LSF_LOGDIR => node['lsf']['lsf_logdir']
+#    )
+#  end
 end

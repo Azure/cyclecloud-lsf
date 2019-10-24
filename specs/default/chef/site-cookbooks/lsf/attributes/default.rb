@@ -1,6 +1,6 @@
 
 default['lsf']['version'] = "10.1"
-default['lsf']['kernel'] = "linux2.6-glibc2.3"
+default['lsf']['kernel'] = "lnx310-lib217"
 default['lsf']['arch'] = "x86_64"
 default['lsf']['clustername'] = "cyclecloud"
 default['lsf']['tar_dir'] = "/tmp"

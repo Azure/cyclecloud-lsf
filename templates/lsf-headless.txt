@@ -2,37 +2,83 @@
 [cluster lsf]
     FormLayout = selectionpanel
     Category = Infrastructure
-
     Autoscale = $Autoscale
 
     [[node defaults]]
-
+ 
         Credentials = $Credentials
         Region = $Region
         KeyPairLocation = ~/.ssh/cyclecloud.pem
-        ImageId = $ImageId
-        ImageOS = linux
+        ImageName = cycle.image.centos7
         SubnetId = $ComputeSubnet
 
         [[[configuration]]]
-        cyclecloud.selinux.policy = permissive
+        cuser.base_home_dir = $BASE_HOME_DIR
+        cyclecloud.mounts.sched.disabled = true
+        cyclecloud.mounts.shared.disabled = true
         lsf.lsf_top = $LSF_TOP
-        lsf.local_etc = $LSF_ENVDIR
-        lsf.headless = true
+        
+        cyclecloud.selinux.policy = permissive
 
-    [[nodearray execute]]
+        [[[cluster-init lsf:default:$LsfProjectVersion]]]
 
+    [[node proxy]]
+        IsReturnProxy = $ReturnProxy
+        MachineType = $ProxyMachineType
+        SubnetId = ${ifThenElse(AccessSubnet !== undefined, AccessSubnet, ComputeSubnet)}
+
+        [[[configuration]]]
+        run_list =  recipe[cganglia::server]
+        cyclecloud.discoverable = true
+
+        [[[network-interface eth0]]]
+        AssociatePublicIpAddress = $ReturnProxy
+
+        [[[input-endpoint ganglia]]]
+        PrivatePort = 8652
+        PublicPort = 8652
+
+        [[[input-endpoint SSH]]]
+        PrivatePort = 22
+        PublicPort = 22
+
+    [[nodearray ondemand]]
+        Priority = 500
         Azure.MaxScalesetSize = $MaxScalesetSize
         MachineType = $ExecuteMachineType
         AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
-        Interruptible = $UseLowPrio
+        Interruptible = False
 
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        cyclecloud.maintenance_converge.enabled = false
-        lsf.autoscale = true
-        lsf.num_placement_groups = $MaxNumScalesets
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client]
+        cyclecloud.maintenance_converge.enabled = false 
+
+        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
+        
+    [[nodearray ondemandmpi]]
+    	Priority = 450
+    	Extends = ondemand
+        PlacementGroupId = ondemandmpi-manual 
+
+    [[nodearray lowprio]]
+        Priority = 400
+        Extends = ondemand
+        Interruptible = True
+
+    [[nodearray gpu]]
+        Priority = 300
+        Extends = ondemand
+        ImageName = $GPUImageName
+        MachineType = $GPUMachineType
+        AdditionalClusterInitSpecs = $GPUClusterInitSpecs
+
+
+    [[nodearray gpumpi]]
+    	Extends = gpu
+    	Priority = 250
+        PlacementGroupId = gpumpi-manual 
 
 
 [parameters About]
@@ -48,8 +94,8 @@ Order = 1
         [[[parameter Readme]]]
         HideLabel = true
         Config.Plugin = pico.widget.HtmlTemplateWidget
-        Config.Template = "Follow the instructions in the <a href="https://github.com/Azure/cyclecloud-lsf" target=\"_blank\">README</a> for details on instructions on extending and configuring the Project for your environment."
-
+        #Config.Template = "Follow the instructions in the <a href="https://github.com/Azure/cyclecloud-lsf" target=\"_blank\">README</a> for details on instructions on extending and configuring the Project for your environment."
+        Config.Template = "Follow the instructions on DOCS PAGE"
 
 [parameters Required Settings]
 Order = 10
@@ -63,16 +109,33 @@ Order = 10
         Description = Deployment Location
         ParameterType = Cloud.Region
 
+    [[ parameters Lsf Configuration ]]
+    Description = "The compute nodes should have LSF installed, set the location of the installation."
+    Order = 15
+
+        [[[parameter lsf_top]]]
+        Label = lsf_top
+        DefaultValue = "/opt/lsf"
+        Description = Location of LSF install on base image.
+
     [[parameters Compute Configurations]]
-    Description = "Configure the execute array for the cluster.  VM sizes, autoscaling limits and priority."
+    Description = "Configure the execute array for the cluster.  VM sizes and autoscaling limits."
     Order = 20
 
         [[[parameter ExecuteMachineType]]]
         Label = Compute Type
         Description = The machine type for execute nodes
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_F16
+        DefaultValue = Standard_D2s_v3 
         Config.Multiselect = true
+
+        [[[parameter GPUMachineType]]]
+        Label = GPU Type
+        Description = The machine type for GPU nodes
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_NC12
+        Config.Multiselect = false
+
 
         [[[parameter Autoscale]]]
         Label = Autoscale
@@ -89,11 +152,6 @@ Order = 10
         Config.MaxValue = 5000
         Config.IntegerOnly = true
 
-        [[[parameter UseLowPrio]]]
-        Label = Low Priority
-        DefaultValue = false
-        Widget.Plugin = pico.form.BooleanCheckBox
-        Widget.Label = Use low priority instances for execute hosts
 
     [[parameters Networking]]
     Description = Networking settings
@@ -109,6 +167,7 @@ Order = 10
 Order = 20
 
     [[parameters Azure Settings]]
+    Description = Provider Account Name
     Order = 10 
 
         [[[parameter Credentials]]]
@@ -119,41 +178,75 @@ Order = 20
     Description = "Specify the scheduling software, and base OS installed on all nodes, and optionally the cluster-init and chef versions from your Locker."
     Order = 20
 
-        [[[parameter ImageId]]]
+        [[[parameter ImageName]]]
         Label = Base OS
-        DefaultValue = /my/image/resource/id
+        Description = Can override in LSF template
+        ParameterType = Cloud.Image
+        Config.OS = linux
+        DefaultValue = cycle.image.centos7
+        Config.Filter := Package in {"cycle.image.centos7"}
+
+        [[[parameter GPUImageName]]]
+        Label = GPU Base OS
+        Description = Can override in LSF template
+        ParameterType = Cloud.Image
+        Config.OS = linux
+        DefaultValue = cycle.image.centos7
+        Config.Filter := Package in {"cycle.image.centos7"}
+    
+        [[[parameter BASE_HOME_DIR]]]
+        Label = Base Home Directory 
+        Description = Home directory for Cycle-managed users.
+        DefaultValue = "/home"
 
         [[[parameter ExecuteClusterInitSpecs]]]
         Label = Execute Cluster-Init
         DefaultValue = =undefined
-        Description = Cluster init specs to apply to execute nodes
+        Description = Cluster init specs to apply to non-GPU execute nodes
         ParameterType = Cloud.ClusterInitSpecs
 
-        [[[parameter LSF_TOP]]]
-        label = LSF_TOP Variable
-        Description = LSF environment variable equivalent to LSF_TOP, root lsf directory
-        DefaultValue = /usr/share/lsf
+        [[[parameter GPUClusterInitSpecs]]]
+        Label = GPU Cluster-Init
+        DefaultValue = =undefined
+        Description = Cluster init specs to apply to GPU nodes only
+        ParameterType = Cloud.ClusterInitSpecs
 
-        [[[parameter LSF_ENVDIR]]]
-        label = LSF_ENVDIR Variable
-        Description = LSF environment variable equivalent to LSF_ENVDIR, specifies location of local lsf.conf
-        DefaultValue = /usr/share/lsf/conf
+        [[[parameter LsfProjectVersion]]]
+        Label = Project Version
+        Description = CycleCloud LSF project version found in project.ini
+        DefaultValue = 3.0.0
+
+    [[parameters Advanced Networking]]
+    Description = Advanced networking settings
+    Order = 35
+
+        [[[parameter AccessSubnet]]]
+        Label = Access Subnet
+        Required = false
+        ParameterType = Azure.Subnet
+        Description = Select access subnet or use default.
+
+        [[[parameter ReturnProxy]]]
+        Label = Return Proxy
+        DefaultValue = true
+        ParameterType = Boolean
+        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)
+
+    [[parameters Advanced Machines]]
+    Description = Additional machine configurations
+    Order = 40
+
+        [[[parameter ProxyMachineType]]]
+        Label = Proxy Type
+        Description = The machine type for proxy.
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_B1s
 
         [[[parameter MaxScalesetSize]]]
         Label = Max VMs in VMSS
         Description = Max number of VMs in a VMSS
         DefaultValue = 40
         Config.Plugin = pico.form.NumberTextBox
-        Config.MinValue = 20
+        Config.MinValue = 1
         Config.MaxValue = 1000
         Config.IntegerOnly = true
-
-        [[[parameter MaxNumScalesets]]]
-        Label = Max VMSS count
-        Description = Max number of VMSS that the RC can allocate.
-        DefaultValue = 1
-        Config.Plugin = pico.form.NumberTextBox
-        Config.MinValue = 0
-        Config.MaxValue = 500
-        Config.IntegerOnly = true
-
