@@ -5,7 +5,7 @@
     Autoscale = $Autoscale
 
     [[node defaults]]
- 
+
         Credentials = $Credentials
         Region = $Region
         KeyPairLocation = ~/.ssh/cyclecloud.pem
@@ -13,14 +13,103 @@
         SubnetId = $ComputeSubnet
 
         [[[configuration]]]
-        cuser.base_home_dir = $BASE_HOME_DIR
+
         cyclecloud.mounts.sched.disabled = true
         cyclecloud.mounts.shared.disabled = true
-        lsf.lsf_top = $LSF_TOP
-        
+        cshared.server.legacy_links_disabled = true
+        cuser.base_home_dir = /shared/home
+
+        cyclecloud.exports.shared.samba.enabled = false
+        cyclecloud.exports.defaults.samba.enabled = false
+
+        lsf.lsf_top = /grid/lsf
+        lsf.lsf_logdir = /grid/lsf/log
+        lsf.admin.home = /shared/home/lsfadmin
+        lsf.entitled_install = true 
+
         cyclecloud.selinux.policy = permissive
 
+
         [[[cluster-init lsf:default:$LsfProjectVersion]]]
+
+    [[node fileserver]]
+        MachineType = $FSMachineType
+
+        [[[volume proj0]]]
+        Size = $ProjVolSize
+        #Persistent = true
+        SSD = True
+        Mount = proj
+
+        [[[volume proj1]]]
+        Size = $ProjVolSize
+        #Persistent = true
+        SSD = True
+        Mount = proj
+
+        [[[volume proj2]]]
+        Size = $ProjVolSize
+        #Persistent = true
+        SSD = True
+        Mount = proj
+
+        [[[volume proj3]]]
+        Size = $ProjVolSize
+        #Persistent = true
+        SSD = True
+        Mount = proj
+
+        [[[volume proj4]]]
+        Size = $ProjVolSize
+        #Persistent = true
+        SSD = True
+        Mount = proj
+
+        [[[configuration cyclecloud.mounts.proj]]]
+        mountpoint = /mnt/raid
+        fs_type = xfs
+        raid_level = 0
+
+        [[[configuration]]]
+        run_list = role[scheduler],recipe[cshared::directories],recipe[cshared::server],recipe[cganglia::client]
+        cshared.server.shared_dir = /shared
+        cuser.base_home_dir = /home
+
+        [[[configuration cyclecloud.exports.lsf]]]
+        type = nfs
+        export_path = /mnt/raid/lsf
+        options = no_root_squash
+        samba.enabled = false
+
+        [[[configuration cyclecloud.exports.home]]]
+        type = nfs
+        export_path = /mnt/raid/home
+        options = no_root_squash
+        samba.enabled = false
+
+    [[nodearray master]]
+        MachineType = $MasterMachineType
+        InitialCount = $MasterNodeCountHA
+        AdditionalClusterInitSpecs = $MasterClusterInitSpecs
+
+
+        [[[configuration]]]
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master]
+        cshared.server.shared_dir = /shared
+        cyclecloud.discoverable = true
+        lsf.num_placement_groups = $MaxNumScalesets
+
+        [[[configuration cyclecloud.mounts.sched-exp]]]
+        type = nfs
+        mountpoint = /grid/lsf
+        export_path = /mnt/raid/lsf
+
+        [[[configuration cyclecloud.mounts.home]]]
+        type = nfs
+        mountpoint = /shared/home
+        export_path = /mnt/raid/home
+
+        [[[cluster-init lsf:master:$LsfProjectVersion]]]
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -30,6 +119,7 @@
         [[[configuration]]]
         run_list =  recipe[cganglia::server]
         cyclecloud.discoverable = true
+        cuser.base_home_dir = /home
 
         [[[network-interface eth0]]]
         AssociatePublicIpAddress = $ReturnProxy
@@ -52,8 +142,21 @@
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client]
-        cyclecloud.maintenance_converge.enabled = false 
+        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::default]
+        cyclecloud.maintenance_converge.enabled = false
+        lsf.attribute_names = nodearray
+        lsf.attributes.nodearray = ondemand
+        lsf.autoscale = true
+
+        [[[configuration cyclecloud.mounts.sched-exp]]]
+        type = nfs
+        mountpoint = /usr/share/lsf
+        export_path = /mnt/raid/lsf
+
+        [[[configuration cyclecloud.mounts.home]]]
+        type = nfs
+        mountpoint = /shared/home
+        export_path = /mnt/raid/home
 
         [[[cluster-init lsf:execute:$LsfProjectVersion]]]
         
@@ -62,10 +165,21 @@
     	Extends = ondemand
         PlacementGroupId = ondemandmpi-manual 
 
+        [[[configuration]]]
+        lsf.attribute_names = nodearray cyclecloudmpi placementgroup
+        lsf.attributes.nodearray = ondemandmpi
+        lsf.attributes.cyclecloudmpi = true
+        lsf.attributes.placementgroup = ondemandmpi-manual
+
     [[nodearray lowprio]]
         Priority = 400
         Extends = ondemand
         Interruptible = True
+
+        [[[configuration]]]
+        lsf.attribute_names = nodearray cyclecloudlowprio
+        lsf.attributes.nodearray = lowprio
+        lsf.attributes.cyclecloudlowprio = true
 
     [[nodearray gpu]]
         Priority = 300
@@ -73,13 +187,21 @@
         ImageName = $GPUImageName
         MachineType = $GPUMachineType
         AdditionalClusterInitSpecs = $GPUClusterInitSpecs
-
+        [[[configuration]]]
+        lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
+        lsf.attribute_names = nodearray
+        lsf.attributes.nodearray = gpu
 
     [[nodearray gpumpi]]
     	Extends = gpu
     	Priority = 250
         PlacementGroupId = gpumpi-manual 
 
+        [[[configuration]]]
+        lsf.attribute_names = nodearray cyclecloudmpi placementgroup
+        lsf.attributes.nodearray = gpu
+        lsf.attributes.cyclecloudmpi = true
+        lsf.attributes.placementgroup = gpumpi-manual
 
 [parameters About]
 Order = 1
@@ -94,8 +216,8 @@ Order = 1
         [[[parameter Readme]]]
         HideLabel = true
         Config.Plugin = pico.widget.HtmlTemplateWidget
-        #Config.Template = "Follow the instructions in the <a href="https://github.com/Azure/cyclecloud-lsf" target=\"_blank\">README</a> for details on instructions on extending and configuring the Project for your environment."
-        Config.Template = "Follow the instructions on DOCS PAGE"
+        Config.Template = "Follow the instructions in the <a href="https://github.com/Azure/cyclecloud-lsf" target=\"_blank\">README</a> for details on instructions on extending and configuring the Project for your environment."
+
 
 [parameters Required Settings]
 Order = 10
@@ -108,15 +230,6 @@ Order = 10
         Label = Region
         Description = Deployment Location
         ParameterType = Cloud.Region
-
-    [[ parameters Lsf Configuration ]]
-    Description = "The compute nodes should have LSF installed, set the location of the installation."
-    Order = 15
-
-        [[[parameter lsf_top]]]
-        Label = lsf_top
-        DefaultValue = "/opt/lsf"
-        Description = Location of LSF install on base image.
 
     [[parameters Compute Configurations]]
     Description = "Configure the execute array for the cluster.  VM sizes and autoscaling limits."
@@ -135,6 +248,33 @@ Order = 10
         ParameterType = Cloud.MachineType
         DefaultValue = Standard_NC12
         Config.Multiselect = false
+
+        [[[parameter num_gpus_dict]]]
+        required = True
+        label = Lookup number of GPUs based on machine type.
+        parametertype = hidden
+            [[[[record DefaultValue]]]]
+            Standard_NC6 = 1
+            Standard_NC6s_v2 = 1
+            Standard_NC6s_v3 = 1
+            Standard_ND6s = 1
+            Standard_NV6 = 1
+
+            Standard_NC12 = 2
+            Standard_NC12s_v2 = 2
+            Standard_NC12s_v3 = 2
+            Standard_ND12s = 2
+            Standard_NV12 = 2
+
+            Standard_NC24 = 4
+            Standard_NC24r = 4
+            Standard_NC24rs_v2 = 4
+            Standard_NC24rs_v3 = 4
+            Standard_NC24s_v2 = 4
+            Standard_NC24s_v3 = 4
+            Standard_ND24rs = 4
+            Standard_ND24s = 4
+            Standard_NV24 = 4
 
 
         [[[parameter Autoscale]]]
@@ -180,7 +320,6 @@ Order = 20
 
         [[[parameter ImageName]]]
         Label = Base OS
-        Description = Can override in LSF template
         ParameterType = Cloud.Image
         Config.OS = linux
         DefaultValue = cycle.image.centos7
@@ -188,17 +327,17 @@ Order = 20
 
         [[[parameter GPUImageName]]]
         Label = GPU Base OS
-        Description = Can override in LSF template
         ParameterType = Cloud.Image
         Config.OS = linux
         DefaultValue = cycle.image.centos7
         Config.Filter := Package in {"cycle.image.centos7"}
-    
-        [[[parameter BASE_HOME_DIR]]]
-        Label = Base Home Directory 
-        Description = Home directory for Cycle-managed users.
-        DefaultValue = "/home"
 
+        [[[parameter MasterClusterInitSpecs]]]
+        Label = Master Cluster-Init
+        DefaultValue = =undefined
+        Description = Cluster init specs to apply to the master node
+        ParameterType = Cloud.ClusterInitSpecs
+    
         [[[parameter ExecuteClusterInitSpecs]]]
         Label = Execute Cluster-Init
         DefaultValue = =undefined
@@ -216,9 +355,29 @@ Order = 20
         Description = CycleCloud LSF project version found in project.ini
         DefaultValue = 3.0.0
 
+    [[parameters Master Nodes]]
+    Description = "Optional master Fail-over configuration"
+    Order = 30
+
+        [[[parameter MasterMachineType]]]
+        Label = Master Type
+        Description = The machine type for HA master array.
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_D2_v3
+
+        [[[parameter MasterNodeCountHA]]]
+        Label = Master Count
+        Description = Node count for HighAvailability Master
+        DefaultValue = 2
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 0
+        Config.MaxValue = 2
+        Config.IntegerOnly = true
+
     [[parameters Advanced Networking]]
     Description = Advanced networking settings
     Order = 35
+
 
         [[[parameter AccessSubnet]]]
         Label = Access Subnet
@@ -236,11 +395,26 @@ Order = 20
     Description = Additional machine configurations
     Order = 40
 
+        [[[parameter FSMachineType]]]
+        Label = Fileserver Type
+        Description = The machine type for shared filer.
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_D4s_v3
+
+        [[[parameter ProjVolSize]]]
+        Label = Size (GB)
+        Description = FileServer Constituent RAID Volume Size (Count: 5)
+        DefaultValue = 200
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 20
+        Config.MaxValue = 4095
+        Config.IntegerOnly = true
+
         [[[parameter ProxyMachineType]]]
         Label = Proxy Type
         Description = The machine type for proxy.
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_B1s
+        DefaultValue = Standard_D2_v3
 
         [[[parameter MaxScalesetSize]]]
         Label = Max VMs in VMSS
@@ -249,4 +423,13 @@ Order = 20
         Config.Plugin = pico.form.NumberTextBox
         Config.MinValue = 1
         Config.MaxValue = 1000
+        Config.IntegerOnly = true
+
+        [[[parameter MaxNumScalesets]]]
+        Label = Max VMSS count
+        Description = Max number of VMSS that the RC can allocate.
+        DefaultValue = 1
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 0
+        Config.MaxValue = 500
         Config.IntegerOnly = true
