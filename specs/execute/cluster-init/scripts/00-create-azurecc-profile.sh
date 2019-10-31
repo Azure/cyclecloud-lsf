@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+node_id=$(python ../files/get_node_id.py)
+
 lsf_top=$(jetpack config lsf.lsf_top)
 cyclecloud_profile=/tmp/cyclecloud.profile
 
@@ -25,6 +27,6 @@ else
 		echo "export $env_name=$value" >> "$cyclecloud_profile"
 	done
 fi
-
+echo "export cyclecloud_nodeid=$node_id" >> "$cyclecloud_profile"
 
 chmod +r $cyclecloud_profile

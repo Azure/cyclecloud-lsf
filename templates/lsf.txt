@@ -1,7 +1,7 @@
 
 [cluster lsf]
     FormLayout = selectionpanel
-    Category = Infrastructure
+    Category = Schedulers
     Autoscale = $Autoscale
 
     [[node defaults]]
@@ -13,14 +13,8 @@
         SubnetId = $ComputeSubnet
 
         [[[configuration]]]
-        cuser.base_home_dir = $BASE_HOME_DIR
-        cyclecloud.mounts.sched.disabled = true
-        cyclecloud.mounts.shared.disabled = true
         lsf.lsf_top = $LSF_TOP
-        
-        cyclecloud.selinux.policy = permissive
-
-        [[[cluster-init lsf:default:$LsfProjectVersion]]]
+        #cyclecloud.selinux.policy = permissive
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -48,15 +42,16 @@
         MachineType = $ExecuteMachineType
         AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
         Interruptible = False
+        ImageName = $ImageName
 
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client]
+        run_list = recipe[cyclecloud],recipe[cganglia::client]
         cyclecloud.maintenance_converge.enabled = false 
 
-        [[[cluster-init lsf:execute:$LsfProjectVersion]]]
-        
+        [[[cluster-init lsf:execute:3.0.0]]]
+
     [[nodearray ondemandmpi]]
     	Priority = 450
     	Extends = ondemand
@@ -73,7 +68,6 @@
         ImageName = $GPUImageName
         MachineType = $GPUMachineType
         AdditionalClusterInitSpecs = $GPUClusterInitSpecs
-
 
     [[nodearray gpumpi]]
     	Extends = gpu
@@ -194,10 +188,10 @@ Order = 20
         DefaultValue = cycle.image.centos7
         Config.Filter := Package in {"cycle.image.centos7"}
     
-        [[[parameter BASE_HOME_DIR]]]
-        Label = Base Home Directory 
-        Description = Home directory for Cycle-managed users.
-        DefaultValue = "/home"
+        #[[[parameter BASE_HOME_DIR]]]
+        #Label = Base Home Directory 
+        #Description = Home directory for Cycle-managed users.
+        #DefaultValue = "/home"
 
         [[[parameter ExecuteClusterInitSpecs]]]
         Label = Execute Cluster-Init
@@ -211,10 +205,10 @@ Order = 20
         Description = Cluster init specs to apply to GPU nodes only
         ParameterType = Cloud.ClusterInitSpecs
 
-        [[[parameter LsfProjectVersion]]]
-        Label = Project Version
-        Description = CycleCloud LSF project version found in project.ini
-        DefaultValue = 3.0.0
+        #[[[parameter LsfProjectVersion]]]
+        #Label = Project Version
+        #Description = CycleCloud LSF project version found in project.ini
+        #DefaultValue = 3.0.0
 
     [[parameters Advanced Networking]]
     Description = Advanced networking settings

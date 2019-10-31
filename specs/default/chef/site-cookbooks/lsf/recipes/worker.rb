@@ -42,32 +42,32 @@ export LSF_ENVDIR=#{node['lsf']['local_etc']}
   mode '644'
 end
 
-defer_block "Defer starting lsf until end of the converge" do
-  execute 'lsadmin limstartup' do 
-    command "source #{lsf_top}/conf/profile.lsf && LSF_ENVDIR=#{node['lsf']['local_etc']} && lsadmin limstartup -f"
-    not_if 'pidof lim'
-    user 'lsfadmin'
-    group 'lsfadmin'  
-  end
-
-  execute 'lsadmin resstartup' do 
-    command "source #{lsf_top}/conf/profile.lsf && LSF_ENVDIR=#{node['lsf']['local_etc']} && lsadmin resstartup -f"
-    not_if 'pidof res'
-    user 'lsfadmin'
-    group 'lsfadmin'
-  end
-
-  execute 'badmin hstartup' do 
-    command "source #{lsf_top}/conf/profile.lsf && LSF_ENVDIR=#{node['lsf']['local_etc']} && badmin hstartup -f"
-    not_if 'pidof sbatchd'
-    user 'lsfadmin'
-    group 'lsfadmin'
-  end
-
-  execute 'close host' do
-    command "source #{lsf_top}/conf/profile.lsf && badmin hclose #{node['hostname']}"
-    user 'lsfadmin'
-    group 'lsfadmin'
-    only_if { node['lsf']['submit_only'] }
-  end
-end
+#defer_block "Defer starting lsf until end of the converge" do
+#  execute 'lsadmin limstartup' do 
+#    command "source #{lsf_top}/conf/profile.lsf && LSF_ENVDIR=#{node['lsf']['local_etc']} && lsadmin limstartup -f"
+#    not_if 'pidof lim'
+#    user 'lsfadmin'
+#    group 'lsfadmin'  
+#  end
+#
+#  execute 'lsadmin resstartup' do 
+#    command "source #{lsf_top}/conf/profile.lsf && LSF_ENVDIR=#{node['lsf']['local_etc']} && lsadmin resstartup -f"
+#    not_if 'pidof res'
+#    user 'lsfadmin'
+#    group 'lsfadmin'
+#  end
+#
+#  execute 'badmin hstartup' do 
+#    command "source #{lsf_top}/conf/profile.lsf && LSF_ENVDIR=#{node['lsf']['local_etc']} && badmin hstartup -f"
+#    not_if 'pidof sbatchd'
+#    user 'lsfadmin'
+#    group 'lsfadmin'
+#  end
+#
+#  execute 'close host' do
+#    command "source #{lsf_top}/conf/profile.lsf && badmin hclose #{node['hostname']}"
+#    user 'lsfadmin'
+#    group 'lsfadmin'
+#    only_if { node['lsf']['submit_only'] }
+#  end
+#end

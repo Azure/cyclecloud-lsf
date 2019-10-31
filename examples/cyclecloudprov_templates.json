@@ -92,7 +92,6 @@
         },
         "nodeArray": "lowprio",
         "maxNumber": 500,
-        "keyPairLocation": "~/.ssh/cyclecloud.pem",
         "customScriptUri": "https://aka.ms/user_data.sh",
         "userData" : "nodearray_name=lowprio"
     },
@@ -111,7 +110,6 @@
         "maxNumber": 10,
         "priority": 445,
         "vmType": "Standard_NC12",
-        "keyPairLocation": "~/.ssh/cyclecloud.pem",
         "customScriptUri": "https://aka.ms/user_data.sh",
         "userData" : "nodearray_name=gpumpi"
     },
@@ -125,6 +123,7 @@
         "cyclecloudhost": ["Boolean", "1"],
         "nodearray" : ["String", "gpu"],
         "nodearray": ["String", "gpumpi"],
+        "cyclecloudhost": ["Boolean", 1],
         "cyclecloudmpi": ["Boolean", 1],
         "zone": ["String", "westus2"], 
         "type": ["String", "X86_64"],
@@ -137,7 +136,6 @@
       "placementGroupName": "gpumpipg0",
       "priority": 440,
       "vmType": "Standard_NC12",
-      "keyPairLocation": "~/.ssh/cyclecloud.pem",
       "customScriptUri": "https://aka.ms/user_data.sh",
       "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg0"
     },
