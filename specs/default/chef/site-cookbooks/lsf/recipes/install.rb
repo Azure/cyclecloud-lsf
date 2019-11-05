@@ -11,7 +11,9 @@ clustername = node['lsf']['clustername']
 entitled_install = node['lsf']['entitled_install']
 
 lsf_product = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}"
-lsf_product_sp7 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-509238"
+lsf_product_sp8 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-520099"
+lsf_product_rc_patch = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-529611"
+
 lsf_install = "lsf#{lsf_version}_lsfinstall_linux_#{lsf_arch}"
 
 jetpack_download "#{lsf_install}.tar.Z" do
@@ -26,11 +28,18 @@ jetpack_download "#{lsf_product}.tar.Z" do
     not_if { ::File.exist?("#{tar_dir}/#{lsf_product}.tar.Z") }
 end
 
-jetpack_download "#{lsf_product_sp7}.tar.Z" do
+jetpack_download "#{lsf_product_sp8}.tar.Z" do
     project "lsf"
     dest tar_dir
     only_if { entitled_install }
-    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_sp7}.tar.Z") }
+    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_sp8}.tar.Z") }
+end
+
+jetpack_download "#{lsf_product_rc_patch}.tar.Z" do
+    project "lsf"
+    dest tar_dir
+    only_if { entitled_install }
+    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_rc_patch}.tar.Z") }
 end
 
 jetpack_download "lsf_std_entitlement.dat" do
@@ -61,10 +70,39 @@ execute "run_lsfinstall" do
     not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
 
-execute "run_lsfinstall_sp7" do
-    command "tar zxvf #{tar_dir}/#{lsf_product_sp7}.tar.Z"
-    cwd "#{lsf_top}/#{lsf_version}"
+yum_package "java-1.8.0-openjdk.x86_64" do
+    action "install"
+    not_if "yum list installed java-1.8.0-openjdk.x86_64"
+  end
+
+execute "run_lsfinstall_sp8" do
+    command " . conf/profile.lsf && ./#{lsf_version}/install/patchinstall --silent #{tar_dir}/#{lsf_product_sp8}.tar.Z"
+    cwd "#{lsf_top}"
     only_if { entitled_install }
-    not_if  'grep Pack_7 fixlist.txt', :cwd => "#{lsf_top}/#{lsf_version}"
+    not_if  " . conf/profile.lsf && ./#{lsf_version}/install/pversions | grep 520099", :cwd => "#{lsf_top}"
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
 end
+
+execute "run_lsfinstall_rc_patch" do
+    command " . conf/profile.lsf && ./#{lsf_version}/install/patchinstall --silent #{tar_dir}/#{lsf_product_rc_patch}.tar.Z"
+    cwd "#{lsf_top}"
+    only_if { entitled_install }
+    not_if  " . conf/profile.lsf &&  ./#{lsf_version}/install/pversions | grep 529611", :cwd => "#{lsf_top}"
+    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}/resource_connector/cyclecloud")}
+end
+
+#execute "set_permissions_not_entitled" do
+#    command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
+#    not_if { entitled_install }
+#    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+#    not_if { ::File.exist?("#{lsf_top}/conf/cyclefixperms")}
+#end
+#
+#execute "set_permissions_entitled" do
+#    command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
+#    only_if { entitled_install }
+#    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+#    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}/resource_connector/cyclecloud")}
+#    not_if { ::File.exist?("#{lsf_top}/conf/cyclefixperms")}
+#end

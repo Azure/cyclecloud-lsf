@@ -60,8 +60,7 @@ source #{node['lsf']['lsf_envdir']}/profile.lsf
 end
 
 file '/etc/lsf.sudoers' do
-  content "
-LSF_STARTUP_USERS=\"#{node['lsf']['admin']['username']}\"
+  content "LSF_STARTUP_USERS=\"#{node['lsf']['admin']['username']}\"
 LSF_STARTUP_PATH=\"#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/etc\"
 "
   mode '0600'

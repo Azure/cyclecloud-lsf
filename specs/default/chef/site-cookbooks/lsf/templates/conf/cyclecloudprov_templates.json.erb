@@ -1,0 +1,170 @@
+{
+    "templates": [
+    {
+        "templateId": "ondemand",
+        "attributes": {
+            "type": ["String", "X86_64"],
+            "ncores": ["Numeric", "4"],
+            "ncpus": ["Numeric", "4"],
+            "mem": ["Numeric", "8192"],
+            "cyclecloudhost": ["Boolean", "1"],
+            "nodearray" : ["String", "ondemand"]
+        },
+        "nodeArray": "ondemand",
+        "maxNumber": 10,
+        "customScriptUri": "https://aka.ms/user_data.sh",
+        "userData": "zone=westus2;nodearray_name=ondemand"
+    },
+    {
+      "templateId": "ondemandmpi-0",
+      "maxNumber": 40,
+      "attributes": {
+        "nodearray": ["String", "ondemandmpi" ],
+        "machinetype": [ "String", "d2sv3"],
+        "zone": [  "String",  "westus2"],
+        "mem": [  "Numeric",  8192.0],
+        "ncpus": [  "Numeric",  2],
+        "cyclecloudmpi": [  "Boolean",  1],
+        "placementgroup": [  "String",  "ondemandmpipg0"],
+        "ncores": [  "Numeric",  2],
+        "cyclecloudhost": [  "Boolean",  1],
+        "type": [  "String",  "X86_64"],
+        "cyclecloudlowprio": [  "Boolean",  0]
+      },
+      "nodeArray": "ondemandmpi",
+      "placementGroupName": "ondemandmpipg0",
+      "priority": 449,
+      "customScriptUri": "https://aka.ms/user_data.sh",
+      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg0"
+    },
+    {
+      "templateId": "ondemandmpi-1",
+      "attributes": {
+        "nodearray": ["String", "ondemandmpi" ],
+        "zone": [  "String",  "westus2"],
+        "mem": [  "Numeric",  8192.0],
+        "ncpus": [  "Numeric",  2],
+        "cyclecloudmpi": [  "Boolean",  1],
+        "placementgroup": [  "String",  "ondemandmpipg1"],
+        "ncores": [  "Numeric",  2],
+        "cyclecloudhost": [  "Boolean",  1],
+        "type": [  "String",  "X86_64"],
+        "cyclecloudlowprio": [  "Boolean",  0]
+      },
+      "maxNumber": 40,
+      "nodeArray": "ondemandmpi",
+      "placementGroupName": "ondemandmpipg1",
+      "priority": 448,
+      "customScriptUri": "https://aka.ms/user_data.sh",
+      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg1"
+    },
+    {
+      "templateId": "ondemandmpi-2",
+      "attributes": {
+        "nodearray": ["String", "ondemandmpi" ],
+        "zone": [  "String",  "westus2"],
+        "mem": [  "Numeric",  8192.0],
+        "ncpus": [  "Numeric",  2],
+        "cyclecloudmpi": [  "Boolean",  1],
+        "placementgroup": [  "String",  "ondemandmpipg2"],
+        "ncores": [  "Numeric",  2],
+        "cyclecloudhost": [  "Boolean",  1],
+        "type": [  "String",  "X86_64"],
+        "cyclecloudlowprio": [  "Boolean",  0]
+      },
+      "maxNumber": 40,
+      "nodeArray": "ondemandmpi",
+      "placementGroupName": "ondemandmpipg2",
+      "priority": 447,
+      "customScriptUri": "https://aka.ms/user_data.sh",
+      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg2"
+    },
+    {
+        "templateId": "lowprio",
+        "attributes": {
+            "type": ["String", "X86_64"],
+            "ncores": ["Numeric", "4"],
+            "ncpus": ["Numeric", "4"],
+            "mem": ["Numeric", "8192"],
+            "cyclecloudhost": ["Boolean", "1"],
+            "nodearray" : ["String", "lowprio"],
+            "cyclecloudlowprio": [  "Boolean",  1]
+        },
+        "nodeArray": "lowprio",
+        "maxNumber": 500,
+        "keyPairLocation": "~/.ssh/cyclecloud.pem",
+        "customScriptUri": "https://aka.ms/user_data.sh",
+        "userData" : "nodearray_name=lowprio"
+    },
+    {
+        "templateId": "gpu",
+        "attributes": {
+            "type": ["String", "X86_64"],
+            "ncores": ["Numeric", "12"],
+            "ncpus": ["Numeric", "12"],
+            "mem": ["Numeric", "112000"],
+            "cyclecloudhost": ["Boolean", "1"],
+            "nodearray" : ["String", "gpu"],
+            "gpuextend" :  [  "String", "ngpus:2" ]
+        },
+        "nodeArray": "gpu",
+        "maxNumber": 10,
+        "priority": 445,
+        "vmType": "Standard_NC12",
+        "keyPairLocation": "~/.ssh/cyclecloud.pem",
+        "customScriptUri": "https://aka.ms/user_data.sh",
+        "userData" : "nodearray_name=gpumpi"
+    },
+    {
+      "templateId": "gpumpi-0",
+      "attributes": {
+        "type": ["String", "X86_64"],
+        "ncores": ["Numeric", "12"],
+        "ncpus": ["Numeric", "12"],
+        "mem": ["Numeric", 112000],
+        "cyclecloudhost": ["Boolean", "1"],
+        "nodearray" : ["String", "gpu"],
+        "nodearray": ["String", "gpumpi"],
+        "cyclecloudmpi": ["Boolean", 1],
+        "zone": ["String", "westus2"], 
+        "type": ["String", "X86_64"],
+        "cyclecloudlowprio": ["Boolean", 0],
+        "placementgroup": [  "String",  "gpumpipg0"],
+        "gpuextend" :  [  "String", "ngpus:2" ]
+      },
+      "nodeArray": "gpumpi",
+      "maxNumber": 40,
+      "placementGroupName": "gpumpipg0",
+      "priority": 440,
+      "vmType": "Standard_NC12",
+      "keyPairLocation": "~/.ssh/cyclecloud.pem",
+      "customScriptUri": "https://aka.ms/user_data.sh",
+      "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg0"
+    },
+    {
+      "templateId": "gpumpi-1",
+      "attributes": {
+        "type": ["String", "X86_64"],
+        "ncores": ["Numeric", "12"],
+        "ncpus": ["Numeric", "12"],
+        "mem": ["Numeric", 112000],
+        "cyclecloudhost": ["Boolean", "1"],
+        "nodearray" : ["String", "gpu"],
+        "nodearray": ["String", "gpumpi"],
+        "cyclecloudhost": ["Boolean", 1],
+        "cyclecloudmpi": ["Boolean", 1],
+        "zone": ["String", "westus2"], 
+        "type": ["String", "X86_64"],
+        "cyclecloudlowprio": ["Boolean", 0],
+        "placementgroup": [  "String",  "gpumpipg1"],
+        "gpuextend" :  [  "String", "ngpus:2" ]
+      },
+      "maxNumber": 40,
+      "nodeArray": "gpumpi",
+      "placementGroupName": "gpumpipg1",
+      "priority": 439,
+      "vmType": "Standard_NC12",
+      "customScriptUri": "https://aka.ms/user_data.sh",
+      "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg1"
+    }]
+}

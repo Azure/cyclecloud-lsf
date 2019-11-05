@@ -1,0 +1,64 @@
+{
+    "variables": {
+      "image_name": "lsf-worker",
+      "image_publisher": "OpenLogic",
+      "image_offer": "CentOS",
+      "image_sku": "7.5",
+      "image_version" : "7.5.20180815",
+      "vm_size": "Standard_D2s_v3",
+      "resource_group" : "requa-westus2",
+      "location": "westus2",
+      "subscription_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX",
+      "tenant_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX",
+      "application_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX",
+      "app_name": "lsf-execute",
+      "appinstaller": "install_lsf.sh"
+    },
+    "builders": [
+        {
+            "type": "azure-arm",
+  
+            "subscription_id": "{{user `subscription_id`}}",
+            "tenant_id": "{{user `tenant_id`}}",
+            "client_id": "{{user `client_id`}}",
+            "client_secret": "{{user `client_secret`}}",
+  
+			"image_publisher": "{{user `image_publisher`}}",
+			"image_offer": "{{user `image_offer`}}",
+			"image_sku": "{{user `image_sku`}}",
+
+            "managed_image_name" : "{{user `image_name`}}",
+            "managed_image_resource_group_name" :  "{{user `resource_group`}}",
+            "os_type": "Linux",
+            "vm_size":  "{{user `vm_size`}}",
+            "ssh_pty": "true",
+  
+            "location": "{{user `location`}}"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "file",
+            "source": "lsf-blobs.tar",
+            "destination": "/tmp/lsf-blobs.tar"
+        },
+        {
+            "type": "file",
+            "source": "{{user `appinstaller`}}",
+            "destination": "/tmp/appinstaller.sh"
+        },
+        {
+            "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+            "inline": [
+                "chmod +x /tmp/appinstaller.sh",
+                "APP_NAME={{user `app_name`}} /tmp/appinstaller.sh",
+                "/usr/sbin/waagent -force -deprovision+user && export HISTSIZE=0 && sync"
+            ],
+            "inline_shebang": "/bin/bash -e",
+            "type": "shell",
+            "skip_clean": true,
+            "expect_disconnect" : true
+        }
+    ]
+}
+  

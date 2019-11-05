@@ -17,7 +17,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = General queue
 RC_HOSTS = all
-RES_REQ = select[nodearray=='ondemand' && !azureccmpi]
+RES_REQ = select[nodearray=='ondemand' && !cyclecloudmpi]
 #RC_DEMAND_POLICY = 0
 End Queue
 
@@ -29,7 +29,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Tightly coupled jobs
 RC_HOSTS = all
-RES_REQ = select[nodearray=='ondemandmpi' && azureccmpi] same[placementgroup]
+RES_REQ = select[nodearray=='ondemandmpi' && cyclecloudmpi] same[placementgroup]
 #RC_DEMAND_POLICY = 0
 End Queue
 
@@ -41,7 +41,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Preemptible jobs
 RC_HOSTS = all
-RES_REQ = select[nodearray=='lowprio' && !azureccmpi]
+RES_REQ = select[nodearray=='lowprio' && !cyclecloudmpi]
 End Queue
 
 Begin Queue
@@ -52,7 +52,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Preemptible jobs
 RC_HOSTS = all
-RES_REQ = select[nodearray=='gpu' && !azureccmpi]
+RES_REQ = select[nodearray=='gpu' && !cyclecloudmpi]
 End Queue
 
 Begin Queue
@@ -63,7 +63,7 @@ INTERACTIVE  = NO
 FAIRSHARE    = USER_SHARES[[default,1]]
 DESCRIPTION  = Tightly coupled jobs
 RC_HOSTS = all
-RES_REQ = select[nodearray=='gpumpi' && azureccmpi] same[placementgroup]
+RES_REQ = select[nodearray=='gpumpi' && cyclecloudmpi] same[placementgroup]
 #RC_DEMAND_POLICY = 0
 End Queue
 

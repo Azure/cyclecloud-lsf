@@ -19,16 +19,16 @@ if node['lsf']['master']['hostnames'].nil?
       end
     end
 
-    raise "No master nodes found." if master_nodes.length == 0
+    raise "No master nodes found yet. Retrying on next converge." if master_nodes.length == 0
     # Sort master_nodes by hostname
     #Chef::Log.info("unsorted = #{master_nodes}")
     master_nodes_sorted = master_nodes.sort_by{ |x| x['hostname'] }
     #Chef::Log.info("sorted = #{master_nodes_sorted}")
     Chef::Log.info("Found Master Hostnames = #{ master_nodes_sorted.map{|x| x['hostname']}}")
-    node.default['lsf']['master']['hostnames'] = master_nodes_sorted.map{|x| x['hostname']}
-    node.default['lsf']['master']['reverse_hostnames'] = master_nodes_sorted.map{|x| get_hostname(x['ipaddress'])}
+    node.override['lsf']['master']['hostnames'] = master_nodes_sorted.map{|x| x['hostname']}
+    node.override['lsf']['master']['reverse_hostnames'] = master_nodes_sorted.map{|x| get_hostname(x['ipaddress'])}
     Chef::Log.info("Found Master IPs = #{ master_nodes_sorted.map{|x| x['ipaddress']}}")
-    node.default['lsf']['master']['ip_addresses'] =  master_nodes_sorted.map{|x| x['ipaddress']}
-    node.default['lsf']['master']['fqdns'] =   master_nodes_sorted.map{|x| x['fqdn']}
+    node.override['lsf']['master']['ip_addresses'] =  master_nodes_sorted.map{|x| x['ipaddress']}
+    node.override['lsf']['master']['fqdns'] =   master_nodes_sorted.map{|x| x['fqdn']}
   
   end

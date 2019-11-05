@@ -3,232 +3,206 @@
 
 CycleCloud project for Spectrum LSF.
 
+Azure Cyclecloud is integrated with LSF RC as a resource provider.
+
+See the IBM docs for details.
+https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_resource_connector/lsf_rc_cycle_config.html
+
 ## Prerequisites
+
+### IBM Spectrum LSF
+
+This product requires LSF FP9 or FP8 (520099) + iFix (529611).
+
+To use the fully automated cluster, or the vm image builder in this project
+LSF binaries and entitlement file must be added to the blobs/ directory.
+
+* lsf10.1_lnx310-lib217-x86_64-520099.tar.Z
+* lsf10.1_lnx310-lib217-x86_64-529611.tar.Z
+* lsf10.1_lsfinstall_linux_x86_64.tar.Z
+* lsf_std_entitlement.dat
+
+To use the install automation in this project add these files (or appropriate
+kernel packages) to the `blobs/` directory.
+
+### Azure CycleCloud
 
 This project requires running Azure CycleCloud version 7.7.4 or later.
 
-Users must provide as a minimum the following LSF binaries:
+## Supported Scenarios
 
-* lsf10.1_linux2.6-glibc2.3-x86_64.tar.Z
-* lsf10.1_lsfinstall_linux_x86_64.tar.Z
+### Externally Managed Master Node (Scenario 1)
 
-which belong in the lsf project `blobs/` directory.
+The most common introductory approach is to manually configure LSF master nodes
+to work with the CycleCloud LSF cluster type. The cluster type is available in 
+the CycleCloud new cluster menu. The CycleCloud LSF cluster type does not have 
+a master node(s), it's assumed that is a pre-existing resource.
 
-To use a licensed version (i.s.o. trial version), the following file is required:
+This cluster also requires that the user creates a VM image with LSF pre-installed
+in a slave configuration. To facilitate this we supply some automation using 
+_Packer_ to create this image. These tools can be found in the [_/vm-image_](vm-image/README.md)
 
-* lsf_std_entitlement.dat
+### Fully Managed Cluster (Scenario 2)
 
-Also please provide Fix Pack 7 to the blobs directory, so the latest fixes can be applied:
+CycleCloud has an example project that can deploy a fully managed LSF cluster to
+Azure. 
 
-* lsf10.1_linux2.6-glibc2.3-x86_64-509238.tar.Z
+
+## LSF Configurations for CycleCloud Provider
+
+### LSF Resources for CycleCloud
+
+CycleCloud LSF cluster is designed to support a number of compute scenarios
+including tightly-coupled MPI jobs, high-throughput parallel tasks, gpu-accelerated
+workloads and low priority VirtualMachines.
+
+To enable these scenarios Azure recommends configuring a number of custom shared
+resource types.
+
+Add these properties to _lsb.shared_
+```
+   cyclecloudhost  Boolean  ()       ()       (instances from Azure CycleCloud)
+   cyclecloudmpi  Boolean   ()       ()       (instances that support MPI placement)
+   cyclecloudlowprio  Boolean ()     ()       (instances that low priority / interruptible from Azure CycleCloud)
+   nodearray  String     ()       ()       (nodearray from CycleCloud)
+   placementgroup String ()       ()       (id used to note locality of machines)
+   instanceid String     ()       ()       (unique host identifier)
+```
+
+### A Special Note on PlacementGroups
+
+Azure Datacenters have Infiniband network capability for HPC scenarios. These
+networks, unlike the normal ethernet, have limited span. The Infiniband network
+extents are described by "PlacementGroups". If VMs reside in the same placement
+group and are special Infiniband-enabled VM Types, then they will share an 
+Infiniband network. 
+
+These placement groups necessitate special handling in LSF and CycleCloud.
+
+Here is an example LSF template for Cyclecloud from [_cyclecloudprov_templates.json_](examples/cyclecloudprov_templates.json):
+
+```json
+{
+  "templateId": "ondemandmpi-1",
+  "attributes": {
+    "nodearray": ["String", "ondemandmpi" ],
+    "zone": [  "String",  "westus2"],
+    "mem": [  "Numeric",  8192.0],
+    "ncpus": [  "Numeric",  2],
+    "cyclecloudmpi": [  "Boolean",  1],
+    "placementgroup": [  "String",  "ondemandmpipg1"],
+    "ncores": [  "Numeric",  2],
+    "cyclecloudhost": [  "Boolean",  1],
+    "type": [  "String",  "X86_64"],
+    "cyclecloudlowprio": [  "Boolean",  0]
+  },
+  "maxNumber": 40,
+  "nodeArray": "ondemandmpi",
+  "placementGroupName": "ondemandmpipg1",
+  "priority": 448,
+  "customScriptUri": "https://aka.ms/user_data.sh",
+  "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg1"
+}
+```
+
+The `placementGroupName` in this file can be anything but will determine the 
+name of the placementGroup in CycleCloud. Any nodes borrowed from CycleCloud 
+from this template will reside in this placementGroup and, if they're Infiniband-enabled VMs, will share an IB network.
+
+Note that `placementGroupName` matches the host attribute `placementgroup`, this
+intentional and necessary. Also that the
+`placement_group_id` is set in `userData` to be used in [_user_data.sh_](examples/user_data.sh) at 
+host start time.
+  The additional `ondemandmpi` attribute is used to 
+prevent this job from 
+matching on hosts where `placementGroup` is undefined.
+
+We advise this template be used with a RES_REQ as follows:
+```
+-R "span[ptile=2] select[nodearray=='ondemandmpi' && cyclecloudmpi] same[placementgroup]" my_job.sh
+```
+
+By inspecting [_cyclecloudprov_templates.json_](examples/cyclecloudprov_templates.json) and [_user_data.sh_](examples/user_data.sh)
+see how GPU jobs, both MPI and parallel can be supported, eg. for MPI job:
+```
+-R "span[ptile=1] select[nodearray=='gpumpi' && cyclecloudmpi] same[placementgroup] -ngpus 2
+```
+or parallel job (no placement group needed):
+```
+-R select[nodearray=='gpu' && !cyclecloudmpi] -ngpus 1
+```
+
+### Additional LSF Template Attributes for CycleCloud
+
+The only strictly required attributes in a LSF template are:
+* templateId
+* nodeArray
+
+Others are inferred from the CycleCloud configuration, can be ommited, or aren't
+necessary at all.
+* imageId - Azure VM Image eg. `"/subscriptions/xxxxxxxx-xxxx-xxxx-xxx-xxxxxxxxxxxx/resourceGroups/my-images-rg/providers/Microsoft.Compute/images/lsf-execute-201910230416-80a9a87f"` override for CycleCloud cluster configuration.
+* subnetId - Azure subnet eg. `"resource_group/vnet/subnet"` override for CycleCloud cluster configuration.
+* vmType - eg. `"Standard_HC44rs"` override for CycleCloud cluster configuration.
+* keyPairLocation - eg. `"~/.ssh/id_rsa_beta"` override for CycleCloud cluster configuration.
+* customScriptUri - eg. "http://10.1.0.4/user_data.sh", no script if not specified.
+* userData - eg. `"nodearray_name=gpumpi;placement_group_id=gpumpipg1"` empty if not specified.
+
+### Environment Variables for _user_data.sh_
+
+Cyclecloud/LSF automatically sets certain variables in the run environment of _user_data.sh_. These variables are:
+* rc_account
+* template_id 
+* providerName (default: cyclecloud)
+* clustername
+* cyclecloud_nodeid
+* anything specified in `userData` template attribute.
+
+## Initializing the "Headless" LSF Cluster Type
+
+### Setup involving LSF prerequisites
+
+* Choose an LSF install location; eg. `LSF_TOP=/grid/lsf` and use throughout.
+* Create a VM image with LSF installed
+  * Add installers and entitlement file to the `/blobs` directory.
+  * Follow instructions found in the [vm_image directory](vm-image/README.md).
+* Configure the cyclecloud host provider on the LSF Master.
+  * Compose _cyclecloudprov_config.json_
+  * Compose [_cyclecloudprov_templates.json_](examples/cyclecloudprov_templates.json) which can be based on the file in the examples directory.
+* Edit user_data.sh script to appropriately set MASTER_LIST.
+* Host the updated script in a URL allowing anonymous authentication, 
+Azure Storage Account in public mode works well.
 
 
-## Launching a trial version or an entitled version.
+### Setup Cluster in CycleCloud
 
-The installation files should be explicitly listed in the [project file](project.ini).
-Note that there is an alternate [entitled project file](project.ini-entitled) in this 
-repo.  
+* Create a LSF cluster in the CycleCloud UI
+  * Along with VM types, Networking, and ImageId, set the `LSF_TOP` for the execute nodes when configuring.
+* Start the cluster
+* Restart mbatchd on the master node and LSF should be integrated with the 
+CycleCloud cluster.
+* Start a job requesting resources from _cyclecloudprov_templates.json_
 
-To launch a trial version of LSF, copy the two trial installers to the `blobs/` directory.
+## Setup the Fully-Managed LSF Cluster Type
 
-To launch a entitled version of LSF, copy the *three* installers and *one* entitlement
-file to the `blobs/` directory and replace _project.ini_ with _project.ini-entitled_ which 
-has the extended list of installer files.
+This repo contains the [cyclecloud project](https://docs.microsoft.com/en-us/azure/cyclecloud/projects). The fully-managed LSF cluster is a completely automated cluster
+which will start a filesystem for LSF_TOP, high-availability LSF master nodes,
+as well as all the LSF configuration files, and worker nodes.
 
-One necessary configuration change is to set `lsf.entitled_install = true` in _lsf.txt_
-indicating that the install process should download the FP7 and entitlement file.
-
-## Start a LSF Cluster
-
-This repo contains the [cyclecloud project](https://docs.microsoft.com/en-us/azure/cyclecloud/projects).  To get started with LSF:
+The cluster template for this scenario is [_lsf-full.txt_](examples/lsf-full.txt). 
+To prepare the environment to run this cluster:
 
 1. Copy LSF installers into the `blobs/` directory.
 1. Upload the lsf project to a locker `cyclecloud project upload`
-1. Import the cluster as a service offering `cyclecloud import_cluster LSF -f lsf.txt -t`
+1. Import the cluster as a service offering `cyclecloud import_cluster LSF-full -f lsf-full.txt -t`
 1. Add the cluster to your managed cluster list in the CycleCloud UI with the _+add cluster_ button.
+1. Follow the configuration menu, save the cluster and START it.
 
 _NOTE_ : to avoid race conditions in HA master setup, transient software 
 installation failures with recovery are expected.
 
-## Resource Connector for Azure CycleCloud
-
-This project extends the RC for LSF for an Azure CycleCloud provider: azurecc.
-
-### Upgrading CycleCloud
-
-A customer RC-compatible API is needed to run the resource connector which is available
-in CycleCloud version >= 7.7.4. 
-A recent CycleCloud can be downloaded from this [link](https://download.microsoft.com/download/D/4/7/D470EBC3-6756-4621-B1CD-AB16E96D2E8C/cyclecloud-7.7.5.x86_64.rpm)
-
-The Resource Connector will be configured automatically when running the cluster from the _lsf.txt_ template.  
-
-To configure an pre-existing LSF cluster to use CycleCloud RC proceed to the next steps.
-
-### Installing the azurecc RC
-
-The azurecc resource connector is not yet part of the LSF product release.
-For now, it's necessary to install the provider plugin.
-
-1. Copy the project files into the RC library on lsf.
-
-```bash
-wget https://github.com/Azure/cyclecloud-lsf/archive/feature/2.0.1-rc.zip
-unzip master.zip
-rc_source_dir="cyclecloud-lsf-master/specs/default/cluster-init/files/host_provider"
-
-rc_scripts_dir=$LSF_SERVERDIR/../../resource_connector/azurecc/scripts
-mkdir -p $rc_scripts_dir
-cp $rc_source_dir/*.sh $rc_scripts_dir/
-chmod +x $rc_scripts_dir/*.sh
-
-mkdir -p $rc_scripts_dir/src/
-cp $rc_source_dir/src/*.py $rc_scripts_dir/src/
-
-```
-
-2. Add the azurecc provider to the hostProvider file in the LSF conf directory: _$LSF_TOP/conf/resource_connector/hostProviders.json_
-
-```json
-{
-  "providers": [
-    {
-      "type": "azureProv", 
-      "name": "azurecc", 
-      "scriptPath": "resource_connector/azurecc", 
-      "confPath": "resource_connector/azurecc",
-      "path": "resource_connector/azurecc/provider.json"
-    }
-  ]
-}
-```
-
-### Configure azurecc provider
-
-LSF will be communicating to CC via the azurecc resource connector.
-The azurecc provider includes a CycleCloud host and cluster.
-With a CycleCloud cluster configured add a provider entry to the azurecc provider file: _${LSF_TOP}/conf/resource_connector/azurecc/conf/azureccprov_config.json_
-
-An example of the provider file with a single cluster is below. The user name and password correspond to a CycleCloud user.
-This user should be assigned the _cyclecloud_access_ role. 
-
-```json
-{
-    "log_level": "info",
-    "cyclecloud": {
-        "cluster": {
-            "name": "lsf-cluster-example"
-        },
-        "config": {
-            "username": "cycle-api-user",
-            "password": "cycl34P1P4ss0rd",
-            "web_server": "https://cyclecloud.contoso.com"
-        }
-    }
-}
-```
-
-Also the _${LSF_TOP}/conf/resource_connector/azurecc/conf/provider.json_ should be provided where the LSF actions translate to the AzureCC actions:
-
-```json
-{
-    "host_type": "azure_host",
-    "interfaces":
-    [{
-        "name": "getAvailableTemplates",
-        "action": "resource_connector/azurecc/scripts/getAvailableTemplates.sh"
-    },
-    {
-        "name": "getReturnRequests",
-        "action": "resource_connector/azurecc/scripts/getReturnRequests.sh"
-    },
-    {
-        "name": "requestMachines",
-        "action": "resource_connector/azurecc/scripts/requestMachines.sh"
-    },
-    {
-        "name": "requestReturnMachines",
-        "action": "resource_connector/azurecc/scripts/requestReturnMachines.sh"
-    },
-    {
-        "name": "getRequestStatus",
-        "action": "resource_connector/azurecc/scripts/getRequestStatus.sh"
-    }]
-}
-```
-
-The provider interactions will be logged to _$LSF_LOGDIR/azurecc_prov.log_.
-
-
-### Edit cluster configuration for azurecc
-
-There are recommended configurations for declaring resources.  Add the following lines to _${LSF_TOP}/conf/lsf.conf_:
-
-```txt
-LSB_RC_EXTERNAL_HOST_FLAG="azurecchost"
-LSF_LOCAL_RESOURCES="[resource azurecchost]"
-```
-
-And also add the following resources to the Resource section of _${LSF_TOP}/conf/lsf.shared_:
-
-```txt
-   azurecchost  Boolean  ()       ()       (instances from Azure CycleCloud)
-   azureccmpi  Boolean   ()       ()       (instances that support MPI placement)
-   azurecclowprio  Boolean ()     ()       (instances that low priority / interruptible from Azure CycleCloud)
-   ngpus      Numeric    ()       Y       (number of GPUs)
-   nodearray  String     ()       ()       (nodearray from AzureCC)
-   machinetype String    ()       ()       (Azure machine type name for AzureCC)
-   zone       String     ()       ()       (zone/region for AzureCC)
-   placementgroup String ()       ()       (id used to note locality of machines)
-```
-
-
-
-### Configure the azurecc provider templates (Optional)
-
-_$LSF_TOP/conf/resource_connector/azurecc/conf/azureccprov_templates.json_ 
-
-This file isn't required, cyclecloud will populate the default contents of
-the provider template file based on the nodearrays in the CycleCloud cluster.
-
-Any host factory attributes can be provided in this file as an override.
-
-```json
-{
-  "templates" : [
-    {
-      "templateId" : "ondemand",
-      "attributes" : { 
-        "ncores": ["Numeric", "2"],
-        "ncpus": ["Numeric", "2"]
-      }
-    },
-    {
-      "templateId" : "gpu",
-      "attributes" : {
-        "ncores": ["Numeric", "8"],
-        "ncpus": ["Numeric", "4"],
-        "nodearray" : ["String" , "gpu"],
-        "ngpus" : ["Numeric", "1"]
-      },
-    "customScriptUri": "https://clustermanage.blob.core.windows.net/utilities/scripts/user_data.sh"
-    }
-   ]
-}
-```
-
-The `"templateId"` field corresponds to the nodearray name in the CycleCloud cluster. 
-The `"nodearray"` attribute corresponds to the Resource in _lsf.shared_ and is used by the scheduler for job dispatching.
-
-It's also advisable to increase `RC_MAX_REQUESTS` in lsb.params from the default value
-of 300 to 5000 (or higher).
-
-### Configure user_data.sh (Optional)
-
-Configuring *LSF_LOCAL_RESOURCES* on hosts is important for job placement in azure.
-User provided script, in the form of user_data.sh is the supported LSF mechanism for this.
-CycleCloud has a default script that runs to advertise all (*) attributes in 
-the in the template. It's recommended not to use a custom script unless necessary.
-
+_NOTE_ : _cyclecloudprov_templates.json_ is not automatically updated. The automation
+will initialize this file, but if you change the machine type then the host attributes
+(mem, ncpus, etc) will need to be updated and _mbatchd_ restarted.
 
 ## Submit jobs
 
@@ -242,75 +216,26 @@ jobs to the scheduler:
 
 There are a number of default queue types in the CycleCloud LSF cluster.
 
-```$ bqueues
+```
 QUEUE_NAME      PRIO STATUS          MAX JL/U JL/P JL/H NJOBS  PEND   RUN  SUSP 
-cloud            30  Open:Active       -    -    -    -     0     0     0     0
-cloudmpi         30  Open:Active       -    -    -    -     0     0     0     0
-cloudlowprio     30  Open:Active       -    -    -    -     0     0     0     0
-manual           30  Open:Active       -    -    -    -     0     0     0     0
+ondemand         30  Open:Active       -    -    -    -     0     0      0     0
+ondemandmpi      30  Open:Active       -    -    -    -     0     0      0     0
+lowprio          30  Open:Active       -    -    -    -     0     0      0     0
+gpu              30  Open:Active       -    -    -    -     0     0      0     0
+gpumpi           30  Open:Active       -    -    -    -     0     0      0     0
 ```
 
-* cloud - a general queue (default), for pleasantly parallel jobs.
-* cloudmpi - a queue for tightly-coupled jobs.
-* cloudlowprio - a queue for pre-emptible jobs which will run on low priority machines.
-* manual - a queue which for jobs to run on manually created (non-autoscaling hosts).
+* ondemand - a general queue (default), for pleasantly parallel jobs.
+* ondemandmpi - a queue for tightly-coupled jobs.
+* lowprio - a queue for pre-emptible jobs which will run on low priority machines.
+* gpu - parallel queue for jobs needing GPU co-processor.
+* gpumpi - gpu mpi jobs.
 
-## Start a "Headless" LSF Cluster
+Examples of supported job submissions:
+* `bsub -J "testArr[100]" my-job.sh` (ondemand is default)
+* `bsub -n 4 -q ondemandmpi -R "span[ptile=2]" my-job.sh`
+* `bsub -n 2 -q gpumpi -R "span[ptile=1]" -ngpus 2 my-job.sh`
 
-This project supports configuring and installing an LSF master host without
-using the automation built in.  The following instructions describe how to set 
-up this use-case.
-
-### "Headless" cluster requisites
-
-For this use-case certain assumptions are made about configurations.  The 
-
-1. Using a custom VM image with either the LSF_CONF dir shared by NFS or a local copy of LSF_CONF
-1. LSF is pre-installed on the master and/or a shared file system.
-
-### Upload this project to your locker
-
-Unlike the normal cluster, the "headless" cluster assumes that LSF is already installed
-so that the cluster automation doesn't need the LSF installers and binaries.
-**Remove the `[blobs]` section from the project.ini file** so that the lsf installers
-are not expected.  Then, upload the project.
-
-```bash
-cyclecloud project upload my-locker
-```
-
-### Import the "Headless" cluster template
-
-In the _templates_ directory exists the _lsf-headless.txt_ file.  This is appropriate
-for the "headless" use-case.  Import the file as a cluster template into CycleCloud
-
-```bash
-cyclecloud import_cluster LSF-headless -f lsf-headless.txt -c lsf -t
-```
-
-### Configure the cluster in the UI
-
-Using the create cluster menu, find the _LSF-headless_ template and proceed through
-the configuration menus. General CycleCloud documentation can guide you through
-selecting subnet and machine types.  Critical configurations for the "headless" lsf
-project are in the Advanced/Software sub menu. 
-
-* Base OS is the VM image that's been pre-created in the subscription referenced by Resource ID
-* Select the _lsf:execute:1.0.0_ cluster-init in the picker, which you've just uploaded.
-* For the custom image, provide the location of _LSF_TOP_, the root of the LSF install.
-* For the custom image, provide the location of lsf.conf by setting _LSF\_ENVDIR_
-
-![Headless cluster advanced configurations](images/headless-config.png)
-
-### LSF_LOCAL_RESOURCES in lsf.conf
-
-The worker nodes depend on access to the _LSF\_CONF_ directory. On the worker, an additional copy of the _lsf.conf_ file with be created at _LSF\_ENVDIR_.  This file will be automatically modified with *LSF_LOCAL_RESOURCES* which control job matching.
-
-### Start the cluster and point azurecc_prov to the cluster and nodearray.
-
-Now that the cluster is configure, it can be started. Start the cluster, and change
-the azurecc_prov details to reference the new clustername and the _execute_ node array. 
-The node array name should match the _templateId_ in azureccprov_templates.json.
 
 
 # Contributing
