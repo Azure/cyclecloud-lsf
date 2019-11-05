@@ -2,7 +2,7 @@
 set -x
 
 LSF_TOP_LOCAL=$(jetpack config lsf.lsf_top)
-MASTER_HOSTS_STRING=" ip-0A05000B "
+MASTER_HOSTS_STRING=" ip-0A05000D "
 
 echo "master managed externally, LSF_TOP is local edit lsf.conf in place."
 LSF_CONF="$LSF_TOP_LOCAL/conf/lsf.conf"
@@ -35,8 +35,12 @@ if [ -n "${cyclecloud_nodeid}" ]; then
   TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${cyclecloud_nodeid}*instanceID]"
 fi
 
+if [ -n "${nodearray_name}" ]; then
+  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${nodearray_name}*nodearray]"
+fi
+
 if [ -n "${template_id}" ]; then
-  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${template_id}*templateID]"
+  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${template_id}*template]"
 fi
 
 if [ -n "${clustername}" ]; then

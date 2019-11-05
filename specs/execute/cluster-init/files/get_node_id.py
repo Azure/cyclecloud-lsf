@@ -26,12 +26,12 @@ def get_node_id_legacy():
     
 def get_node_id():
     jetpack_version = check_output(["jetpack", "-v"]).strip()
-    current_version = [int(x.split("-")[0]) for x in jetpack_version.split('.')]
-    min_version = [int(x) for x in EARLIEST_NODEID_JETPACK_7_VERSION.split('.')]
-    for i in range(min(len(min_version),len(current_version))):
-        if current_version[i] < min_version[i]:
-            return get_node_id_legacy()
     try:
+        current_version = [int(x.split("-")[0]) for x in jetpack_version.split('.')]
+        min_version = [int(x) for x in EARLIEST_NODEID_JETPACK_7_VERSION.split('.')]
+        for i in range(min(len(min_version),len(current_version))):
+            if current_version[i] < min_version[i]:
+                return get_node_id_legacy()
         return check_output(["jetpack", "config", "cyclecloud.node.id"]).strip()
     except:
         return get_node_id_legacy()
