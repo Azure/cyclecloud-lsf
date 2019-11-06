@@ -37,6 +37,11 @@ fi
 
 if [ -n "${nodearray_name}" ]; then
   TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${nodearray_name}*nodearray]"
+  if [[ $nodearray_name == *"mpi" ]]; then
+    TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resource cyclecloudmpi]"
+  elif [[ $nodearray_name == "lowprio" ]]; then
+    TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resource cyclecloudlowprio]"
+  fi
 fi
 
 if [ -n "${template_id}" ]; then

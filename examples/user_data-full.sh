@@ -2,18 +2,9 @@
 set -x
 
 LSF_TOP_LOCAL=$(jetpack config lsf.lsf_top)
-if jetpack config lsf.shared_install | grep -iq "true"; then
-    echo "running a fully managed cluster, LSF_TOP is shared."
-    LSF_ENVDIR_LOCAL="$(jetpack config lsf.local_etc)"
-    LSF_CONF="$LSF_ENVDIR_LOCAL/lsf.conf"
-else
-    # Primary use-case
-    echo "master managed externally, LSF_TOP is local."
-    LSF_CONF="$LSF_TOP_LOCAL/conf/lsf.conf"
-    LSF_ENVDIR_LOCAL="$LSF_TOP_LOCAL"
-    MASTER_HOSTS_STRING=" ip-0A05000B "
-    sed -i "s/LSF_SERVER_HOSTS=.*/LSF_SERVER_HOSTS=\"${MASTER_HOSTS_STRING}\"/g" ${LSF_TOP_LOCAL}/conf/lsf.conf
-fi
+echo "running a fully managed cluster, LSF_TOP is shared."
+LSF_ENVDIR_LOCAL="$(jetpack config lsf.local_etc)"
+LSF_CONF="$LSF_ENVDIR_LOCAL/lsf.conf"
 
 set +e
 source $LSF_TOP_LOCAL/conf/profile.lsf
@@ -39,19 +30,28 @@ if [ -n "${rc_account}" ]; then
 fi
 
 if [ -n "${cyclecloud_nodeid}" ]; then
-  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${cyclecloud_nodeid}*instanceID]"
+  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${cyclecloud_nodeid}*instanceid]"
 fi
 
-if [ -n "${template_id}" ]; then
-  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${template_id}*templateID]"
-fi
+#if [ -n "${template_id}" ]; then
+#  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${template_id}*templateID]"
+#fi
 
-if [ -n "${clustername}" ]; then
-  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${clustername}*clusterName]"
-fi
+#if [ -n "${clustername}" ]; then
+#  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${clustername}*clusterName]"
+#fi
 
 if [ -n "${placement_group_id}" ]; then
   TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${placement_group_id}*placementgroup]"
+fi
+
+if [ -n "${nodearray_name}" ]; then
+  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${nodearray_name}*nodearray]"
+  if [[ $nodearray_name == *"mpi" ]]; then
+    TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resource cyclecloudmpi]"
+  elif [[ $nodearray_name == "lowprio" ]]; then
+    TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resource cyclecloudlowprio]"
+  fi
 fi
 
 echo "LSF_LOCAL_RESOURCES=\"${TEMP_LOCAL_RESOURCES}\"" >> $LSF_CONF

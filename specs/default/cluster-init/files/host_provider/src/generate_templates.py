@@ -35,7 +35,7 @@ def get_session(config):
                 s.auth = (config["username"], config["password"])
                 s.timeout = config["cycleserver"]["timeout"]
                 s.verify = config["verify_certificates"]  # Should we auto-accept unrecognized certs?
-                s.headers = {"X-Cycle-Client-Version": "%s-cli:%s" % ("cyclecloud-lsf", "3.0.0")}
+                s.headers = {"X-Cycle-Client-Version": "%s-cli:%s" % ("cyclecloud-lsf", "3.0.1")}
             
                 return s
             except requests.exceptions.SSLError:
