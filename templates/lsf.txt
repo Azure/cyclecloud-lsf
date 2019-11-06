@@ -13,7 +13,6 @@
         SubnetId = $ComputeSubnet
 
         [[[configuration]]]
-        lsf.lsf_top = $LSF_TOP
         #cyclecloud.selinux.policy = permissive
 
     [[node proxy]]
@@ -102,15 +101,6 @@ Order = 10
         Label = Region
         Description = Deployment Location
         ParameterType = Cloud.Region
-
-    [[ parameters Lsf Configuration ]]
-    Description = "The compute nodes should have LSF installed, set the location of the installation."
-    Order = 15
-
-        [[[parameter lsf_top]]]
-        Label = lsf_top
-        DefaultValue = "/opt/lsf"
-        Description = Location of LSF install on base image.
 
     [[parameters Compute Configurations]]
     Description = "Configure the execute array for the cluster.  VM sizes and autoscaling limits."

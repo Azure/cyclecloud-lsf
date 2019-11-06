@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 
-LSF_TOP_LOCAL=$(jetpack config lsf.lsf_top)
+LSF_TOP_LOCAL="/grid/lsf" 
 MASTER_HOSTS_STRING=" ip-0A05000D "
 
 echo "master managed externally, LSF_TOP is local edit lsf.conf in place."

@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-lsf_top=$(jetpack config lsf.lsf_top)
 cyclecloud_profile=/tmp/cyclecloud.profile
 
 set +e
