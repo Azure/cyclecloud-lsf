@@ -4,9 +4,9 @@
         "templateId": "ondemand",
         "attributes": {
             "type": ["String", "X86_64"],
-            "ncores": ["Numeric", "4"],
-            "ncpus": ["Numeric", "4"],
-            "mem": ["Numeric", "8192"],
+            "ncores": ["Numeric", "2"],
+            "ncpus": ["Numeric", "2"],
+            "mem": ["Numeric", "16384"],
             "cyclecloudhost": ["Boolean", "1"],
             "nodearray" : ["String", "ondemand"]
         },
@@ -20,13 +20,11 @@
       "maxNumber": 40,
       "attributes": {
         "nodearray": ["String", "ondemandmpi" ],
-        "machinetype": [ "String", "d2sv3"],
-        "zone": [  "String",  "westus2"],
-        "mem": [  "Numeric",  8192.0],
-        "ncpus": [  "Numeric",  2],
+        "ncores": ["Numeric", "2"],
+        "ncpus": ["Numeric", "2"],
+        "mem": ["Numeric", "16384"],
         "cyclecloudmpi": [  "Boolean",  1],
         "placementgroup": [  "String",  "ondemandmpipg0"],
-        "ncores": [  "Numeric",  2],
         "cyclecloudhost": [  "Boolean",  1],
         "type": [  "String",  "X86_64"],
         "cyclecloudlowprio": [  "Boolean",  0]
@@ -41,12 +39,11 @@
       "templateId": "ondemandmpi-1",
       "attributes": {
         "nodearray": ["String", "ondemandmpi" ],
-        "zone": [  "String",  "westus2"],
-        "mem": [  "Numeric",  8192.0],
-        "ncpus": [  "Numeric",  2],
+        "ncores": ["Numeric", "2"],
+        "ncpus": ["Numeric", "2"],
+        "mem": ["Numeric", "16384"],
         "cyclecloudmpi": [  "Boolean",  1],
         "placementgroup": [  "String",  "ondemandmpipg1"],
-        "ncores": [  "Numeric",  2],
         "cyclecloudhost": [  "Boolean",  1],
         "type": [  "String",  "X86_64"],
         "cyclecloudlowprio": [  "Boolean",  0]
@@ -62,12 +59,11 @@
       "templateId": "ondemandmpi-2",
       "attributes": {
         "nodearray": ["String", "ondemandmpi" ],
-        "zone": [  "String",  "westus2"],
-        "mem": [  "Numeric",  8192.0],
-        "ncpus": [  "Numeric",  2],
+        "ncores": ["Numeric", "2"],
+        "ncpus": ["Numeric", "2"],
+        "mem": ["Numeric", "16384"],
         "cyclecloudmpi": [  "Boolean",  1],
         "placementgroup": [  "String",  "ondemandmpipg2"],
-        "ncores": [  "Numeric",  2],
         "cyclecloudhost": [  "Boolean",  1],
         "type": [  "String",  "X86_64"],
         "cyclecloudlowprio": [  "Boolean",  0]
@@ -83,9 +79,9 @@
         "templateId": "lowprio",
         "attributes": {
             "type": ["String", "X86_64"],
-            "ncores": ["Numeric", "4"],
-            "ncpus": ["Numeric", "4"],
-            "mem": ["Numeric", "8192"],
+            "ncores": ["Numeric", "2"],
+            "ncpus": ["Numeric", "2"],
+            "mem": ["Numeric", "16384"],
             "cyclecloudhost": ["Boolean", "1"],
             "nodearray" : ["String", "lowprio"],
             "cyclecloudlowprio": [  "Boolean",  1]

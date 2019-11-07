@@ -21,6 +21,7 @@
 
         cyclecloud.exports.shared.samba.enabled = false
         cyclecloud.exports.defaults.samba.enabled = false
+        cyclecloud.maintenance_converge.enabled = false
 
         lsf.lsf_top = $LSF_TOP  # /grid/lsf
         lsf.lsf_logdir = ${LSF_TOP}/log
@@ -240,7 +241,7 @@ Order = 10
         Label = Compute Type
         Description = The machine type for execute nodes
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_D2s_v3 
+        DefaultValue = Standard_D4_v3 
         Config.Multiselect = true
 
         [[[parameter GPUMachineType]]]
