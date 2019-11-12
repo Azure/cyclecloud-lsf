@@ -63,7 +63,9 @@ template "#{tar_dir}/lsf#{lsf_version}_lsfinstall/lsf.install.config" do
 end
 
 execute "run_lsfinstall" do
-    command "./lsfinstall -f lsf.install.config"
+    # update install command to ignore .snapshot dir on ANF
+    # command "./lsfinstall -f lsf.install.config"
+    command "sed -i 's/grep -v lost+found/grep -v lost+found | grep -v .snapshot/g' instlib/lsfprechkfuncs.sh && ./lsfinstall -f lsf.install.config"
     cwd "#{tar_dir}/lsf#{lsf_version}_lsfinstall"
     creates "#{lsf_top}/conf/profile.lsf"
     not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
