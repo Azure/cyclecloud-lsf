@@ -68,6 +68,17 @@ execute "run_lsfinstall" do
     creates "#{lsf_top}/conf/profile.lsf"
     not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
     not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    not_if { ::File.exist?("#{lsf_top}/.snapshot")}
+end
+
+execute "run_lsfinstall_on_anf" do
+    # update install command to ignore .snapshot dir on ANF
+    command "sed -i 's/grep -v lost+found/grep -v lost+found | grep -v .snapshot/g' instlib/lsfprechkfuncs.sh && ./lsfinstall -f lsf.install.config"
+    cwd "#{tar_dir}/lsf#{lsf_version}_lsfinstall"
+    creates "#{lsf_top}/conf/profile.lsf"
+    not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
+    not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    only_if { ::File.exist?("#{lsf_top}/.snapshot")}
 end
 
 yum_package "java-1.8.0-openjdk.x86_64" do
