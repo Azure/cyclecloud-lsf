@@ -1,6 +1,6 @@
 [project]
-version = 3.0.1
+version = 3.0.2
 name = lsf
 
 [blobs]
-Files = lsf10.1_lnx310-lib217-x86_64.tar.Z, lsf10.1_lsfinstall_linux_x86_64.tar.Z, lsf10.1_lnx310-lib217-x86_64-520099.tar.Z, lsf10.1_lnx310-lib217-x86_64-529611.tar.Z, lsf_std_entitlement.dat
+Files = lsf10.1_lnx310-lib217-x86_64.tar.Z, lsf10.1_lsfinstall_linux_x86_64.tar.Z, lsf10.1_lnx310-lib217-x86_64-532214.tar.Z, lsf_std_entitlement.dat

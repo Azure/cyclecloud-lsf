@@ -1,6 +1,7 @@
 #!/bin/bash
+set -x
 
-if [ -f lsf.tar ]; then
+if ! [ -f lsf-blobs.tar ]; then
   tar -C ../ -cvf lsf-blobs.tar blobs 
 fi
 

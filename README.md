@@ -12,13 +12,13 @@ https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_resource_connec
 
 ### IBM Spectrum LSF
 
-This product requires LSF FP9 or FP8 (520099) + iFix (529611).
+This product requires LSF FP9 (532214).
 
 To use the fully automated cluster, or the vm image builder in this project
 LSF binaries and entitlement file must be added to the blobs/ directory.
 
-* lsf10.1_lnx310-lib217-x86_64-520099.tar.Z
-* lsf10.1_lnx310-lib217-x86_64-529611.tar.Z
+* lsf10.1_lnx310-lib217-x86_64-532214.tar.Z
+* lsf10.1_lnx310-lib217-x86_64.tar.Z
 * lsf10.1_lsfinstall_linux_x86_64.tar.Z
 * lsf_std_entitlement.dat
 
@@ -157,7 +157,6 @@ Cyclecloud/LSF automatically sets certain variables in the run environment of _u
 * cyclecloud_nodeid
 * anything specified in `userData` template attribute.
 
-## Initializing the "Headless" LSF Cluster Type
 
 ### Setup involving LSF prerequisites
 
