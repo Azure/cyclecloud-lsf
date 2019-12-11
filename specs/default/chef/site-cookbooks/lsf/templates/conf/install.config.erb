@@ -31,7 +31,9 @@ LSF_DYNAMIC_HOST_WAIT_TIME="60"
 SILENT_INSTALL="Y"
 LSF_SILENT_INSTALL_TARLIST="ALL"
 LSF_MASTER_LIST="<%= @master_list %>"
+<% if node[:lsf][:accept_license]-%>
 ACCEPT_LICENSE="Y"
+<% end -%>
 <% if node[:lsf][:entitled_install]-%>
 LSF_ENTITLEMENT_FILE="/tmp/lsf_std_entitlement.dat"
 <% end -%>

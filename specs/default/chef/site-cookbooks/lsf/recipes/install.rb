@@ -87,8 +87,9 @@ execute "run_lsfinstall_fp9" do
     command " . conf/profile.lsf && ./#{lsf_version}/install/patchinstall --silent #{tar_dir}/#{lsf_product_fp9}.tar.Z"
     cwd "#{lsf_top}"
     only_if { entitled_install }
-    not_if  " . conf/profile.lsf && ./#{lsf_version}/install/pversions | grep 532214", :cwd => "#{lsf_top}"
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    only_if { ::File.exist?("#{lsf_top}/conf/profile.lsf")}
+    not_if  " . conf/profile.lsf && ./#{lsf_version}/install/pversions | grep 532214", :cwd => "#{lsf_top}"
 end
 
 #execute "run_lsfinstall_rc_patch" do

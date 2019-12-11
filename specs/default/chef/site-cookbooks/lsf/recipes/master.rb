@@ -7,7 +7,11 @@ lsf_version = node['lsf']['version']
 lsf_kernel = node['lsf']['kernel']
 lsf_arch = node['lsf']['arch']
 clustername = node['lsf']['clustername']
-cycle_clustername = node['cyclecloud']['cluster']['name']
+if node['lsf']['cyclecloud_cluster_name'].nil?
+  cycle_clustername = node['cyclecloud']['cluster']['name']
+else
+  cycle_clustername = node['lsf']['cyclecloud_cluster_name']
+end
 username = node['cyclecloud']['config']['username']
 password = node['cyclecloud']['config']['password']
 web_server = node['cyclecloud']['config']['web_server']
