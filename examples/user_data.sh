@@ -1,16 +1,17 @@
 #!/bin/bash
 set -x
 
-LSF_TOP_LOCAL="/grid/lsf" 
-MASTER_HOSTS_STRING=" ip-0A05000D "
-
-echo "master managed externally, LSF_TOP is local edit lsf.conf in place."
+LSF_TOP_LOCAL=$(jetpack config lsf.lsf_top)
 LSF_CONF="$LSF_TOP_LOCAL/conf/lsf.conf"
-sed -i "s/LSF_SERVER_HOSTS=.*/LSF_SERVER_HOSTS=\"${MASTER_HOSTS_STRING}\"/g" ${LSF_TOP_LOCAL}/conf/lsf.conf
+
+## Changing kmaster host string 
+#MASTER_HOSTS_STRING=" ip-0A05000B  ip-0A05000D "
+#sed -i "s/LSF_SERVER_HOSTS=.*/LSF_SERVER_HOSTS=\"${MASTER_HOSTS_STRING}\"/g" ${LSF_CONF}
 
 set +e
 source $LSF_TOP_LOCAL/conf/profile.lsf
 set -e
+
 
 # Default LSF Environment Variables
 # rc_account

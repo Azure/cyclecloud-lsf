@@ -11,7 +11,7 @@
             "nodearray" : ["String", "ondemand"]
         },
         "nodeArray": "ondemand",
-        "customScriptUri": "https://aka.ms/user_data-full.sh",
+        "customScriptUri": "<%= @customscripturi %>",
         "userData": "zone=westus2;nodearray_name=ondemand"
     },
     {
@@ -30,7 +30,7 @@
       "nodeArray": "ondemandmpi",
       "placementGroupName": "ondemandmpipg0",
       "priority": 449,
-      "customScriptUri": "https://aka.ms/user_data-full.sh",
+      "customScriptUri": "<%= @customscripturi %>",
       "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg0"
     },
     {
@@ -49,7 +49,7 @@
       "nodeArray": "ondemandmpi",
       "placementGroupName": "ondemandmpipg1",
       "priority": 448,
-      "customScriptUri": "https://aka.ms/user_data-full.sh",
+      "customScriptUri": "<%= @customscripturi %>",
       "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg1"
     },
     {
@@ -68,7 +68,7 @@
       "nodeArray": "ondemandmpi",
       "placementGroupName": "ondemandmpipg2",
       "priority": 447,
-      "customScriptUri": "https://aka.ms/user_data-full.sh",
+      "customScriptUri": "<%= @customscripturi %>",
       "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg2"
     },
     {
@@ -84,7 +84,7 @@
         },
         "nodeArray": "lowprio",
         "keyPairLocation": "~/.ssh/cyclecloud.pem",
-        "customScriptUri": "https://aka.ms/user_data-full.sh",
+        "customScriptUri": "<%= @customscripturi %>",
         "userData" : "nodearray_name=lowprio"
     },
     {
@@ -102,7 +102,7 @@
         "priority": 445,
         "vmType": "Standard_NC12",
         "keyPairLocation": "~/.ssh/cyclecloud.pem",
-        "customScriptUri": "https://aka.ms/user_data-full.sh",
+        "customScriptUri": "<%= @customscripturi %>",
         "userData" : "nodearray_name=gpu"
     },
     {
@@ -126,7 +126,7 @@
       "priority": 440,
       "vmType": "Standard_NC12",
       "keyPairLocation": "~/.ssh/cyclecloud.pem",
-      "customScriptUri": "https://aka.ms/user_data-full.sh",
+      "customScriptUri": "<%= @customscripturi %>",
       "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg0"
     },
     {
@@ -150,7 +150,7 @@
       "placementGroupName": "gpumpipg1",
       "priority": 439,
       "vmType": "Standard_NC12",
-      "customScriptUri": "https://aka.ms/user_data-full.sh",
+      "customScriptUri": "<%= @customscripturi %>",
       "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg1"
     }]
 }

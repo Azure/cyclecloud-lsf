@@ -25,6 +25,8 @@ default['lsf']['admin']['username'] = 'lsfadmin'
 default['lsf']['admin']['home'] = "#{node['lsf']['lsf_top']}/lsfadmin"
 default['lsf']['autoscale']['log'] = "/var/log/lsf-autoscale.log"
 
+default['lsf']['custom_script_uri'] = "https://aka.ms/user_data.sh"
+
 # for search
 default['lsf']['master']['hostnames'] = nil
 default['lsf']['master']['ip_addresses'] = nil

@@ -70,13 +70,6 @@ execute "anf_fix_lsfprechkfuncs" do
     only_if { ::File.exist?("#{lsf_top}/.snapshot")}
 end
 
-execute "run_lsfinstall" do
-    command "./lsfinstall -f lsf.install.config"
-    cwd "#{tar_dir}/lsf#{lsf_version}_lsfinstall"
-    creates "#{lsf_top}/conf/profile.lsf"
-    not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
-    not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
-end
 
 yum_package "java-1.8.0-openjdk.x86_64" do
     action "install"
@@ -90,6 +83,16 @@ execute "run_lsfinstall_fp9" do
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
     only_if { ::File.exist?("#{lsf_top}/conf/profile.lsf")}
     not_if  " . conf/profile.lsf && ./#{lsf_version}/install/pversions | grep 532214", :cwd => "#{lsf_top}"
+    action :nothing
+end
+
+execute "run_lsfinstall" do
+    command "./lsfinstall -f lsf.install.config"
+    cwd "#{tar_dir}/lsf#{lsf_version}_lsfinstall"
+    creates "#{lsf_top}/conf/profile.lsf"
+    not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
+    not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    notifies :run, 'execute[run_lsfinstall_fp9]', :immediately
 end
 
 #execute "run_lsfinstall_rc_patch" do

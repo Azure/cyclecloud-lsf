@@ -8,7 +8,7 @@ lsf_kernel = node['lsf']['kernel']
 lsf_arch = node['lsf']['arch']
 clustername = node['lsf']['clustername']
 if node['lsf']['cyclecloud_cluster_name'].nil?
-  cycle_clustername = node['cyclecloud']['cluster']['name']
+   cycle_clustername = node['cyclecloud']['cluster']['name']
 else
   cycle_clustername = node['lsf']['cyclecloud_cluster_name']
 end
@@ -92,6 +92,12 @@ end
 
 template "#{lsf_top}/conf/resource_connector/cyclecloud/conf/cyclecloudprov_templates.json" do
   source 'conf/cyclecloudprov_templates.json.erb'
+  owner 'lsfadmin'
+  group 'lsfadmin'
+  mode '0600'
+  variables(
+    :customscripturi => node['lsf']['custom_script_uri']
+  )
 end
 
 template "#{lsb_conf_dir}/lsb.hosts" do

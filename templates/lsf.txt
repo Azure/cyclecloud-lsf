@@ -13,6 +13,7 @@
 
         [[[configuration]]]
         #cyclecloud.selinux.policy = permissive
+        lsf.lsf_top = $lsf_top 
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -47,7 +48,7 @@
         run_list = recipe[cyclecloud],recipe[cganglia::client]
         cyclecloud.maintenance_converge.enabled = false 
 
-        [[[cluster-init lsf:execute:3.0.2]]]
+        [[[cluster-init lsf:execute:3.0.3]]]
 
     [[nodearray ondemandmpi]]
         Priority = 450
@@ -189,7 +190,16 @@ Order = 20
         #[[[parameter LsfProjectVersion]]]
         #Label = Project Version
         #Description = CycleCloud LSF project version found in project.ini
-        #DefaultValue = 3.0.2
+        #DefaultValue = 3.0.3
+
+    [[parameters LSF Configuration]]
+    Description = "Information for configuring nodes via user_data.sh"
+    Order = 22
+
+        [[[parameter lsf_top]]]
+        Label = lsf_top
+        DefaultValue = "/grid/lsf"
+        Description = Location of LSF install on base image
 
     [[parameters Advanced Networking]]
     Description = Advanced networking settings
@@ -218,7 +228,7 @@ Order = 20
         DefaultValue = Standard_B1s
 
         [[[parameter MaxScalesetSize]]]
-        Label = Max VMs in VMSS for MPI only
+        Label = Max VMs in VMSS
         Description = Max number of VMs in a VMSS
         DefaultValue = 1000
         Config.Plugin = pico.form.NumberTextBox
