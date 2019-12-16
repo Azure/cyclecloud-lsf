@@ -6,7 +6,7 @@ default['lsf']['clustername'] = "cyclecloud"
 default['lsf']['tar_dir'] = "/tmp"
 default['lsf']['lsf_top'] = "/usr/share/lsf"
 default['lsf']['local_etc'] = "/etc/lsf"
-default['lsf']['entitled_install'] = false
+default['lsf']['entitled_install'] = true
 default['lsf']['accept_license'] = true
 default['lsf']['cyclecloud_cluster_name'] = nil
 
