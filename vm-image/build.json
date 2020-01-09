@@ -6,8 +6,6 @@
       "image_sku": "7.5",
       "image_version" : "7.5.20180815",
       "vm_size": "Standard_D2s_v3",
-      "resource_group" : "requa-westus2",
-      "location": "westus2",
       "subscription_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX",
       "tenant_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX",
       "application_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX",

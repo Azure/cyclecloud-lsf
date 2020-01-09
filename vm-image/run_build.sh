@@ -24,6 +24,6 @@ packer build -var "client_id=$APPLICATION_ID" \
   -var "location=$LOCATION" \
   -var "image_hash=$IMAGE_HASH" \
   -var "image_name=$IMAGE_NAME" \
-  build.json | tee logs/${APP_NAME}-${DATESTAMP}-${IMAGE_HASH}.log
+  build.json | tee logs/${IMAGE_NAME}.log
 
 
