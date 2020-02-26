@@ -9,6 +9,7 @@ default['lsf']['local_etc'] = "/etc/lsf"
 default['lsf']['entitled_install'] = true
 default['lsf']['accept_license'] = true
 default['lsf']['cyclecloud_cluster_name'] = nil
+default['lsf']['required_patch_version'] = "532214"
 
 default['lsf']['lsb_sharedir'] = "#{node['lsf']['lsf_top']}/work" 
 default['lsf']['lsf_confdir'] = "#{node['lsf']['lsf_top']}/conf" 
@@ -25,7 +26,7 @@ default['lsf']['admin']['username'] = 'lsfadmin'
 default['lsf']['admin']['home'] = "#{node['lsf']['lsf_top']}/lsfadmin"
 default['lsf']['autoscale']['log'] = "/var/log/lsf-autoscale.log"
 
-default['lsf']['custom_script_uri'] = "https://aka.ms/user_data.sh"
+default['lsf']['custom_script_uri'] = "file:///mnt/cluster-init/lsf/execute/files/user_data-full.sh"
 
 # for search
 default['lsf']['master']['hostnames'] = nil

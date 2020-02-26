@@ -13,7 +13,6 @@
 
         [[[configuration]]]
         #cyclecloud.selinux.policy = permissive
-        lsf.lsf_top = $lsf_top 
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -48,7 +47,7 @@
         run_list = recipe[cyclecloud],recipe[cganglia::client]
         cyclecloud.maintenance_converge.enabled = false 
 
-        [[[cluster-init lsf:execute:3.0.3]]]
+        [[[cluster-init cyclecloud/lsf:execute:3.2.0]]]
 
     [[nodearray ondemandmpi]]
         Priority = 450
@@ -191,15 +190,6 @@ Order = 20
         #Label = Project Version
         #Description = CycleCloud LSF project version found in project.ini
         #DefaultValue = 3.0.3
-
-    [[parameters LSF Configuration]]
-    Description = "Information for configuring nodes via user_data.sh"
-    Order = 22
-
-        [[[parameter lsf_top]]]
-        Label = lsf_top
-        DefaultValue = "/grid/lsf"
-        Description = Location of LSF install on base image
 
     [[parameters Advanced Networking]]
     Description = Advanced networking settings

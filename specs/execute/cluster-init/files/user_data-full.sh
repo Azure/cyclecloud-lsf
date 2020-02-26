@@ -4,11 +4,14 @@ set -x
 LSF_TOP_LOCAL=$(jetpack config lsf.lsf_top)
 echo "running a fully managed cluster, LSF_TOP is shared."
 LSF_ENVDIR_LOCAL="$(jetpack config lsf.local_etc)"
-LSF_CONF="$LSF_ENVDIR_LOCAL/lsf.conf"
+mkdir -p $LSF_ENVDIR_LOCAL
+cp $LSF_TOP_LOCAL/conf/lsf.conf $LSF_ENVDIR_LOCAL/ || true
 
 set +e
 source $LSF_TOP_LOCAL/conf/profile.lsf
 set -e
+
+LSF_CONF="$LSF_ENVDIR_LOCAL/lsf.conf"
 
 # Default LSF Environment Variables
 # rc_account

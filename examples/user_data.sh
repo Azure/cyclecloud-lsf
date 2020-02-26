@@ -1,8 +1,8 @@
 #!/bin/bash
 set -x
 
-LSF_TOP_LOCAL=$(jetpack config lsf.lsf_top)
-LSF_CONF="$LSF_TOP_LOCAL/conf/lsf.conf"
+LSF_TOP_LOCAL=/grid/lsf
+LSF_CONF=$LSF_TOP_LOCAL/conf/lsf.conf
 
 ## Changing kmaster host string 
 #MASTER_HOSTS_STRING=" ip-0A05000B  ip-0A05000D "
