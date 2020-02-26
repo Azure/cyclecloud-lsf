@@ -7,11 +7,12 @@ lsf_top = node['lsf']['lsf_top']
 lsf_version = node['lsf']['version']
 lsf_kernel = node['lsf']['kernel']
 lsf_arch = node['lsf']['arch']
+lsf_patch = node['lsf']['required_patch_version']
 clustername = node['lsf']['clustername']
 entitled_install = node['lsf']['entitled_install']
 
 lsf_product = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}"
-lsf_product_fp9 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-532214"
+lsf_product_fp9 = "lsf#{lsf_version}_#{lsf_kernel}-#{lsf_arch}-#{lsf_patch}"
 
 lsf_install = "lsf#{lsf_version}_lsfinstall_linux_#{lsf_arch}"
 
@@ -27,11 +28,13 @@ jetpack_download "#{lsf_product}.tar.Z" do
     not_if { ::File.exist?("#{tar_dir}/#{lsf_product}.tar.Z") }
 end
 
-jetpack_download "#{lsf_product_fp9}.tar.Z" do
-    project "lsf"
-    dest tar_dir
-    only_if { entitled_install }
-    not_if { ::File.exist?("#{tar_dir}/#{lsf_product_fp9}.tar.Z") }
+if !lsf_patch.nil?
+  jetpack_download "#{lsf_product_fp9}.tar.Z" do
+      project "lsf"
+      dest tar_dir
+      only_if { entitled_install }
+      not_if { ::File.exist?("#{tar_dir}/#{lsf_product_fp9}.tar.Z") }
+  end
 end
 
 #jetpack_download "#{lsf_product_rc_patch}.tar.Z" do
@@ -76,13 +79,22 @@ yum_package "java-1.8.0-openjdk.x86_64" do
     not_if "yum list installed java-1.8.0-openjdk.x86_64"
   end
 
+# removed pversion dependency
+## ./10.1/install/pversions
+#IBM Platform LSF 7.0.1 or later not found.
+
+# Also patchinstall is failing
+#[Mon Feb 24 21:35:17 UTC 2020:apply_fp_prechk:ERROR_4001]
+#    This patch is for LSF 10.1.0 linux3.10-glibc2.17-x86_64. The patch installer cannot find the corresponding LSF base installation. Complete the base installation and make sure the base installation and patch package versions match before applying the patch.
+
 execute "run_lsfinstall_fp9" do
     command " . conf/profile.lsf && ./#{lsf_version}/install/patchinstall --silent #{tar_dir}/#{lsf_product_fp9}.tar.Z"
     cwd "#{lsf_top}"
     only_if { entitled_install }
     only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
     only_if { ::File.exist?("#{lsf_top}/conf/profile.lsf")}
-    not_if  " . conf/profile.lsf && ./#{lsf_version}/install/pversions | grep 532214", :cwd => "#{lsf_top}"
+    only_if { !lsf_patch.nil? }
+    not_if  " . conf/profile.lsf && lsid -V | grep #{lsf_patch}", :cwd => "#{lsf_top}"
     action :nothing
 end
 
@@ -95,26 +107,3 @@ execute "run_lsfinstall" do
     notifies :run, 'execute[run_lsfinstall_fp9]', :immediately
 end
 
-#execute "run_lsfinstall_rc_patch" do
-#    command " . conf/profile.lsf && ./#{lsf_version}/install/patchinstall --silent #{tar_dir}/#{lsf_product_rc_patch}.tar.Z"
-#    cwd "#{lsf_top}"
-#    only_if { entitled_install }
-#    not_if  " . conf/profile.lsf &&  ./#{lsf_version}/install/pversions | grep 529611", :cwd => "#{lsf_top}"
-#    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
-#    not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}/resource_connector/cyclecloud")}
-#end
-
-#execute "set_permissions_not_entitled" do
-#    command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
-#    not_if { entitled_install }
-#    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
-#    not_if { ::File.exist?("#{lsf_top}/conf/cyclefixperms")}
-#end
-#
-#execute "set_permissions_entitled" do
-#    command "chown -R root:root #{lsf_top} && chmod 4755 #{lsf_top}/10.1/linux*/bin/*admin && touch #{lsf_top}/conf/cyclefixperms"
-#    only_if { entitled_install }
-#    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
-#    only_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}/resource_connector/cyclecloud")}
-#    not_if { ::File.exist?("#{lsf_top}/conf/cyclefixperms")}
-#end
