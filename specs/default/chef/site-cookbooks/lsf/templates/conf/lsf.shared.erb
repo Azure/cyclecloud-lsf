@@ -92,6 +92,10 @@ End HostModel
 
 Begin Resource
 RESOURCENAME  TYPE    INTERVAL INCREASING  DESCRIPTION 	      # Keywords
+   ngpus_prohibited   Numeric   60    N    (Number of GPUs in Prohibited Mode)
+   ngpus              Numeric   60    N    (Number of GPUs)
+   ngpus_shared       Numeric   60    N    (Number of GPUs in Shared Mode)
+   ngpus_excl_t       Numeric   60    N    (Number of GPUs in Exclusive Thread Mode)
    sparc      Boolean ()       ()          (SPARC)
    hpux       Boolean ()       ()          (HP-UX UNIX)
    aix        Boolean ()       ()          (AIX UNIX)

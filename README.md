@@ -191,8 +191,8 @@ The cluster template for this scenario is [_lsf-full.txt_](examples/lsf-full.txt
 To prepare the environment to run this cluster:
 
 1. Copy LSF installers into the `blobs/` directory.
-1. Upload the lsf project to a locker `cyclecloud project upload`
-1. Import the cluster as a service offering `cyclecloud import_cluster LSF-full -f lsf-full.txt -t`
+1. Upload the lsf binaries to the cyclecloud locker e.g. `pogo sync blobs/ az://<storage-account>/cyclecloud/blobs/lsf/`
+1. Import the cluster as a service offering `cyclecloud import_cluster LSF-full -c lsf -f lsf-full.txt -t`
 1. Add the cluster to your managed cluster list in the CycleCloud UI with the _+add cluster_ button.
 1. Follow the configuration menu, save the cluster and START it.
 
@@ -233,7 +233,8 @@ gpumpi           30  Open:Active       -    -    -    -     0     0      0     0
 Examples of supported job submissions:
 * `bsub -J "testArr[100]" my-job.sh` (ondemand is default)
 * `bsub -n 4 -q ondemandmpi -R "span[ptile=2]" my-job.sh`
-* `bsub -n 2 -q gpumpi -R "span[ptile=1]" -ngpus 2 my-job.sh`
+* `bsub -n 2 -q gpumpi -R "span[ptile=1] rusage[ngpus=2]" my-job.sh`
+
 
 
 

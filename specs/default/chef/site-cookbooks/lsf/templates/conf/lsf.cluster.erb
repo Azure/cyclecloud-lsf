@@ -54,6 +54,14 @@ LSF_HOST_ADDR_RANGE=*.*.*.*
 # FLOAT_CLIENTS=10
 End Parameters
 
+Begin ResourceMap
+RESOURCENAME             LOCATION
+ngpus_prohibited         ([default])
+ngpus                    ([default])
+ngpus_shared             ([default])
+ngpus_excl_t             ([default])
+End ResourceMap
+
 # Begin ResourceMap
 # RESOURCENAME  LOCATION
 # tmp2	        [default]
