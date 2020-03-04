@@ -136,7 +136,6 @@
         PublicPort = 22
 
     [[nodearray ondemand]]
-        Priority = 500
         Azure.MaxScalesetSize = $MaxScalesetSize
         MachineType = $ExecuteMachineType
         AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
@@ -149,7 +148,6 @@
         cyclecloud.maintenance_converge.enabled = false
         lsf.attribute_names = nodearray
         lsf.attributes.nodearray = ondemand
-        lsf.autoscale = true
 
         [[[configuration cyclecloud.mounts.sched-exp]]]
         type = nfs
@@ -164,7 +162,6 @@
         [[[cluster-init cyclecloud/lsf:execute:$LsfProjectVersion]]]
         
     [[nodearray ondemandmpi]]
-    	Priority = 450
     	Extends = ondemand
         PlacementGroupId = ondemandmpi-manual 
 
@@ -175,7 +172,6 @@
         lsf.attributes.placementgroup = ondemandmpi-manual
 
     [[nodearray lowprio]]
-        Priority = 400
         Extends = ondemand
         Interruptible = True
 
@@ -185,7 +181,6 @@
         lsf.attributes.cyclecloudlowprio = true
 
     [[nodearray gpu]]
-        Priority = 300
         Extends = ondemand
         ImageName = $GPUImageName
         MachineType = $GPUMachineType
@@ -197,7 +192,6 @@
 
     [[nodearray gpumpi]]
     	Extends = gpu
-    	Priority = 250
         PlacementGroupId = gpumpi-manual 
 
         [[[configuration]]]
@@ -206,6 +200,16 @@
         lsf.attributes.cyclecloudmpi = true
         lsf.attributes.placementgroup = gpumpi-manual
 
+    # nodes will start in closed_RC state 
+    [[nodearray submit]] 
+        Priority = 600 
+        Extends = ondemand 
+        MachineType = $SubmitMachineType 
+
+        [[[configuration]]] 
+        lsf.custom_script_uri = "file:///mnt/cluster-init/lsf/execute/files/user_data-full.sh" 
+
+        
 [parameters About]
 Order = 1
 
@@ -251,6 +255,13 @@ Order = 10
         ParameterType = Cloud.MachineType
         DefaultValue = Standard_NC12
         Config.Multiselect = false
+
+        [[[parameter SubmitMachineType]]]
+        Label = Compute Type
+        Description = The machine type for execute nodes
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_D4_v3 
+        Config.Multiselect = true
 
         [[[parameter num_gpus_dict]]]
         required = True

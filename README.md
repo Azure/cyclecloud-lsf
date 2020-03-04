@@ -230,12 +230,19 @@ gpumpi           30  Open:Active       -    -    -    -     0     0      0     0
 * gpu - parallel queue for jobs needing GPU co-processor.
 * gpumpi - gpu mpi jobs.
 
-Examples of supported job submissions:
+Once the cluster is running you can log into one of the master nodes and submit
+jobs to the scheduler. Examples of supported job submissions:
 * `bsub -J "testArr[100]" my-job.sh` (ondemand is default)
 * `bsub -n 4 -q ondemandmpi -R "span[ptile=2]" my-job.sh`
 * `bsub -n 2 -q gpumpi -R "span[ptile=1] rusage[ngpus=2]" my-job.sh`
 
+## Start a submit-only host
 
+There is a nodearray dedicated to login hosts. These hosts don't run jobs, but can submit jobs to
+the queue. Start them from the UI by going to *Actions* -> *Add* and follow the menu to add submit-type 
+hosts. 
+
+_NOTE_ : The submit hosts will  be visible with the _lshosts_ command but not the _bhosts_ command. 
 
 
 # Contributing
