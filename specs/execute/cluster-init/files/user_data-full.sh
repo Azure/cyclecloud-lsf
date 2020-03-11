@@ -61,7 +61,12 @@ echo "LSF_LOCAL_RESOURCES=\"${TEMP_LOCAL_RESOURCES}\"" >> $LSF_CONF
 
 # If using local lsf.conf, set LSF_ENVDIR
 if jetpack config lsf.shared_install | grep -iq "true"; then
-  LSF_ENVDIR=$LSF_ENVDIR_LOCAL
+  export LSF_ENVDIR=$LSF_ENVDIR_LOCAL
+  if [ ! -e /etc/profile.d/set_lsf_envdir.sh ]; then
+    cat > /etc/profile.d/set_lsf_envdir.sh <<EOF
+  export LSF_ENVDIR=$LSF_ENVDIR_LOCAL
+EOF
+  fi
 fi
 
 lsadmin limstartup 
