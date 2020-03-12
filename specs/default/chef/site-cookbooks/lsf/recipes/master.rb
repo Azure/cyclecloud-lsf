@@ -1,4 +1,8 @@
 include_recipe "lsf::default"
+
+
+# Store updated host data to ensure searchable list has locally updated hostname
+cluster.store_discoverable()
 include_recipe "lsf::search_master"
 
 clustername = node['lsf']['clustername']

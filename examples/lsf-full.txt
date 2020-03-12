@@ -1,7 +1,7 @@
 
 [cluster lsf]
     FormLayout = selectionpanel
-    Category = Infrastructure
+    Category = Schedulers
 
     [[node defaults]]
 
