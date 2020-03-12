@@ -19,29 +19,38 @@ region = node['azure']['metadata']['compute']['location']
 
 lsb_conf_dir = "#{lsf_top}/conf/lsbatch/#{clustername}/configdir/"
 
-ruby_block 'check_valid_masterlist' do
+
+# Ensure delayed evaluation  of the hostname to catch post-compile-stage changes
+lazy_hostname =  lambda {node['hostname']}
+
+ruby_block 'check_valid_masterlist'  do
   block do
+    # Check that my own hostname is stable (for runtime hostname changes on first converge)
+    # AND that forward and reverse DNS lookups work for all Master nodes in HA configs
+    hostname_stable =  node['lsf']['master']['hostnames'].include?(lazy_hostname.call)
+    Chef::Log.info "Lazy Hostname = #{lazy_hostname.call} Master List: #{node['lsf']['master']['hostnames']} Stable: #{hostname_stable}"
     hostname_match = node['lsf']['master']['reverse_hostnames'] == node['lsf']['master']['hostnames']
-    raise "Hostname mismatch in master list. #{node[:lsf][:master][:hostnames]} == #{node[:lsf][:master][:reverse_hostnames]}" if not(hostname_match)
+    raise "Hostname mismatch in master list. #{node['lsf']['master']['hostnames']} == #{node['lsf']['master']['reverse_hostnames']}" if not(hostname_match)
+    raise "Local hostname changed during converge [ hostname: #{lazy_hostname.call}, master list: #{node['lsf']['master']['hostnames']} ]" if not(hostname_stable)
   end
 end
 
 template "#{lsf_top}/conf/lsf.conf" do
   source 'conf/lsf.conf.erb'
-  variables(
+  variables lazy {{
     :lsf_top => lsf_top,
     :lsf_clustername => clustername,
     :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) },
     :master_domain => node['domain'],
     :master_hostname => node['lsf']['master']['hostnames'][0]
-  ) 
+  }}
 end
 
 template "#{lsf_top}/conf/lsf.cluster.#{clustername}" do
   source 'conf/lsf.cluster.erb'
-  variables(
+  variables lazy {{
     :master_list => node['lsf']['master']['ip_addresses'].map { |x| get_hostname(x) }
-  )
+  }}
 end
 
 template "#{lsf_top}/conf/lsf.shared" do
