@@ -47,7 +47,7 @@
         run_list = recipe[cyclecloud],recipe[cganglia::client]
         cyclecloud.maintenance_converge.enabled = false 
 
-        [[[cluster-init cyclecloud/lsf:execute:3.2.1]]]
+        [[[cluster-init cyclecloud/lsf:execute]]]
 
     [[nodearray ondemandmpi]]
         Priority = 450
