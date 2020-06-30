@@ -33,7 +33,8 @@
       "placementGroupName": "ondemandmpipg0",
       "priority": 449,
       "customScriptUri": "file:///mnt/cluster-init/lsf/execute/files/user_data.sh",
-      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg0"
+      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg0",
+      "MaxNumber" : 40
     },
     {
       "templateId": "ondemandmpi1",
@@ -53,7 +54,8 @@
       "placementGroupName": "ondemandmpipg1",
       "priority": 448,
       "customScriptUri": "file:///mnt/cluster-init/lsf/execute/files/user_data.sh",
-      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg1"
+      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg1",
+      "MaxNumber" : 40
     },
     {
       "templateId": "ondemandmpi2",
@@ -73,7 +75,8 @@
       "placementGroupName": "ondemandmpipg2",
       "priority": 447,
       "customScriptUri": "file:///mnt/cluster-init/lsf/execute/files/user_data.sh",
-      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg2"
+      "userData" : "nodearray_name=ondemandmpi;placement_group_id=ondemandmpipg2",
+      "MaxNumber" : 40
     },
     {
         "templateId": "lowprio",
@@ -130,7 +133,8 @@
       "priority": 440,
       "vmType": "Standard_NC12",
       "customScriptUri": "file:///mnt/cluster-init/lsf/execute/files/user_data.sh",
-      "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg0"
+      "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg0",
+      "MaxNumber" : 40
     },
     {
       "templateId": "gpumpi1",
@@ -155,6 +159,7 @@
       "priority": 439,
       "vmType": "Standard_NC12",
       "customScriptUri": "file:///mnt/cluster-init/lsf/execute/files/user_data.sh",
-      "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg1"
+      "userData" : "nodearray_name=gpumpi;placement_group_id=gpumpipg1",
+      "MaxNumber" : 40
     }]
 }

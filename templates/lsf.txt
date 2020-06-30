@@ -220,7 +220,7 @@ Order = 20
         [[[parameter MaxScalesetSize]]]
         Label = Max VMs in VMSS
         Description = Max number of VMs in a VMSS
-        DefaultValue = 1000
+        DefaultValue = 40
         Config.Plugin = pico.form.NumberTextBox
         Config.MinValue = 1
         Config.MaxValue = 1000
