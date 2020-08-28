@@ -1,5 +1,8 @@
 import json
-import urllib
+try:
+    from urllib.parse import quote as urllib_quote
+except ImportError:
+    from urllib import quote as urllib_quote
 from subprocess import check_output as check_output_real
 import sys
 
@@ -17,7 +20,7 @@ def get_node_id_legacy():
     password = cyclecloud_dict["config"]["password"].strip()
     web_server = cyclecloud_dict["config"]["web_server"].strip()
     instance_id = cyclecloud_dict["instance"]["id"].strip()
-    query_filter = urllib.quote("(ClusterName===\"" + cluster_name + "\"&&InstanceId===\"" + instance_id + "\")")
+    query_filter = urllib_quote("(ClusterName===\"" + cluster_name + "\"&&InstanceId===\"" + instance_id + "\")")
     nodes_output = check_output(["curl", "-k", "-u", username + ":" + password, web_server + "/db/Cloud.Node?attr=NodeId&f=" + query_filter + "&format=json"])
     nodes = json.loads(nodes_output)
     return nodes[0]["NodeId"]
@@ -38,6 +41,6 @@ def get_node_id():
 
 node_id = get_node_id()
 if node_id:
-    print node_id
+    print(node_id)
 else:
     sys.exit(1)
