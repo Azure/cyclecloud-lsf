@@ -125,11 +125,11 @@ We advise this template be used with a RES_REQ as follows:
 By inspecting [_cyclecloudprov_templates.json_](examples/cyclecloudprov_templates.json) and [_user_data.sh_](examples/user_data.sh)
 see how GPU jobs, both MPI and parallel can be supported, eg. for MPI job:
 ```
--R "span[ptile=1] select[nodearray=='gpumpi' && cyclecloudmpi] same[placementgroup] -ngpus 2
+-R "span[ptile=1] select[nodearray=='gpumpi' && cyclecloudmpi] same[placementgroup] -gpu "num=1:mode=shared:j_exclusive=yes"
 ```
 or parallel job (no placement group needed):
 ```
--R select[nodearray=='gpu' && !cyclecloudmpi] -ngpus 1
+-R select[nodearray=='gpu' && !cyclecloudmpi] -gpus "num=2:mode=shared:j_exclusive=yes"
 ```
 
 ### Additional LSF Template Attributes for CycleCloud
@@ -234,7 +234,7 @@ Once the cluster is running you can log into one of the master nodes and submit
 jobs to the scheduler. Examples of supported job submissions:
 * `bsub -J "testArr[100]" my-job.sh` (ondemand is default)
 * `bsub -n 4 -q ondemandmpi -R "span[ptile=2]" my-job.sh`
-* `bsub -n 2 -q gpumpi -R "span[ptile=1] rusage[ngpus=2]" my-job.sh`
+* `bsub -gpu "num=2:mode=shared:j_exclusive=yes" -q gpu my-job.sh`
 
 ## Start a submit-only host
 
