@@ -33,8 +33,8 @@
         cyclecloud.selinux.policy = permissive
 
 
-        [[[cluster-init cyclecloud/lsf:default:$LsfProjectVersion]]]
-
+        [[[cluster-init cyclecloud/lsf:default]]]
+        
     [[node fileserver]]
         MachineType = $FSMachineType
 
@@ -90,8 +90,9 @@
         options = no_root_squash
         samba.enabled = false
 
-    [[nodearray master]]
+    [[nodearray scheduler]]
         MachineType = $MasterMachineType
+        ImageName = $SchedulerImageName
         InitialCount = $MasterNodeCountHA
         AdditionalClusterInitSpecs = $MasterClusterInitSpecs
 
@@ -112,7 +113,7 @@
         mountpoint = /shared/home
         export_path = /mnt/raid/home
 
-        [[[cluster-init cyclecloud/lsf:master:$LsfProjectVersion]]]
+        [[[cluster-init cyclecloud/lsf:master]]]
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -140,6 +141,7 @@
         MachineType = $ExecuteMachineType
         AdditionalClusterInitSpecs = $ExecuteClusterInitSpecs
         Interruptible = False
+        ImageName = $ImageName
 
         MaxCoreCount = $MaxExecuteCoreCount
 
@@ -159,7 +161,7 @@
         mountpoint = /shared/home
         export_path = /mnt/raid/home
 
-        [[[cluster-init cyclecloud/lsf:execute:$LsfProjectVersion]]]
+        [[[cluster-init cyclecloud/lsf:execute]]]
         
     [[nodearray ondemandmpi]]
     	Extends = ondemand
@@ -344,19 +346,24 @@ Order = 20
     Description = "Specify the scheduling software, and base OS installed on all nodes, and optionally the cluster-init and chef versions from your Locker."
     Order = 20
 
-        [[[parameter ImageName]]]
-        Label = Base OS
+        [[[parameter SchedulerImageName]]]
+        Label = Scheduler OS
         ParameterType = Cloud.Image
         Config.OS = linux
         DefaultValue = cycle.image.centos7
         Config.Filter := Package in {"cycle.image.centos7"}
+
+        [[[parameter ImageName]]]
+        Label = Execute OS
+        ParameterType = Cloud.Image
+        Config.OS = linux
+        DefaultValue = cycle.image.centos7
 
         [[[parameter GPUImageName]]]
         Label = GPU Base OS
         ParameterType = Cloud.Image
         Config.OS = linux
         DefaultValue = cycle.image.centos7
-        Config.Filter := Package in {"cycle.image.centos7"}
 
         [[[parameter MasterClusterInitSpecs]]]
         Label = Master Cluster-Init
@@ -375,11 +382,6 @@ Order = 20
         DefaultValue = =undefined
         Description = Cluster init specs to apply to GPU nodes only
         ParameterType = Cloud.ClusterInitSpecs
-
-        [[[parameter LsfProjectVersion]]]
-        Label = Project Version
-        Description = CycleCloud LSF project version found in project.ini
-        DefaultValue = 3.2.2
 
     [[parameters Master Nodes]]
     Description = "Optional master Fail-over configuration"
