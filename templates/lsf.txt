@@ -86,7 +86,7 @@ Order = 1
         [[[parameter Readme]]]
         HideLabel = true
         Config.Plugin = pico.widget.HtmlTemplateWidget
-        Config.Template := "<table></tr><tr><td><p>Instructions on configuring LSF cluster are found on the <a href=\"https://docs.microsoft.com/en-us/azure/cyclecloud/lsf/\" target=\"_blank\">CycleCloud docs page</a>.</p></td></tr></table>"
+        Config.Template := "<table role=\"presentation\"></tr><tr><td><p>Instructions on configuring LSF cluster are found on the <a href=\"https://docs.microsoft.com/en-us/azure/cyclecloud/lsf/\" target=\"_blank\">CycleCloud docs page</a>.</p></td></tr></table>"
 
 [parameters Required Settings]
 Order = 10
