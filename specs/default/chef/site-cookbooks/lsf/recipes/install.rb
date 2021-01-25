@@ -87,6 +87,26 @@ yum_package "java-1.8.0-openjdk.x86_64" do
 #[Mon Feb 24 21:35:17 UTC 2020:apply_fp_prechk:ERROR_4001]
 #    This patch is for LSF 10.1.0 linux3.10-glibc2.17-x86_64. The patch installer cannot find the corresponding LSF base installation. Complete the base installation and make sure the base installation and patch package versions match before applying the patch.
 
+execute "link_package_db" do
+    command " ln -s PackageInfo_LSF10.1.0_linux3.10-glibc2.17-x86_64.db Package.db"
+    cwd "#{lsf_top}/patch/patchdb/"
+    only_if { entitled_install }
+    only_if { ::File.exist?("#{lsf_top}/patch/patchdb/PackageInfo_LSF10.1.0_linux3.10-glibc2.17-x86_64.db")}
+    only_if { !lsf_patch.nil? }
+    creates "#{lsf_top}/patch/patchdb/Package.db"
+    action :nothing
+end
+
+execute "link_package_db_legacy" do
+    command " ln -s PackageInfo_LSF10.1.0_linux2.6-glibc2.3-x86_64.db Package.db"
+    cwd "#{lsf_top}/patch/patchdb/"
+    only_if { entitled_install }
+    only_if { ::File.exist?("#{lsf_top}/patch/patchdb/PackageInfo_LSF10.1.0_linux2.6-glibc2.3-x86_64.db")}
+    only_if { !lsf_patch.nil? }
+    creates "#{lsf_top}/patch/patchdb/Package.db"
+    action :nothing
+end
+
 execute "run_lsfinstall_fp9" do
     command " . conf/profile.lsf && ./#{lsf_version}/install/patchinstall --silent #{tar_dir}/#{lsf_product_fp9}.tar.Z"
     cwd "#{lsf_top}"
@@ -104,6 +124,8 @@ execute "run_lsfinstall" do
     creates "#{lsf_top}/conf/profile.lsf"
     not_if { ::File.exist?("#{lsf_top}/#{lsf_version}/#{lsf_kernel}-#{lsf_arch}/lsf_release")}
     not_if { ::Dir.exist?("#{lsf_top}/#{lsf_version}")}
+    notifies :run, 'execute[link_package_db]', :immediately
+    notifies :run, 'execute[link_package_db_legacy]', :immediately
     notifies :run, 'execute[run_lsfinstall_fp9]', :immediately
 end
 

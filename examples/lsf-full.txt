@@ -29,6 +29,7 @@
         lsf.shared_install = true
         lsf.cyclecloud_cluster_name = $WorkerCluster
         lsf.custom_script_uri = $customScriptUri
+        lsf.required_patch_version = 564512
 
         cyclecloud.selinux.policy = permissive
 
