@@ -119,3 +119,6 @@ LSF_RSH="ssh -o 'PasswordAuthentication no' -o 'StrictHostKeyChecking no'"
 LSF_STRIP_DOMAIN=.<%= @master_domain %>
 LSF_DYNAMIC_HOST_TIMEOUT=10m
 LSF_DYNAMIC_HOST_WAIT_TIME="2"
+
+# configure LSF to use threads instead of cores for host resource def
+EGO_DEFINE_NCPUS=threads
