@@ -32,10 +32,6 @@ if [ -n "${rc_account}" ]; then
   TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${rc_account}*rc_account]"
 fi
 
-if [ -n "${cyclecloud_nodeid}" ]; then
-  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${cyclecloud_nodeid}*instanceID]"
-fi
-
 if [ -n "${nodearray_name}" ]; then
   TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${nodearray_name}*nodearray]"
   if [[ $nodearray_name == *"mpi" ]]; then
@@ -55,6 +51,10 @@ fi
 
 if [ -n "${placement_group_id}" ]; then
   TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${placement_group_id}*placementgroup]"
+fi
+
+if [ -n "${cyclecloud_nodeid}" ]; then
+  TEMP_LOCAL_RESOURCES="$TEMP_LOCAL_RESOURCES [resourcemap ${cyclecloud_nodeid}*instanceID]"
 fi
 
 echo "LSF_LOCAL_RESOURCES=\"${TEMP_LOCAL_RESOURCES}\"" >> $LSF_CONF
