@@ -74,10 +74,12 @@ execute "anf_fix_lsfprechkfuncs" do
 end
 
 
-yum_package "java-1.8.0-openjdk.x86_64" do
+node['lsf']['packages'].each do |p|
+package p do
     action "install"
-    not_if "yum list installed java-1.8.0-openjdk.x86_64"
+    not_if "rpm -q #{p}"
   end
+end
 
 # removed pversion dependency
 ## ./10.1/install/pversions
