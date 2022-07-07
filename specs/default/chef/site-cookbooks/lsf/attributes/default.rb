@@ -33,7 +33,7 @@ case node['platform']
 when 'centos', 'redhat'
     default['lsf']['packages'] = ["java-1.8.0-openjdk.x86_64"]
 when 'suse'
-  default['lsf']['packages'] = ["java-1_8_0-openjdk"]
+  default['lsf']['packages'] = ["java-1_8_0-openjdk", "ed"]
 else
   default['lsf']['packages'] = []
 end
