@@ -133,11 +133,6 @@ node['lsf']['packages'].each do |p|
   end
 end
 
-yum_package "java-1.8.0-openjdk.x86_64" do
-  action "install"
-  not_if "yum list installed java-1.8.0-openjdk.x86_64"
-end
-
 group "mosquitto" do
   gid '6002'.to_i
 end
