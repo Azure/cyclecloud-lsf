@@ -126,6 +126,13 @@ directory node['lsf']['lsf_logdir'] do
   not_if { ::File.directory?(node['lsf']['lsf_logdir']) }
 end
 
+node['lsf']['packages'].each do |p|
+  package p do
+    action "install"
+    not_if "rpm -q #{p}"
+  end
+end
+
 yum_package "java-1.8.0-openjdk.x86_64" do
   action "install"
   not_if "yum list installed java-1.8.0-openjdk.x86_64"
