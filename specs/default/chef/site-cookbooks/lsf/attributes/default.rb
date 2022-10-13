@@ -28,6 +28,23 @@ default['lsf']['autoscale']['log'] = "/var/log/lsf-autoscale.log"
 
 default['lsf']['custom_script_uri'] = "file:///mnt/cluster-init/lsf/execute/files/user_data-full.sh"
 
+case node['platform_family']
+when 'suse'
+    default['lsf']['packages'] = ["ed"]
+end
+
+# Prerequisite packages for LSF to function that need to be installed in the OS
+case node['platform']
+when 'centos', 'redhat'
+    default['lsf']['packages'] = ["java-1.8.0-openjdk.x86_64"]
+when 'suse'
+    default['lsf']['packages'] += ["java-1_8_0-openjdk"]
+when 'sle_hpc', 'sle-hpc'
+    default['lsf']['packages'] += ["java-11-openjdk"]
+else
+    default['lsf']['packages'] = []
+end
+
 # for search
 default['lsf']['master']['hostnames'] = nil
 default['lsf']['master']['ip_addresses'] = nil
