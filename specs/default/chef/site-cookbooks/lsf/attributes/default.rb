@@ -28,12 +28,12 @@ default['lsf']['autoscale']['log'] = "/var/log/lsf-autoscale.log"
 
 default['lsf']['custom_script_uri'] = "file:///mnt/cluster-init/lsf/execute/files/user_data-full.sh"
 
+# Prerequisite packages for LSF to function that need to be installed in the OS
 case node['platform_family']
 when 'suse'
     default['lsf']['packages'] = ["ed"]
 end
 
-# Prerequisite packages for LSF to function that need to be installed in the OS
 case node['platform']
 when 'centos', 'redhat'
     default['lsf']['packages'] = ["java-1.8.0-openjdk.x86_64"]
