@@ -4,23 +4,22 @@
     Category = Schedulers
 
     [[node defaults]]
-
+        UsePublicNetwork = $UsePublicNetwork
         Credentials = $Credentials
         Region = $Region
         KeyPairLocation = ~/.ssh/cyclecloud.pem
         ImageName = cycle.image.centos7
         SubnetId = $ComputeSubnet
 
+
+        CloudInit = '''#cloud-config
+packages:
+- libnsl
+        '''
+
         [[[configuration]]]
 
-        cyclecloud.mounts.sched.disabled = true
-        cyclecloud.mounts.shared.disabled = true
-        cshared.server.legacy_links_disabled = true
         cuser.base_home_dir = /shared/home
-
-        cyclecloud.exports.shared.samba.enabled = false
-        cyclecloud.exports.defaults.samba.enabled = false
-        cyclecloud.maintenance_converge.enabled = false
 
         lsf.lsf_top = $LSF_TOP  # /grid/lsf
         lsf.lsf_logdir = ${LSF_TOP}/log
@@ -29,98 +28,101 @@
         lsf.shared_install = true
         lsf.cyclecloud_cluster_name = $WorkerCluster
         lsf.custom_script_uri = $customScriptUri
-        lsf.required_patch_version = 600369 
+        lsf.required_patch_version = 600488 
 
         cyclecloud.selinux.policy = permissive
 
+        # Disable normal NFS exports and mounts
+        cyclecloud.mounts.sched.disabled = true
+        cyclecloud.mounts.shared.disabled = true
+        cyclecloud.exports.sched.disabled = true
+        cyclecloud.exports.shared.disabled = true
+        cyclecloud.exports.sched.samba.enabled = false
+        cyclecloud.exports.shared.samba.enabled = false
+        cyclecloud.exports.defaults.samba.enabled = false      
+        cshared.server.legacy_links_disabled = true
 
         [[[cluster-init cyclecloud/lsf:default]]]
-        
-    [[node fileserver]]
-        MachineType = $FSMachineType
 
-        [[[volume proj0]]]
-        Size = $ProjVolSize
-        #Persistent = true
-        SSD = True
-        Mount = proj
-
-        [[[volume proj1]]]
-        Size = $ProjVolSize
-        #Persistent = true
-        SSD = True
-        Mount = proj
-
-        [[[volume proj2]]]
-        Size = $ProjVolSize
-        #Persistent = true
-        SSD = True
-        Mount = proj
-
-        [[[volume proj3]]]
-        Size = $ProjVolSize
-        #Persistent = true
-        SSD = True
-        Mount = proj
-
-        [[[volume proj4]]]
-        Size = $ProjVolSize
-        #Persistent = true
-        SSD = True
-        Mount = proj
-
-        [[[configuration cyclecloud.mounts.proj]]]
-        mountpoint = /mnt/raid
-        fs_type = xfs
-        raid_level = 0
-
-        [[[configuration]]]
-        run_list = role[scheduler],recipe[cshared::directories],recipe[cshared::server],recipe[cganglia::client]
-        cshared.server.shared_dir = /shared
-        cuser.base_home_dir = /home
-
-        [[[configuration cyclecloud.exports.lsf]]]
+        [[[configuration cyclecloud.mounts.nfs_shared]]]
         type = nfs
-        export_path = /mnt/raid/lsf
-        options = no_root_squash
-        samba.enabled = false
+        mountpoint = /shared
+        export_path = $NFSSharedExportPath
+        address = $NFSAddress
+        options = $NFSSharedMountOptions
 
-        [[[configuration cyclecloud.exports.home]]]
+        [[[configuration cyclecloud.mounts.nfs_sched]]]
         type = nfs
-        export_path = /mnt/raid/home
-        options = no_root_squash
-        samba.enabled = false
+        mountpoint = /sched
+        disabled = $NFSSchedDisable
 
-    [[nodearray scheduler]]
+        [[[configuration cyclecloud.mounts.additional_nfs]]]
+        disabled = ${AdditionalNAS isnt true}
+        type = nfs
+        address = ${ifThenElse(AdditionalNAS, AdditonalNFSAddress, undefined)}
+        mountpoint = ${ifThenElse(AdditionalNAS, AdditionalNFSMountPoint, undefined)}
+        export_path = ${ifThenElse(AdditionalNAS, AdditionalNFSExportPath, undefined)}
+        options = ${ifThenElse(AdditionalNAS, AdditionalNFSMountOptions, undefined)}
+
+
+    [[node scheduler]]
         MachineType = $MasterMachineType
         ImageName = $SchedulerImageName
         InitialCount = $MasterNodeCountHA
         AdditionalClusterInitSpecs = $MasterClusterInitSpecs
 
-
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::install],recipe[lsf::master]
-        cshared.server.shared_dir = /shared
-        cyclecloud.discoverable = true
+        cyclecloud.mounts.nfs_sched.disabled = true
+        cyclecloud.mounts.nfs_shared.disabled = ${NFSType != "External"}
+        run_list = role[scheduler],recipe[cyclecloud],recipe[cshared::directories],recipe[cuser],recipe[cshared::server],recipe[lsf::install],recipe[lsf::master]
         lsf.num_placement_groups = $MaxNumScalesets
 
-        [[[configuration cyclecloud.mounts.sched-exp]]]
-        type = nfs
-        mountpoint = $LSF_TOP
-        export_path = /mnt/raid/lsf
+        [[[network-interface eth0]]]
+        AssociatePublicIpAddress = $UsePublicNetwork
 
-        [[[configuration cyclecloud.mounts.home]]]
+        [[[volume sched]]]
+        Size = 30
+        SSD = True
+        Mount = builtinsched
+        Persistent = False
+
+        [[[volume shared]]]
+        Size = ${ifThenElse(NFSType == "Builtin", FilesystemSize, 2)}
+        SSD = True
+        Mount = builtinshared
+        Persistent = ${NFSType == "Builtin"}
+
+        [[[configuration cyclecloud.mounts.builtinsched]]]
+        disabled = ${NFSType != "Builtin"}
+        mountpoint = /sched
+        fs_type = xfs
+
+        [[[configuration cyclecloud.mounts.builtinshared]]]
+        disabled = ${NFSType != "Builtin"}
+        mountpoint = /shared
+        fs_type = xfs
+
+        [[[configuration cyclecloud.exports.builtinsched]]]
+        disabled = ${NFSSchedDisable}
+        export_path = /sched
+        options = no_root_squash
+        samba.enabled = false
         type = nfs
-        mountpoint = /shared/home
-        export_path = /mnt/raid/home
+
+        [[[configuration cyclecloud.exports.builtinshared]]]
+        disabled = ${NFSType != "Builtin"}
+        export_path = /shared
+        samba.enabled = false
+        type = nfs
 
         [[[cluster-init cyclecloud/lsf:master]]]
+
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
         MachineType = $ProxyMachineType
         SubnetId = ${ifThenElse(AccessSubnet !== undefined, AccessSubnet, ComputeSubnet)}
-
+        CloudInit = ''
         [[[configuration]]]
         run_list =  recipe[cganglia::server]
         cyclecloud.discoverable = true
@@ -152,16 +154,6 @@
         lsf.attribute_names = nodearray
         lsf.attributes.nodearray = ondemand
 
-        [[[configuration cyclecloud.mounts.sched-exp]]]
-        type = nfs
-        mountpoint = $LSF_TOP
-        export_path = /mnt/raid/lsf
-
-        [[[configuration cyclecloud.mounts.home]]]
-        type = nfs
-        mountpoint = /shared/home
-        export_path = /mnt/raid/home
-
         [[[cluster-init cyclecloud/lsf:execute]]]
         
     [[nodearray ondemandmpi]]
@@ -176,7 +168,9 @@
 
     [[nodearray lowprio]]
         Extends = ondemand
-        Interruptible = True
+        Interruptible = true
+        MaxPrice = -1
+
 
         [[[configuration]]]
         lsf.attribute_names = nodearray cyclecloudlowprio
@@ -189,7 +183,6 @@
         MachineType = $GPUMachineType
         AdditionalClusterInitSpecs = $GPUClusterInitSpecs
         [[[configuration]]]
-        lsf.ngpus = ${num_gpus_dict[GPUMachineType]}
         lsf.attribute_names = nodearray
         lsf.attributes.nodearray = gpu
 
@@ -249,49 +242,22 @@ Order = 10
         Label = Compute Type
         Description = The machine type for execute nodes
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_D4_v3 
+        DefaultValue = Standard_D4_v5 
         Config.Multiselect = true
 
         [[[parameter GPUMachineType]]]
         Label = GPU Type
         Description = The machine type for GPU nodes
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_NC12
+        DefaultValue = Standard_NC6s_v3
         Config.Multiselect = false
 
         [[[parameter SubmitMachineType]]]
         Label = Compute Type
         Description = The machine type for execute nodes
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_D4_v3 
+        DefaultValue = Standard_D4_v5 
         Config.Multiselect = true
-
-        [[[parameter num_gpus_dict]]]
-        required = True
-        label = Lookup number of GPUs based on machine type.
-        parametertype = hidden
-            [[[[record DefaultValue]]]]
-            Standard_NC6 = 1
-            Standard_NC6s_v2 = 1
-            Standard_NC6s_v3 = 1
-            Standard_ND6s = 1
-            Standard_NV6 = 1
-
-            Standard_NC12 = 2
-            Standard_NC12s_v2 = 2
-            Standard_NC12s_v3 = 2
-            Standard_ND12s = 2
-            Standard_NV12 = 2
-
-            Standard_NC24 = 4
-            Standard_NC24r = 4
-            Standard_NC24rs_v2 = 4
-            Standard_NC24rs_v3 = 4
-            Standard_NC24s_v2 = 4
-            Standard_NC24s_v3 = 4
-            Standard_ND24rs = 4
-            Standard_ND24s = 4
-            Standard_NV24 = 4
 
         [[[parameter MaxExecuteCoreCount]]]
         Label = Max Cores
@@ -313,6 +279,28 @@ Order = 10
         Required = true
         ParameterType = Azure.Subnet
 
+    [[parameters Advanced Networking]]
+    Description = Advanced networking settings
+
+        [[[parameter ReturnProxy]]]
+        Label = Return Proxy
+        DefaultValue = true
+        ParameterType = Boolean
+        Config.Label = Use SSH tunnel to connect to CycleCloud (required if direct access is blocked)
+
+        [[[parameter UsePublicNetwork]]]
+        Label = Public Head Node
+        DefaultValue = true
+        ParameterType = Boolean
+        Config.Label = Access scheduler node from the Internet
+
+        [[[parameter ExecuteNodesPublic]]]
+        Label = Public Execute
+        DefaultValue = false
+        ParameterType = Boolean
+        Config.Label = Access execute nodes from the Internet
+        Conditions.Excluded := UsePublicNetwork isnt true
+
 [parameters Advanced Settings]
 Order = 20
 
@@ -330,7 +318,7 @@ Order = 20
 
         [[[parameter lsf_top]]]
         Label = lsf_top
-        DefaultValue = "/grid/lsf"
+        DefaultValue = "/sched/lsf"
         Description = Location of LSF install on base image.
 
         [[[parameter customScriptUri]]]
@@ -351,20 +339,22 @@ Order = 20
         Label = Scheduler OS
         ParameterType = Cloud.Image
         Config.OS = linux
-        DefaultValue = cycle.image.centos7
-        Config.Filter := Package in {"cycle.image.centos7"}
+        DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
+        #Config.Filter := Package in {"cycle.image.centos7"}
 
         [[[parameter ImageName]]]
         Label = Execute OS
         ParameterType = Cloud.Image
         Config.OS = linux
-        DefaultValue = cycle.image.centos7
+        DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
+        #Config.Filter := Package in {"cycle.image.centos7"}
 
         [[[parameter GPUImageName]]]
         Label = GPU Base OS
         ParameterType = Cloud.Image
         Config.OS = linux
-        DefaultValue = cycle.image.centos7
+        DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
+        #Config.Filter := Package in {"cycle.image.centos7"}
 
         [[[parameter MasterClusterInitSpecs]]]
         Label = Master Cluster-Init
@@ -392,7 +382,7 @@ Order = 20
         Label = Master Type
         Description = The machine type for HA master array.
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_D2_v3
+        DefaultValue = Standard_D2_v5
 
         [[[parameter MasterNodeCountHA]]]
         Label = Master Count
@@ -428,7 +418,7 @@ Order = 20
         Label = Fileserver Type
         Description = The machine type for shared filer.
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_D4s_v3
+        DefaultValue = Standard_D4s_v5
 
         [[[parameter ProjVolSize]]]
         Label = Size (GB)
@@ -443,7 +433,7 @@ Order = 20
         Label = Proxy Type
         Description = The machine type for proxy.
         ParameterType = Cloud.MachineType
-        DefaultValue = Standard_D2_v3
+        DefaultValue = Standard_D2_v5
 
         [[[parameter MaxScalesetSize]]]
         Label = Max VMs in VMSS
@@ -462,3 +452,105 @@ Order = 20
         Config.MinValue = 0
         Config.MaxValue = 500
         Config.IntegerOnly = true
+
+
+[parameters Network Attached Storage]
+Order = 15
+
+
+    [[parameters Scheduler Mount]]
+    Order = 5
+        [[[parameter About sched]]]
+        HideLabel = true
+        Config.Plugin = pico.widget.HtmlTemplateWidget
+        Config.Template = ''' <p>The directory <code>/sched</code> is a network attached mount and exists in all nodes of the cluster. 
+            Slurm's configuration is linked in from this directory. It's managed by the scheduler node. 
+            To disable the mount of the /sched directory, and to supply your own for a <strong>hybrid scenario</strong>, select the checkbox below '''
+        Order = 6
+
+        [[[parameter NFSSchedDisable]]]
+        HideLabel = true
+        DefaultValue = false
+        Widget.Plugin = pico.form.BooleanCheckBox
+        Widget.Label = External Scheduler
+
+    [[parameters Default NFS Share]]
+    Order = 10
+        [[[parameter About shared]]]
+        HideLabel = true
+        Config.Plugin = pico.widget.HtmlTemplateWidget
+        Config.Template := "<p>The directory <code>/shared</code> is a network attached mount and exists in all nodes of the cluster. Users' home directories reside within this mountpoint with the base homedir <code>/shared/home</code>.<br><br>There are two options for providing this mount:<br> <strong>[Builtin]</strong>: The scheduler node is an NFS server that provides the mountpoint to the other nodes of the cluster.<br> <strong>[External NFS]</strong>: A network attached storage such as Azure Netapp Files, HPC Cache, or another VM running an NFS server, provides the mountpoint.</p>"
+        Order = 20
+
+        [[[parameter NFSType]]]
+        Label = NFS Type
+        ParameterType = StringList
+        Config.Label = Type of NFS to use for this cluster
+        Config.Plugin = pico.form.Dropdown
+        Config.Entries := {[Label="External NFS"; Value="External"], [Label="Builtin"; Value="Builtin"]}
+        DefaultValue = Builtin
+
+        [[[parameter NFSAddress]]]
+        Label = NFS IP Address
+        Description = The IP address or hostname of the NFS server. Also accepts a list comma-separated addresses, for example, to mount a frontend load-balanced Azure HPC Cache.
+        Config.ParameterType = String
+        Conditions.Hidden := NFSType != "External"
+
+        [[[parameter NFSSharedExportPath]]]
+        Label = Shared Export Path
+        Description = The path exported by the file system
+        DefaultValue = /shared
+        Conditions.Hidden := NFSType != "External"
+
+        [[[parameter NFSSharedMountOptions]]]
+        Label = NFS Mount Options
+        Description = NFS Client Mount Options
+        Conditions.Hidden := NFSType != "External"
+
+        [[[parameter FilesystemSize]]]
+        Label = Size (GB)
+        Description = The filesystem size
+        DefaultValue = 100
+
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 10
+        Config.MaxValue = 10240
+        Config.IntegerOnly = true
+        Conditions.Excluded := NFSType != "Builtin"
+
+    [[parameters Additional NFS Mount]]
+    Order = 20
+        [[[parameter Additional NFS Mount Readme]]]
+        HideLabel = true
+        Config.Plugin = pico.widget.HtmlTemplateWidget
+        Config.Template := "<p>Mount another NFS endpoint on the cluster nodes</p>"
+        Order = 20
+
+        [[[parameter AdditionalNAS]]]
+        HideLabel = true
+        DefaultValue = false
+        Widget.Plugin = pico.form.BooleanCheckBox
+        Widget.Label = Add NFS mount
+
+        [[[parameter AdditonalNFSAddress]]]
+        Label = NFS IP Address 
+        Description = The IP address or hostname of the NFS server. Also accepts a list comma-separated addresses, for example, to mount a frontend load-balanced Azure HPC Cache.
+        Config.ParameterType = String
+        Conditions.Excluded := AdditionalNAS isnt true
+
+        [[[parameter AdditionalNFSMountPoint]]]
+        Label = NFS Mount Point
+        Description = The path at which to mount the Filesystem
+        DefaultValue = /data
+        Conditions.Excluded := AdditionalNAS isnt true
+
+        [[[parameter AdditionalNFSExportPath]]]
+        Label = NFS Export Path
+        Description = The path exported by the file system
+        DefaultValue = /data
+        Conditions.Excluded := AdditionalNAS isnt true
+
+        [[[parameter AdditionalNFSMountOptions]]]
+        Label = NFS Mount Options
+        Description = NFS Client Mount Options
+        Conditions.Excluded := AdditionalNAS isnt true

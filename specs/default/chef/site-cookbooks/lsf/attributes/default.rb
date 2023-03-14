@@ -35,7 +35,7 @@ when 'suse'
 end
 
 case node['platform']
-when 'centos', 'redhat'
+when 'centos', 'redhat', 'almalinux'
     default['lsf']['packages'] = ["java-1.8.0-openjdk.x86_64"]
 when 'suse'
     default['lsf']['packages'] += ["java-1_8_0-openjdk"]
@@ -44,6 +44,7 @@ when 'sle_hpc', 'sle-hpc'
 else
     default['lsf']['packages'] = []
 end
+
 
 # for search
 default['lsf']['master']['hostnames'] = nil
