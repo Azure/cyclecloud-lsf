@@ -10,9 +10,17 @@
         KeyPairLocation = ~/.ssh/cyclecloud.pem
         ImageName = cycle.image.centos7
         SubnetId = $ComputeSubnet
+        Azure.Identities = $ManagedIdentity
 
         [[[configuration]]]
         #cyclecloud.selinux.policy = permissive
+        # May be used to identify the ID in cluster-init scripts
+        cluster.identities.default = $ManagedIdentity
+
+        [[[volume boot]]]
+        Size = ${ifThenElse(BootDiskSize > 0, BootDiskSize, undefined)}
+        SSD = True
+
 
     [[node proxy]]
         IsReturnProxy = $ReturnProxy
@@ -148,6 +156,22 @@ Order = 20
         [[[parameter Credentials]]]
         Description = The credentials for the cloud provider
         ParameterType = Cloud.Credentials
+
+        [[[parameter ManagedIdentity]]]
+        Label = Managed Id
+        Description = Optionally assign an Azure user assigned managed identity to all nodes to access Azure resources using assigned roles.
+        ParameterType = Azure.ManagedIdentity
+        DefaultValue = =undefined
+
+        [[[parameter BootDiskSize]]]
+        Description = Optional: Size of the OS/boot disk in GB for all nodes in the cluster (leave at 0 to use Image size)
+        ParameterType = Integer
+        Config.Plugin = pico.form.NumberTextBox
+        Config.MinValue = 0
+        Config.MaxValue = 32,000
+        Config.IntegerOnly = true
+        Config.Increment = 64
+        DefaultValue = 0
 
     [[parameters Software]]
     Description = "Specify the scheduling software, and base OS installed on all nodes, and optionally the cluster-init and chef versions from your Locker."
