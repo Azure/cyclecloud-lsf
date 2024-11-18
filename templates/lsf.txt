@@ -33,10 +33,6 @@
         [[[network-interface eth0]]]
         AssociatePublicIpAddress = $ReturnProxy
 
-        [[[input-endpoint SSH]]]
-        PrivatePort = 22
-        PublicPort = 22
-
     [[nodearray ondemand]]
         Priority = 500
         MachineType = $ExecuteMachineType
