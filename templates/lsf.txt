@@ -28,7 +28,6 @@
         SubnetId = ${ifThenElse(AccessSubnet !== undefined, AccessSubnet, ComputeSubnet)}
 
         [[[configuration]]]
-        run_list =  recipe[cganglia::server]
         cyclecloud.discoverable = true
 
         [[[network-interface eth0]]]
@@ -48,7 +47,6 @@
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cganglia::client]
         cyclecloud.maintenance_converge.enabled = false 
 
         [[[cluster-init cyclecloud/lsf:execute]]]
