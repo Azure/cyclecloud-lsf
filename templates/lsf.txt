@@ -34,10 +34,6 @@
         [[[network-interface eth0]]]
         AssociatePublicIpAddress = $ReturnProxy
 
-        [[[input-endpoint ganglia]]]
-        PrivatePort = 8652
-        PublicPort = 8652
-
         [[[input-endpoint SSH]]]
         PrivatePort = 22
         PublicPort = 22
