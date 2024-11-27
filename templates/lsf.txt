@@ -28,19 +28,10 @@
         SubnetId = ${ifThenElse(AccessSubnet !== undefined, AccessSubnet, ComputeSubnet)}
 
         [[[configuration]]]
-        run_list =  recipe[cganglia::server]
         cyclecloud.discoverable = true
 
         [[[network-interface eth0]]]
         AssociatePublicIpAddress = $ReturnProxy
-
-        [[[input-endpoint ganglia]]]
-        PrivatePort = 8652
-        PublicPort = 8652
-
-        [[[input-endpoint SSH]]]
-        PrivatePort = 22
-        PublicPort = 22
 
     [[nodearray ondemand]]
         Priority = 500
@@ -52,7 +43,6 @@
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cganglia::client]
         cyclecloud.maintenance_converge.enabled = false 
 
         [[[cluster-init cyclecloud/lsf:execute]]]

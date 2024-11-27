@@ -74,7 +74,7 @@ packages:
         [[[configuration]]]
         cyclecloud.mounts.nfs_sched.disabled = true
         cyclecloud.mounts.nfs_shared.disabled = ${NFSType != "External"}
-        run_list = role[scheduler],recipe[cyclecloud],recipe[cshared::directories],recipe[cuser],recipe[cshared::server],recipe[lsf::install],recipe[lsf::master]
+        run_list = role[scheduler],recipe[cshared::directories],recipe[cuser],recipe[cshared::server],recipe[lsf::install],recipe[lsf::master]
         lsf.num_placement_groups = $MaxNumScalesets
 
         [[[network-interface eth0]]]
@@ -124,20 +124,11 @@ packages:
         SubnetId = ${ifThenElse(AccessSubnet !== undefined, AccessSubnet, ComputeSubnet)}
         CloudInit = ''
         [[[configuration]]]
-        run_list =  recipe[cganglia::server]
         cyclecloud.discoverable = true
         cuser.base_home_dir = /home
 
         [[[network-interface eth0]]]
         AssociatePublicIpAddress = $ReturnProxy
-
-        [[[input-endpoint ganglia]]]
-        PrivatePort = 8652
-        PublicPort = 8652
-
-        [[[input-endpoint SSH]]]
-        PrivatePort = 22
-        PublicPort = 22
 
     [[nodearray ondemand]]
         Azure.MaxScalesetSize = $MaxScalesetSize
@@ -149,7 +140,7 @@ packages:
         MaxCoreCount = $MaxExecuteCoreCount
 
         [[[configuration]]]
-        run_list = recipe[cyclecloud],recipe[cshared::client],recipe[cuser],recipe[cganglia::client],recipe[lsf::worker]
+        run_list = recipe[cshared::client],recipe[cuser],recipe[lsf::worker]
         cyclecloud.maintenance_converge.enabled = false
         lsf.attribute_names = nodearray
         lsf.attributes.nodearray = ondemand
