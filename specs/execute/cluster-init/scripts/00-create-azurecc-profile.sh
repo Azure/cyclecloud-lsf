@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-node_id=$(python ../files/get_node_id.py)
+node_id=$(python3 ../files/get_node_id.py)
 
 cyclecloud_profile=/tmp/cyclecloud.profile
 
