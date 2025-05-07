@@ -14,7 +14,8 @@ if [ $custom_script_uri == 0 ]; then
 fi
 
 echo running $custom_script_uri...
-curl -L $custom_script_uri > /tmp/custom_script_uri_tmp.sh
-chmod +x /tmp/custom_script_uri_tmp.sh
-/tmp/./custom_script_uri_tmp.sh
-rm -f /tmp/custom_script_uri_tmp.sh
+LOCAL_SCRIPT=${CYCLECLOUD_BOOTSTRAP:-/tmp}/custom_script_uri_tmp.sh
+curl -L $custom_script_uri > $LOCAL_SCRIPT
+chmod +x $LOCAL_SCRIPT
+$LOCAL_SCRIPT
+rm -f $LOCAL_SCRIPT
