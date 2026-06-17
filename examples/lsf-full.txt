@@ -15,6 +15,7 @@
         CloudInit = '''#cloud-config
 packages:
 - libnsl
+- ed
         '''
 
         [[[configuration]]]
@@ -28,7 +29,7 @@ packages:
         lsf.shared_install = true
         lsf.cyclecloud_cluster_name = $WorkerCluster
         lsf.custom_script_uri = $customScriptUri
-        lsf.required_patch_version = 600488 
+        lsf.required_patch_version = 600369 
 
         cyclecloud.selinux.policy = permissive
 
@@ -42,7 +43,7 @@ packages:
         cyclecloud.exports.defaults.samba.enabled = false      
         cshared.server.legacy_links_disabled = true
 
-        [[[cluster-init cyclecloud/lsf:default]]]
+        [[[cluster-init lsf:default:3.3.2]]]
 
         [[[configuration cyclecloud.mounts.nfs_shared]]]
         type = nfs
@@ -115,7 +116,7 @@ packages:
         samba.enabled = false
         type = nfs
 
-        [[[cluster-init cyclecloud/lsf:master]]]
+        [[[cluster-init lsf:master:3.3.2]]]
 
 
     [[node proxy]]
@@ -145,7 +146,7 @@ packages:
         lsf.attribute_names = nodearray
         lsf.attributes.nodearray = ondemand
 
-        [[[cluster-init cyclecloud/lsf:execute]]]
+        [[[cluster-init lsf:execute:3.3.2]]]
         
     [[nodearray ondemandmpi]]
     	Extends = ondemand
