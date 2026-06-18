@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-LSF_TOP_DIR=$(jetpack config lsf.lsf_top)
+LSF_TOP_DIR=$(jetpack config lsf.lsf_top /sched/lsf)
 cat > /etc/systemd/system/lsfd.service <<EOF
 [Unit]
 Description=IBM Spectrum LSF Daemons
