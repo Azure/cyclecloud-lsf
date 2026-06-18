@@ -144,8 +144,8 @@ user "mosquitto" do
 end
 
 defer_block "Defer starting lsf until end of the converge" do
-  execute 'lsf_deamons start' do 
-    command "source #{lsf_top}/conf/profile.lsf && lsf_daemons start"
+  execute 'systemctl start lsfd' do 
+    command "systemctl start lsfd"
     not_if 'pidof lim'
     #user 'lsfadmin'
     #group 'lsfadmin'
