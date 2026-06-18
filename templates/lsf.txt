@@ -8,14 +8,9 @@
         Credentials = $Credentials
         Region = $Region
         KeyPairLocation = ~/.ssh/cyclecloud.pem
-        ImageName = almalinux:almalinux-hpc:8-hpc-gen2:latest
+        ImageName = almalinux8
         SubnetId = $ComputeSubnet
         Azure.Identities = $
-        
-        CloudInit = '''#cloud-config
-packages:
-- ed
-        '''
 
         [[[configuration]]]
         #cyclecloud.selinux.policy = permissive
@@ -177,14 +172,14 @@ Order = 20
         Description = Can override in LSF template
         ParameterType = Cloud.Image
         Config.OS = linux
-        DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
+        DefaultValue = almalinux8
 
         [[[parameter GPUImageName]]]
         Label = GPU Base OS
         Description = Can override in LSF template
         ParameterType = Cloud.Image
         Config.OS = linux
-        DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
+        DefaultValue = almalinux8
     
         #[[[parameter BASE_HOME_DIR]]]
         #Label = Base Home Directory 
