@@ -8,7 +8,7 @@
         Credentials = $Credentials
         Region = $Region
         KeyPairLocation = ~/.ssh/cyclecloud.pem
-        ImageName = cycle.image.centos7
+        ImageName = cycle.image.ubuntu22
         SubnetId = $ComputeSubnet
         Azure.Identities = $ManagedIdentity
 
@@ -172,17 +172,17 @@ Order = 20
         Description = Can override in LSF template
         ParameterType = Cloud.Image
         Config.OS = linux
-        DefaultValue = cycle.image.centos7
-        Config.Filter := Package in {"cycle.image.centos7"}
+        DefaultValue = cycle.image.ubuntu22
+        Config.Filter := Package in {"cycle.image.ubuntu24", "cycle.image.ubuntu22", "cycle.image.sles15-hpc", "almalinux8", "almalinux9"}
 
         [[[parameter GPUImageName]]]
         Label = GPU Base OS
         Description = Can override in LSF template
         ParameterType = Cloud.Image
         Config.OS = linux
-        DefaultValue = cycle.image.centos7
-        Config.Filter := Package in {"cycle.image.centos7"}
-    
+        DefaultValue = cycle.image.ubuntu22
+        Config.Filter := Package in {"cycle.image.ubuntu24", "cycle.image.ubuntu22", "cycle.image.sles15-hpc", "almalinux8", "almalinux9"}    
+
         #[[[parameter BASE_HOME_DIR]]]
         #Label = Base Home Directory 
         #Description = Home directory for Cycle-managed users.
