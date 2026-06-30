@@ -10,7 +10,7 @@
         KeyPairLocation = ~/.ssh/cyclecloud.pem
         ImageName = almalinux8
         SubnetId = $ComputeSubnet
-        Azure.Identities = $
+        Azure.Identities = $ManagedIdentity
 
         [[[configuration]]]
         #cyclecloud.selinux.policy = permissive
