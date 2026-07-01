@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-node_id=$(python3 ../files/get_node_id.py)
+node_id=$(jetpack config cyclecloud.node.id)
 
 cyclecloud_profile=/tmp/cyclecloud.profile
 
