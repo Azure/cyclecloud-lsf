@@ -43,7 +43,7 @@ packages:
         cyclecloud.exports.defaults.samba.enabled = false      
         cshared.server.legacy_links_disabled = true
 
-        [[[cluster-init lsf:default:3.3.2]]]
+        [[[cluster-init lsf:default:3.3.3]]]
 
         [[[configuration cyclecloud.mounts.nfs_shared]]]
         type = nfs
@@ -116,7 +116,7 @@ packages:
         samba.enabled = false
         type = nfs
 
-        [[[cluster-init lsf:master:3.3.2]]]
+        [[[cluster-init lsf:master:3.3.3]]]
 
 
     [[node proxy]]
@@ -146,7 +146,7 @@ packages:
         lsf.attribute_names = nodearray
         lsf.attributes.nodearray = ondemand
 
-        [[[cluster-init lsf:execute:3.3.2]]]
+        [[[cluster-init lsf:execute:3.3.3]]]
         
     [[nodearray ondemandmpi]]
     	Extends = ondemand
