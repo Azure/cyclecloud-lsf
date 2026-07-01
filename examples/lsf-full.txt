@@ -8,7 +8,7 @@
         Credentials = $Credentials
         Region = $Region
         KeyPairLocation = ~/.ssh/cyclecloud.pem
-        ImageName = cycle.image.centos7
+        ImageName = almalinux:almalinux-hpc:8-hpc-gen2:latest
         SubnetId = $ComputeSubnet
 
 
@@ -332,21 +332,18 @@ Order = 20
         ParameterType = Cloud.Image
         Config.OS = linux
         DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
-        #Config.Filter := Package in {"cycle.image.centos7"}
 
         [[[parameter ImageName]]]
         Label = Execute OS
         ParameterType = Cloud.Image
         Config.OS = linux
         DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
-        #Config.Filter := Package in {"cycle.image.centos7"}
 
         [[[parameter GPUImageName]]]
         Label = GPU Base OS
         ParameterType = Cloud.Image
         Config.OS = linux
         DefaultValue = almalinux:almalinux-hpc:8-hpc-gen2:latest
-        #Config.Filter := Package in {"cycle.image.centos7"}
 
         [[[parameter MasterClusterInitSpecs]]]
         Label = Master Cluster-Init
