@@ -111,7 +111,7 @@ class Cluster:
         return self.get("/clusters/%s/status" % self.cluster_name)
             
     def _session(self):
-        config = {"verify_certificates": False,
+        config = {"verify_certificates": self._get_or_default("cyclecloud.verify_certificates", False),
                   "username": self._get_or_raise("cyclecloud.config.username"),
                   "password": self._get_or_raise("cyclecloud.config.password"),
                   "cycleserver": {
@@ -119,9 +119,12 @@ class Cluster:
                   }
         }
         return get_session(config=config)
+
+    def _get_or_default(self, key, default_value=None):
+        return self.provider_config.get(key, default_value)
     
     def _get_or_raise(self, key):
-        value = self.provider_config.get(key)
+        value = self._get_or_default(key)
         if not value:
             #  jetpack.config.get will raise a ConfigError above.
             raise ConfigError("Please define key %s in the provider config." % key)
